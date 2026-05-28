@@ -16,25 +16,7 @@ extension ItemView {
         var viewModel: SeriesItemViewModel
 
         var body: some View {
-            VStack(spacing: 0) {
-                if viewModel.seasons.isNotEmpty {
-                    SeriesEpisodeSelector(viewModel: viewModel)
-                }
-
-                if let castAndCrew = viewModel.item.people, castAndCrew.isNotEmpty {
-                    ItemView.CastAndCrewHStack(people: castAndCrew)
-                }
-
-                if viewModel.specialFeatures.isNotEmpty {
-                    ItemView.SpecialFeaturesHStack(items: viewModel.specialFeatures)
-                }
-
-                if viewModel.similarItems.isNotEmpty {
-                    ItemView.SimilarItemsHStack(items: viewModel.similarItems)
-                }
-
-                ItemView.AboutView(viewModel: viewModel)
-            }
+            SeriesDetailView(viewModel: viewModel)
         }
     }
 }

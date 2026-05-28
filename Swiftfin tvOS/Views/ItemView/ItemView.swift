@@ -67,7 +67,11 @@ struct ItemView: View {
         viewModel: ItemViewModel,
         content: @escaping () -> some View
     ) -> any ScrollContainerView {
-        CinematicScrollView(viewModel: viewModel, content: content)
+        if viewModel.item.type == .series {
+            SeriesCinematicScrollView(viewModel: viewModel, content: content)
+        } else {
+            CinematicScrollView(viewModel: viewModel, content: content)
+        }
     }
 
     @ViewBuilder
