@@ -20,6 +20,8 @@ final class SeriesItemViewModel: ItemViewModel {
 
     @Published
     var seasons: IdentifiedArrayOf<SeasonItemViewModel> = []
+    @Published
+    private(set) var episodeOverviewItem: BaseItemDto?
 
     // MARK: - Task
 
@@ -40,6 +42,7 @@ final class SeriesItemViewModel: ItemViewModel {
 
                 await MainActor.run {
                     self.seasons.removeAll()
+                    self.episodeOverviewItem = nil
                 }
 
                 do {
@@ -56,13 +59,46 @@ final class SeriesItemViewModel: ItemViewModel {
                         self.seasons.append(contentsOf: newSeasons)
                     }
 
-                    if let episodeItem = try await [nextUp, resume].compacted().first {
+                    let nextUpItem = try await nextUp
+                    let resumeItem = try await resume
+                    let firstAvailableItem = try await firstAvailable
+
+                    if let playButtonItem = [nextUpItem, resumeItem, firstAvailableItem].compacted().first {
                         await MainActor.run {
-                            self.playButtonItem = episodeItem
+                            self.playButtonItem = playButtonItem
                         }
-                    } else if let firstAvailable = try await firstAvailable {
+                    }
+
+                    let episodeOverviewItem: BaseItemDto? = {
+                        if let resumeItem {
+                            return resumeItem
+                        }
+
+                        guard let nextUpItem else { return nil }
+
+                        guard let firstAvailableItem else {
+                            return nextUpItem
+                        }
+
+                        if let nextUpID = nextUpItem.id,
+                           let firstAvailableID = firstAvailableItem.id,
+                           nextUpID == firstAvailableID
+                        {
+                            return nil
+                        }
+
+                        if nextUpItem.parentIndexNumber == firstAvailableItem.parentIndexNumber,
+                           nextUpItem.indexNumber == firstAvailableItem.indexNumber
+                        {
+                            return nil
+                        }
+
+                        return nextUpItem
+                    }()
+
+                    if let episodeOverviewItem {
                         await MainActor.run {
-                            self.playButtonItem = firstAvailable
+                            self.episodeOverviewItem = episodeOverviewItem
                         }
                     }
                 }

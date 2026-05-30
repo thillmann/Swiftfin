@@ -54,7 +54,8 @@ extension ItemView {
 
                 if let itemOverview = item.overview {
                     Text(itemOverview)
-                        .font(.subheadline)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
                         .lineLimit(overviewLineLimit)
                 }
             }

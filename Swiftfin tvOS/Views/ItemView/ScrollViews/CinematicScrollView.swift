@@ -18,6 +18,10 @@ extension ItemView {
 
         @StateObject
         private var focusGuide = FocusGuide()
+        @State
+        private var collapsesSeriesHero = false
+        @State
+        private var hasEstablishedSeriesHeaderFocus = false
 
         private let content: Content
 
@@ -59,6 +63,11 @@ extension ItemView {
 
         var body: some View {
             GeometryReader { proxy in
+                let expandedHeaderHeight = max(proxy.size.height - 150, 0)
+                let collapseProgress: CGFloat = (viewModel.item.type == .series && collapsesSeriesHero) ? 1 : 0
+                let visibleHeaderHeight = expandedHeaderHeight * (1 - collapseProgress)
+                let visibleBottomPadding = 50 * (1 - collapseProgress)
+
                 ZStack {
                     withBackgroundImageSource { imageSource in
                         ImageView(imageSource)
@@ -75,8 +84,12 @@ extension ItemView {
                                             bottom: "belowHeader"
                                         )
                                 }
-                                .frame(height: proxy.size.height - 150)
-                                .padding(.bottom, 50)
+                                .frame(height: expandedHeaderHeight, alignment: .top)
+                                .offset(y: -expandedHeaderHeight * collapseProgress)
+                                .frame(height: visibleHeaderHeight, alignment: .top)
+                                .padding(.bottom, visibleBottomPadding)
+                                .clipped()
+                                .animation(.easeOut(duration: 0.25), value: collapsesSeriesHero)
 
                             content
                         }
@@ -98,8 +111,32 @@ extension ItemView {
                         .environmentObject(focusGuide)
                     }
                 }
+                .onAppear {
+                    hasEstablishedSeriesHeaderFocus = false
+                    updateSeriesHeroCollapse(for: focusGuide.focusedTag)
+                }
+                .onChange(of: focusGuide.focusedTag) { _, newTag in
+                    updateSeriesHeroCollapse(for: newTag)
+                }
             }
             .ignoresSafeArea()
+        }
+
+        private func updateSeriesHeroCollapse(for focusedTag: String?) {
+            guard viewModel.item.type == .series else {
+                collapsesSeriesHero = false
+                hasEstablishedSeriesHeaderFocus = false
+                return
+            }
+
+            if focusedTag == "header" {
+                hasEstablishedSeriesHeaderFocus = true
+                collapsesSeriesHero = false
+                return
+            }
+
+            let shouldCollapse = focusedTag == "belowHeader" || focusedTag == "episodes"
+            collapsesSeriesHero = hasEstablishedSeriesHeaderFocus && shouldCollapse
         }
     }
 }
@@ -117,76 +154,109 @@ extension ItemView {
         @StoredValue(.User.itemViewAttributes)
         private var attributes
 
-        @Router
-        private var router
         @ObservedObject
         var viewModel: ItemViewModel
         @FocusState
         private var focusedLayer: CinematicHeaderFocusLayer?
 
+        private var heroTitleFallback: some View {
+            Text(viewModel.item.displayTitle)
+                .font(.system(size: 64, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: 800, alignment: .leading)
+        }
+
+        private var heroOverviewItem: BaseItemDto {
+            if let seriesViewModel = viewModel as? SeriesItemViewModel,
+               let episodeOverviewItem = seriesViewModel.episodeOverviewItem,
+               let overview = episodeOverviewItem.overview,
+               !overview.isEmpty
+            {
+                return episodeOverviewItem
+            }
+
+            return viewModel.item
+        }
+
+        @ViewBuilder
+        private var heroLogoOrTitle: some View {
+            if viewModel.item.imageURL(.logo, maxHeight: 200) != nil {
+                ImageView(viewModel.item.imageSource(.logo, maxHeight: 200))
+                    .placeholder { _ in
+                        EmptyView()
+                    }
+                    .failure {
+                        heroTitleFallback
+                    }
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 400, maxHeight: 200, alignment: .leading)
+            } else {
+                heroTitleFallback
+            }
+        }
+
         var body: some View {
-            VStack(alignment: .leading) {
+            VStack(alignment: .trailing, spacing: 0) {
 
                 Color.clear
                     .focusable()
                     .focused($focusedLayer, equals: .top)
 
-                HStack(alignment: .bottom) {
+                HStack(alignment: .bottom, spacing: 80) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        heroLogoOrTitle
 
-                    VStack(alignment: .leading, spacing: 20) {
+                        DotHStack {
+                            if viewModel.item.type == .series {
+                                Text(L10n.series)
+                            } else if viewModel.item.type == .episode {
+                                Text(L10n.episode)
+                            }
 
-                        ImageView(viewModel.item.imageSource(
-                            .logo,
-                            maxHeight: 250
-                        ))
-                        .placeholder { _ in
-                            EmptyView()
+                            ForEach(viewModel.item.genres ?? [], id: \.self) { value in
+                                Text(value)
+                            }
                         }
-                        .failure {
-                            Marquee(viewModel.item.displayTitle)
-                                .font(.largeTitle)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                                .foregroundStyle(.white)
-                        }
-                        .aspectRatio(contentMode: .fit)
-                        .padding(.bottom)
+                        .font(.body)
+                        .foregroundStyle(.white.opacity(0.9))
 
-                        OverviewView(item: viewModel.item)
+                        OverviewView(item: heroOverviewItem)
                             .taglineLineLimit(1)
                             .overviewLineLimit(3)
+                            .frame(maxWidth: 800, alignment: .leading)
 
                         if viewModel.item.type != .person {
-                            HStack {
-
+                            HStack(spacing: 20) {
                                 DotHStack {
-                                    if let firstGenre = viewModel.item.genres?.first {
-                                        Text(firstGenre)
-                                    }
-
-                                    if let premiereYear = viewModel.item.premiereDateYear {
-                                        Text(premiereYear)
-                                    }
-
-                                    if let playButtonitem = viewModel.playButtonItem, let runtime = playButtonitem.runTimeLabel {
-                                        Text(runtime)
-                                    }
+                                    Text(viewModel.item.premiereDateYear)
+                                    Text(viewModel.playButtonItem?.runTimeLabel)
                                 }
                                 .font(.caption)
-                                .foregroundColor(Color(UIColor.lightGray))
+                                .foregroundStyle(.white.opacity(0.9))
 
                                 ItemView.AttributesHStack(
                                     attributes: attributes,
                                     viewModel: viewModel
                                 )
                             }
+
+                            HStack(spacing: 20) {
+                                if viewModel.item.presentPlayButton {
+                                    ItemView.PlayButton(viewModel: viewModel)
+                                        .focused($focusedLayer, equals: .playButton)
+                                }
+
+                                ItemView.ActionButtonHStack(viewModel: viewModel)
+                                    .focused($focusedLayer, equals: .actionButtons)
+                            }
+                            .frame(width: 800, alignment: .leading)
                         }
                     }
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
-                    VStack(spacing: 30) {
-                        if viewModel.item.type == .person || viewModel.item.type == .musicArtist {
+                    if viewModel.item.type == .person || viewModel.item.type == .musicArtist {
+                        VStack(spacing: 30) {
                             ImageView(viewModel.item.imageSource(.primary, maxWidth: 450))
                                 .failure {
                                     SystemImageContentView(systemName: viewModel.item.systemImage)
@@ -194,22 +264,20 @@ extension ItemView {
                                 .posterStyle(.portrait, contentMode: .fill)
                                 .cornerRadius(10)
                                 .accessibilityIgnoresInvertColors()
-                        } else if viewModel.item.presentPlayButton {
-                            ItemView.PlayButton(viewModel: viewModel)
-                                .focused($focusedLayer, equals: .playButton)
-                                .frame(height: 100)
                         }
-                        ItemView.ActionButtonHStack(viewModel: viewModel)
-                            .focused($focusedLayer, equals: .actionButtons)
-                            .frame(height: 100)
+                        .frame(width: 450)
+                        .padding(.leading, 150)
                     }
-                    .frame(width: 450)
-                    .padding(.leading, 150)
                 }
             }
-            .padding(.horizontal, 50)
+            .padding(.leading, 80)
+            .padding(.trailing, 50)
             .onChange(of: focusedLayer) { _, layer in
                 if layer == .top {
+                    if viewModel.item.type == .person {
+                        return
+                    }
+
                     if viewModel.item.presentPlayButton {
                         focusedLayer = .playButton
                     } else {
