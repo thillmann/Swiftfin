@@ -22,7 +22,7 @@ struct AttributeBadge: View {
     private let content: () -> any View
 
     private var usedFont: Font {
-        font ?? .caption.weight(.semibold)
+        font ?? .caption2.weight(.semibold)
     }
 
     @ViewBuilder
@@ -33,8 +33,8 @@ struct AttributeBadge: View {
                 .padding(.init(vertical: 1, horizontal: 4))
                 .hidden()
                 .background {
-                    Color(UIColor.lightGray)
-                        .cornerRadius(2)
+                    Color(.white.opacity(0.8))
+                        .cornerRadius(4)
                         .inverseMask {
                             content()
                                 .eraseToAnyView()
@@ -44,11 +44,11 @@ struct AttributeBadge: View {
         } else {
             content()
                 .eraseToAnyView()
-                .foregroundStyle(Color(UIColor.lightGray))
+                .foregroundStyle(.white.opacity(0.8))
                 .padding(.init(vertical: 1, horizontal: 4))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 2)
-                        .stroke(Color(UIColor.lightGray), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(.white.opacity(0.8), lineWidth: 2)
                 )
         }
     }
@@ -150,7 +150,7 @@ extension AttributeBadge {
 private struct AttributeBadgeLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 2) {
-            configuration.icon
+            configuration.icon.scaleEffect(0.8)
 
             configuration.title
         }

@@ -35,6 +35,10 @@ extension ItemView {
         let localTrailers: [BaseItemDto]
         let externalTrailers: [NamedURL]
 
+        private var iconFont: Font {
+            .system(size: FeatureButtonTokens.baseHeight * 0.4, weight: .semibold)
+        }
+
         private var showLocalTrailers: Bool {
             enabledTrailers.contains(.local) && localTrailers.isNotEmpty
         }
@@ -56,10 +60,7 @@ extension ItemView {
         }
 
         private var trailerButton: some View {
-            Button(
-                L10n.trailers,
-                systemImage: "movieclapper"
-            ) {
+            Button {
                 if showLocalTrailers, let firstTrailer = localTrailers.first {
                     playLocalTrailer(firstTrailer)
                 }
@@ -67,12 +68,16 @@ extension ItemView {
                 if showExternalTrailers, let firstTrailer = externalTrailers.first {
                     playExternalTrailer(firstTrailer)
                 }
+            } label: {
+                Image(systemName: "movieclapper")
+                    .font(iconFont)
             }
+            .accessibilityLabel(L10n.trailers)
         }
 
         @ViewBuilder
         private var trailerMenu: some View {
-            Menu(L10n.trailers, systemImage: "movieclapper") {
+            Menu {
 
                 if showLocalTrailers {
                     Section(L10n.local) {
@@ -99,7 +104,11 @@ extension ItemView {
                         }
                     }
                 }
+            } label: {
+                Image(systemName: "movieclapper")
+                    .font(iconFont)
             }
+            .accessibilityLabel(L10n.trailers)
         }
 
         // MARK: Play Local Trailer

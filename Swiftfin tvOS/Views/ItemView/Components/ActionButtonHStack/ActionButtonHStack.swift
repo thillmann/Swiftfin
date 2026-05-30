@@ -23,6 +23,10 @@ extension ItemView {
         @ObservedObject
         var viewModel: ItemViewModel
 
+        private var iconFont: Font {
+            .system(size: FeatureButtonTokens.baseHeight * 0.4, weight: .semibold)
+        }
+
         // MARK: - Has Trailers
 
         private var hasTrailers: Bool {
@@ -40,31 +44,37 @@ extension ItemView {
         // MARK: - Body
 
         var body: some View {
-            HStack(alignment: .center, spacing: 30) {
+            HStack(alignment: .center, spacing: 20) {
 
                 // MARK: Toggle Played
 
                 if viewModel.item.canBePlayed {
                     let isCheckmarkSelected = viewModel.item.userData?.isPlayed == true
 
-                    Button(L10n.played, systemImage: "checkmark") {
+                    Button {
                         viewModel.send(.toggleIsPlayed)
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .font(iconFont)
                     }
-                    .buttonStyle(.tintedMaterial(tint: Color.jellyfinPurple, foregroundColor: .primary))
+                    .buttonStyle(.featureIconButton)
                     .isSelected(isCheckmarkSelected)
-                    .frame(minWidth: 100, maxWidth: .infinity)
+                    .accessibilityLabel(L10n.played)
                 }
 
                 // MARK: Toggle Favorite
 
                 let isHeartSelected = viewModel.item.userData?.isFavorite == true
 
-                Button(L10n.favorited, systemImage: isHeartSelected ? "heart.fill" : "heart") {
+                Button {
                     viewModel.send(.toggleIsFavorite)
+                } label: {
+                    Image(systemName: isHeartSelected ? "heart.fill" : "heart")
+                        .font(iconFont)
                 }
-                .buttonStyle(.tintedMaterial(tint: .pink, foregroundColor: .primary))
+                .buttonStyle(.featureIconButton)
                 .isSelected(isHeartSelected)
-                .frame(minWidth: 100, maxWidth: .infinity)
+                .accessibilityLabel(L10n.favorited)
 
                 // MARK: Watch a Trailer
 
@@ -73,8 +83,7 @@ extension ItemView {
                         localTrailers: viewModel.localTrailers,
                         externalTrailers: viewModel.item.remoteTrailers ?? []
                     )
-                    .buttonStyle(.tintedMaterial(tint: .pink, foregroundColor: .primary))
-                    .frame(minWidth: 100, maxWidth: .infinity)
+                    .buttonStyle(.featureIconButton)
                 }
 
                 // MARK: Advanced Options
@@ -83,17 +92,16 @@ extension ItemView {
                     Menu {
                         ItemEditorMenu(item: viewModel.item)
                     } label: {
-                        Label(L10n.advanced, systemImage: "ellipsis")
+                        Image(systemName: "ellipsis")
+                            .font(iconFont)
                             .rotationEffect(.degrees(90))
                     }
-                    .buttonStyle(.material)
-                    .frame(width: 60, height: 100)
+                    .buttonStyle(.featureIconButton)
+                    .accessibilityLabel(L10n.advanced)
                 }
             }
             .frame(height: 100)
             .labelStyle(.iconOnly)
-            .font(.title3)
-            .fontWeight(.semibold)
         }
     }
 }

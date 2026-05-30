@@ -14,13 +14,28 @@ extension ItemView {
 
     struct PlayButton: View {
 
+        private static let playAgainTitle = "Play Again"
+
+        @Environment(\.isFocused)
+        private var isFocused
+
         @Router
         private var router
 
         @ObservedObject
         var viewModel: ItemViewModel
 
+        let showsProgressBar: Bool
+
         private let logger = Logger.swiftfin()
+
+        init(
+            viewModel: ItemViewModel,
+            showsProgressBar: Bool = false
+        ) {
+            self.viewModel = viewModel
+            self.showsProgressBar = showsProgressBar
+        }
 
         // MARK: - Media Sources
 
@@ -42,33 +57,80 @@ extension ItemView {
 
         // MARK: - Title
 
-        private var title: String {
-            /// Use the Season/Episode label for the Series ItemView
-            if let seriesViewModel = viewModel as? SeriesItemViewModel,
-               let seasonEpisodeLabel = seriesViewModel.playButtonItem?.seasonEpisodeLabel
+        private var isPlayed: Bool {
+            viewModel.playButtonItem?.userData?.isPlayed ?? false
+        }
+
+        private var playbackPositionTicks: Int {
+            viewModel.playButtonItem?.userData?.playbackPositionTicks ?? 0
+        }
+
+        private var isPartiallyWatched: Bool {
+            playbackPositionTicks > 0 && !isPlayed
+        }
+
+        private var seasonEpisodeLabel: String? {
+            guard let playButtonItem = viewModel.playButtonItem else { return nil }
+
+            if let seasonNumber = playButtonItem.parentIndexNumber,
+               let episodeNumber = playButtonItem.indexNumber
             {
-                seasonEpisodeLabel
-
-                /// Use a Play/Resume label for single Media Source items that are not Series
-            } else if let playButtonLabel = viewModel.playButtonItem?.playButtonLabel {
-                playButtonLabel
-
-                /// Fallback to a generic `Play` label
-            } else {
-                L10n.play
+                return "S\(seasonNumber), E\(episodeNumber)"
             }
+
+            return playButtonItem.seasonEpisodeLabel
+        }
+
+        private var title: String {
+            if viewModel.playButtonItem?.isUnaired == true {
+                return L10n.unaired
+            }
+
+            if viewModel.playButtonItem?.isMissing == true {
+                return L10n.missing
+            }
+
+            if isPlayed {
+                return Self.playAgainTitle
+            }
+
+            let actionLabel = isPartiallyWatched ? L10n.resume : L10n.play
+
+            if let seasonEpisodeLabel {
+                return "\(actionLabel) \(seasonEpisodeLabel)"
+            }
+
+            return actionLabel
         }
 
         // MARK: - Media Source
 
         private var source: String? {
             guard let sourceLabel = viewModel.selectedMediaSource?.displayTitle,
-                  viewModel.item.mediaSources?.count ?? 0 > 1
+                  viewModel.playButtonItem?.mediaSources?.count ?? 0 > 1
             else {
                 return nil
             }
 
             return sourceLabel
+        }
+
+        // MARK: - Progress
+
+        private var progress: Double {
+            let value = (viewModel.playButtonItem?.userData?.playedPercentage ?? 0) / 100
+            return min(max(value, 0), 1)
+        }
+
+        private var remainingDuration: String? {
+            guard let playButtonItem = viewModel.playButtonItem else { return nil }
+
+            guard let runTimeTicks = playButtonItem.runTimeTicks else {
+                return playButtonItem.runTimeLabel
+            }
+
+            let remainingTicks = max(0, runTimeTicks - playbackPositionTicks)
+            return Duration.ticks(remainingTicks).formatted(.hourMinuteAbbreviated)
         }
 
         // MARK: - Body
@@ -91,26 +153,43 @@ extension ItemView {
             Button {
                 play()
             } label: {
-                HStack(spacing: 15) {
-                    Image(systemName: "play.fill")
+                if showsProgressBar {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 20, weight: .semibold))
 
-                    VStack {
-                        Text(title)
+                        ProgressView(value: progress)
+                            .progressViewStyle(
+                                FeatureInlineProgressStyle(
+                                    trackColor: isFocused ? .black.opacity(0.2) : .white.opacity(0.2),
+                                    fillColor: isFocused ? .black : .white
+                                )
+                            )
+                            .frame(width: 90)
 
-                        if let source {
-                            Marquee(source, animateWhenFocused: true)
-                                .font(.caption)
-                                .fontWeight(.medium)
+                        Text(remainingDuration ?? .emptyDash)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 40)
+                } else {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.fill")
+
+                        VStack {
+                            Text(title)
+
+                            if let source {
+                                Marquee(source, animateWhenFocused: true)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
                         }
                     }
+                    .padding(.horizontal, 40)
                 }
-                .padding(.horizontal, 20)
             }
             .buttonStyle(
-                .tintedMaterial(
-                    tint: .white,
-                    foregroundColor: .black
-                )
+                .featureButton
             )
             .contextMenu {
                 if viewModel.playButtonItem?.userData?.playbackPositionTicks != 0 {
