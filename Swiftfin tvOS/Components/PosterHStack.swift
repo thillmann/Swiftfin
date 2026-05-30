@@ -26,10 +26,10 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
             if let title {
                 HStack {
                     Text(title)
-                        .font(.title2)
+                        .font(.headline)
                         .fontWeight(.semibold)
                         .accessibility(addTraits: [.isHeader])
-                        .padding(.leading, 50)
+                        .padding(.leading, 80)
 
                     Spacer()
                 }

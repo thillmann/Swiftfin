@@ -19,10 +19,10 @@ extension ItemView {
             VStack(alignment: .leading, spacing: 0) {
 
                 Text(L10n.about)
-                    .font(.title2)
+                    .font(.headline)
                     .fontWeight(.semibold)
                     .accessibility(addTraits: [.isHeader])
-                    .padding(.leading, 50)
+                    .padding(.leading, 80)
 
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 30) {
@@ -40,7 +40,7 @@ extension ItemView {
                             RatingsCard(item: viewModel.item)
                         }
                     }
-                    .padding(50)
+                    .padding(80)
                 }
             }
             .focusSection()
