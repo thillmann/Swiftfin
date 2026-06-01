@@ -29,11 +29,12 @@ extension ItemView.AboutView {
                             }
                             .symbolRenderingMode(.multicolor)
                             .foregroundStyle(.green, .red)
-                            .font(.largeTitle)
+                            .font(.title)
 
                             // swiftlint:disable:next hard_coded_display_string
                             Text("\(criticRating, specifier: "%.0f")")
-                                .font(.title3)
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.92))
                         }
                     }
 
@@ -42,11 +43,12 @@ extension ItemView.AboutView {
                             Image(systemName: "star.fill")
                                 .symbolRenderingMode(.multicolor)
                                 .foregroundStyle(.yellow)
-                                .font(.largeTitle)
+                                .font(.title)
 
                             // swiftlint:disable:next hard_coded_display_string
                             Text("\(communityRating, specifier: "%.1f")")
-                                .font(.title3)
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.92))
                         }
                     }
                 }

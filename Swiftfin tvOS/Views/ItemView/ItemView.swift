@@ -73,7 +73,7 @@ struct ItemView: View {
     @ViewBuilder
     private var innerBody: some View {
         scrollContainerView(viewModel: viewModel) {
-            scrollContentView
+            scrollContentView.padding(.bottom, 40)
         }
         .eraseToAnyView()
     }

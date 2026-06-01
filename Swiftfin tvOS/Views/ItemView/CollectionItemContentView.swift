@@ -74,7 +74,7 @@ extension ItemView {
         }
 
         var body: some View {
-            VStack(spacing: 0) {
+            VStack(spacing: 40) {
                 ForEach(
                     viewModel.sections.elements,
                     id: \.key

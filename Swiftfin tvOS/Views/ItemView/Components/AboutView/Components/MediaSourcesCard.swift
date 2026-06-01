@@ -26,11 +26,13 @@ extension ItemView.AboutView {
                 if let mediaStreams = source.mediaStreams {
                     VStack(alignment: .leading) {
                         Text(mediaStreams.compactMap(\.displayTitle).prefix(4).joined(separator: "\n"))
-                            .font(.footnote)
+                            .font(.body)
+                            .foregroundStyle(.white.opacity(0.92))
 
                         if mediaStreams.count > 4 {
                             Text(L10n.seeMore)
-                                .font(.footnote)
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.6))
                         }
                     }
                 }

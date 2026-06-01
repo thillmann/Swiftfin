@@ -16,7 +16,7 @@ extension ItemView {
         var viewModel: ItemViewModel
 
         var body: some View {
-            VStack(spacing: 0) {
+            VStack(spacing: 40) {
                 if let castAndCrew = viewModel.item.people, castAndCrew.isNotEmpty {
                     ItemView.CastAndCrewHStack(people: castAndCrew)
                 }

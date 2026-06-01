@@ -40,7 +40,8 @@ extension ItemView {
                             RatingsCard(item: viewModel.item)
                         }
                     }
-                    .padding(80)
+                    .padding(.horizontal, 80)
+                    .padding(.vertical, 40)
                 }
             }
             .focusSection()

@@ -12,6 +12,9 @@ extension ItemView.AboutView {
 
     struct Card: View {
 
+        @FocusState
+        private var isFocused: Bool
+
         private let content: () -> any View
         private let action: () -> Void
         private let title: String
@@ -21,27 +24,47 @@ extension ItemView.AboutView {
             Button {
                 action()
             } label: {
-                VStack(alignment: .leading) {
-                    Text(title)
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .lineLimit(2)
+                VStack(alignment: .leading, spacing: 28) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
 
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.6))
+                                .lineLimit(1)
+                        }
                     }
 
-                    Spacer()
-                        .frame(maxWidth: .infinity)
-
                     content()
+                        .font(.body)
+                        .foregroundStyle(.white.opacity(0.92))
                         .eraseToAnyView()
                 }
-                .padding()
-                .frame(width: 700, height: 405)
+                .multilineTextAlignment(.leading)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 34)
+                .frame(width: 700, height: 405, alignment: .topLeading)
+                .background {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.white.opacity(isFocused ? 0.22 : 0.12))
+                }
+                .glassLift(
+                    in: RoundedRectangle(cornerRadius: 20, style: .continuous),
+                    isFocused: isFocused,
+                    scale: 1.04,
+                    shadowOpacity: 0.18,
+                    shadowRadius: 14,
+                    shadowY: 8
+                )
             }
-            .buttonStyle(.card)
+            .buttonStyle(.focusNeutral)
+            .focusEffectDisabled()
+            .focused($isFocused)
         }
 
         init(

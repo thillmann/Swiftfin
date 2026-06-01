@@ -14,7 +14,7 @@ extension ItemView {
         var viewModel: SeriesItemViewModel
 
         var body: some View {
-            VStack(spacing: 0) {
+            VStack(spacing: 40) {
                 if viewModel.seasons.isNotEmpty {
                     SeriesEpisodeSelector(viewModel: viewModel)
                 }
