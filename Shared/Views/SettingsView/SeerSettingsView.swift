@@ -32,6 +32,18 @@ struct SeerSettingsView: View {
     @State
     private var statusState = StatusState.idle
 
+    @State
+    private var isPresentingServerURLEditor = false
+
+    @State
+    private var editableServerURL = ""
+
+    @State
+    private var isPresentingAPIKeyEditor = false
+
+    @State
+    private var editableAPIKey = ""
+
     var body: some View {
         Form(systemImage: "server.rack") {
             Section("Seer") {
@@ -65,17 +77,19 @@ struct SeerSettingsView: View {
             }
 
             Section {
-                TextField("Server URL", text: $serverURL)
-                    .textContentType(.URL)
+                ChevronButton(L10n.url, action: presentServerURLEditor) {
+                    Text(serverURLDisplay)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             } header: {
                 Text(L10n.serverURL)
             }
 
             Section {
-                SecureField("API key", text: $apiKey)
-                    .textContentType(.password)
+                ChevronButton("API key", content: apiKeyDisplay, action: presentAPIKeyEditor)
             } header: {
-                Text("API")
+                Text("Authentication")
             } footer: {
                 Text(probeFooter)
             }
@@ -91,6 +105,28 @@ struct SeerSettingsView: View {
         .onChange(of: apiKey, perform: saveAPIKey)
         .task(id: serverURL.trimmingCharacters(in: .whitespacesAndNewlines)) {
             await loadStatus()
+        }
+        .alert(L10n.serverURL, isPresented: $isPresentingServerURLEditor) {
+            TextField("http://", text: $editableServerURL)
+
+            Button(L10n.save) {
+                serverURL = editableServerURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+
+            Button(L10n.cancel, role: .cancel) {}
+        } message: {
+            Text("Enter the Seer server URL.")
+        }
+        .alert("API key", isPresented: $isPresentingAPIKeyEditor) {
+            SecureField("API key", text: $editableAPIKey)
+
+            Button(L10n.save) {
+                apiKey = editableAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+
+            Button(L10n.cancel, role: .cancel) {}
+        } message: {
+            Text("Enter the Seer API key.")
         }
     }
 
@@ -113,6 +149,16 @@ struct SeerSettingsView: View {
     private var canValidate: Bool {
         !serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var serverURLDisplay: String {
+        let trimmedServerURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return trimmedServerURL.isEmpty ? L10n.none : trimmedServerURL
+    }
+
+    private var apiKeyDisplay: String {
+        apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.none : "Configured"
     }
 
     private var seerVersion: String? {
@@ -142,6 +188,16 @@ struct SeerSettingsView: View {
 
     private func loadAPIKey() {
         apiKey = SeerrIntegration.apiKey ?? ""
+    }
+
+    private func presentServerURLEditor() {
+        editableServerURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        isPresentingServerURLEditor = true
+    }
+
+    private func presentAPIKeyEditor() {
+        editableAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        isPresentingAPIKeyEditor = true
     }
 
     private func configurationDidChange(_: String) {
@@ -214,7 +270,7 @@ struct SeerSettingsView: View {
         probeState = .validating
 
         Task {
-            let result = await SeerClient.probe()
+            let result = await SeerClient.status()
 
             await MainActor.run {
                 switch result {
@@ -227,7 +283,15 @@ struct SeerSettingsView: View {
 
                 case let .failure(error):
                     isEnabled = false
-                    probeState = .failed(error.localizedDescription)
+                    let errorMessage: String = if error.message.hasPrefix("Seer status failed with HTTP ") {
+                        error.message.replacingOccurrences(
+                            of: "Seer status failed",
+                            with: "Seer connection failed"
+                        )
+                    } else {
+                        error.localizedDescription
+                    }
+                    probeState = .failed(errorMessage)
                 }
             }
         }

@@ -15,7 +15,6 @@ import SwiftUI
 @MainActor
 @Stateful
 final class SearchViewModel: ViewModel {
-
     @CasePathable
     enum Action {
         case getSuggestions
@@ -44,6 +43,8 @@ final class SearchViewModel: ViewModel {
     @Published
     private(set) var items: [BaseItemKind: [BaseItemDto]] = [:]
     @Published
+    private(set) var seerItems: [SeerClient.MediaResult] = []
+    @Published
     private(set) var suggestions: [BaseItemDto] = []
 
     private var searchQuery: CurrentValueSubject<String, Never> = .init("")
@@ -51,7 +52,11 @@ final class SearchViewModel: ViewModel {
     let filterViewModel: FilterViewModel
 
     var hasNoResults: Bool {
+        #if os(tvOS)
+        items.values.allSatisfy(\.isEmpty) && seerItems.isEmpty
+        #else
         items.values.allSatisfy(\.isEmpty)
+        #endif
     }
 
     var canSearch: Bool {
@@ -96,6 +101,7 @@ final class SearchViewModel: ViewModel {
 
         guard self.canSearch else {
             items.removeAll()
+            seerItems = []
             return
         }
 
@@ -143,6 +149,20 @@ final class SearchViewModel: ViewModel {
 
         guard !Task.isCancelled else { return }
         self.items = newItems
+
+        #if os(tvOS)
+        let seerResult = await SeerClient.search(query: query)
+        guard !Task.isCancelled else { return }
+        switch seerResult {
+        case let .success(page):
+            self.seerItems = page.results
+        case .failure:
+            self.seerItems = []
+            logger.debug("Seer search query='\(query)' failed")
+        }
+        #else
+        self.seerItems = []
+        #endif
     }
 
     private func _getItems(query: String, itemType: BaseItemKind) async throws -> [BaseItemDto] {

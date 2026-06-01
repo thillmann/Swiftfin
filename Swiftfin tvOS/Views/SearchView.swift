@@ -41,6 +41,10 @@ struct SearchView: View {
     private var resultsView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
+                if viewModel.seerItems.isNotEmpty {
+                    seerMoviesSection
+                }
+
                 if let movies = viewModel.items[.movie], movies.isNotEmpty {
                     itemsSection(
                         title: L10n.movies,
@@ -160,6 +164,38 @@ struct SearchView: View {
             items: items,
             action: select
         )
+    }
+
+    @ViewBuilder
+    private var seerMoviesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Seer Results")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .edgePadding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(viewModel.seerItems.prefix(20), id: \.id) { movie in
+                        Button {} label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ImageView(movie.posterImageSource)
+                                    .aspectRatio(2 / 3, contentMode: .fill)
+                                    .frame(width: 180, height: 270)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                Text(movie.title ?? movie.name ?? "Unknown title")
+                                    .font(.caption)
+                                    .lineLimit(2)
+                                    .frame(width: 180, alignment: .leading)
+                            }
+                        }
+                    }
+                }
+                .edgePadding(.horizontal)
+            }
+        }
     }
 
     var body: some View {
