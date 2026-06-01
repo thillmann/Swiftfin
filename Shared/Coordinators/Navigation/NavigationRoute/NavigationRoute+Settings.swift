@@ -240,7 +240,7 @@ extension NavigationRoute {
     #if os(tvOS)
     static var seerSettings: NavigationRoute {
         NavigationRoute(id: "seerSettings") {
-            SeerSettingsView()
+            SeerrSettingsView()
         }
     }
     #endif

@@ -36,6 +36,8 @@ struct SearchView: View {
 
     @StateObject
     private var viewModel = SearchViewModel(filterViewModel: .init())
+    @State
+    private var pendingSeerRequestItem: SeerrClient.MediaResult?
 
     @ViewBuilder
     private var suggestionsView: some View {
@@ -52,8 +54,8 @@ struct SearchView: View {
     private var resultsView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
-                if let movies = viewModel.items[.movie], movies.isNotEmpty {
-                    itemsSection(
+                if let movies = viewModel.unifiedItems[.movie], movies.isNotEmpty {
+                    unifiedItemsSection(
                         title: L10n.movies,
                         type: .movie,
                         items: movies,
@@ -61,8 +63,8 @@ struct SearchView: View {
                     )
                 }
 
-                if let series = viewModel.items[.series], series.isNotEmpty {
-                    itemsSection(
+                if let series = viewModel.unifiedItems[.series], series.isNotEmpty {
+                    unifiedItemsSection(
                         title: L10n.tvShows,
                         type: .series,
                         items: series,
@@ -133,8 +135,8 @@ struct SearchView: View {
                     )
                 }
 
-                if let people = viewModel.items[.person], people.isNotEmpty {
-                    itemsSection(
+                if let people = viewModel.unifiedItems[.person], people.isNotEmpty {
+                    unifiedItemsSection(
                         title: L10n.people,
                         type: .person,
                         items: people,
@@ -157,6 +159,15 @@ struct SearchView: View {
         }
     }
 
+    private func select(_ item: UnifiedSearchResult, in namespace: Namespace.ID) {
+        switch item {
+        case let .jellyfin(baseItem):
+            select(baseItem, in: namespace)
+        case let .seer(seerItem):
+            pendingSeerRequestItem = seerItem
+        }
+    }
+
     @ViewBuilder
     private func itemsSection(
         title: String,
@@ -170,6 +181,35 @@ struct SearchView: View {
             items: items,
             action: select
         )
+        .trailing {
+            SeeAllButton {
+                let viewModel = PagingLibraryViewModel(
+                    title: title,
+                    id: "search-\(type.hashValue)",
+                    items
+                )
+                router.route(to: .library(viewModel: viewModel))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func unifiedItemsSection(
+        title: String,
+        type: BaseItemKind,
+        items: [UnifiedSearchResult],
+        posterType: PosterDisplayType
+    ) -> some View {
+        PosterHStack(
+            title: title,
+            type: posterType,
+            items: items,
+            action: { item, namespace in
+                select(item, in: namespace)
+            }
+        ) { item in
+            PosterButton<UnifiedSearchResult>.TitleSubtitleContentView(item: item)
+        }
         .trailing {
             SeeAllButton {
                 let viewModel = PagingLibraryViewModel(
@@ -231,6 +271,11 @@ struct SearchView: View {
         .onReceive(tabItemSelected) { event in
             if event.isRepeat, event.isRoot {
                 isSearchFocused = true
+            }
+        }
+        .sheet(item: $pendingSeerRequestItem) { item in
+            SeerrRequestView(item: item) {
+                viewModel.search(query: searchQuery)
             }
         }
     }

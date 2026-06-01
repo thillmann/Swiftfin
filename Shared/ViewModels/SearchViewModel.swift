@@ -7,10 +7,208 @@
 //
 
 import Combine
+import Defaults
 import Foundation
 import JellyfinAPI
 import OrderedCollections
 import SwiftUI
+
+enum UnifiedSearchResult: Identifiable {
+    enum Source: Hashable {
+        case jellyfin
+        case seer
+    }
+
+    case jellyfin(BaseItemDto)
+    case seer(SeerrClient.MediaResult)
+
+    var id: String {
+        switch self {
+        case let .jellyfin(item):
+            "jellyfin-\(item.id ?? item.displayTitle)"
+        case let .seer(item):
+            "seer-\(item.id)"
+        }
+    }
+
+    var kind: BaseItemKind? {
+        switch self {
+        case let .jellyfin(item):
+            item.type
+        case let .seer(item):
+            switch item.mediaType {
+            case .movie:
+                .movie
+            case .tv:
+                .series
+            case .person:
+                .person
+            case nil:
+                nil
+            }
+        }
+    }
+
+    var title: String {
+        switch self {
+        case let .jellyfin(item):
+            item.displayTitle
+        case let .seer(item):
+            item.title ?? item.name ?? L10n.unknown
+        }
+    }
+
+    var source: Source {
+        switch self {
+        case .jellyfin:
+            .jellyfin
+        case .seer:
+            .seer
+        }
+    }
+
+    var imageSources: [ImageSource] {
+        switch self {
+        case let .jellyfin(item):
+            item.thumbImageSources()
+        case let .seer(item):
+            [item.posterImageSource]
+        }
+    }
+
+    var hasSeerPoster: Bool {
+        guard case let .seer(item) = self else { return false }
+        guard let posterPath = item.posterPath else { return false }
+        return !posterPath.isEmpty
+    }
+}
+
+extension UnifiedSearchResult: Hashable {
+    static func == (lhs: UnifiedSearchResult, rhs: UnifiedSearchResult) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+extension UnifiedSearchResult: Displayable {
+    var displayTitle: String {
+        title
+    }
+}
+
+extension UnifiedSearchResult: LibraryIdentifiable {
+    var unwrappedIDHashOrZero: Int {
+        id.hashValue
+    }
+}
+
+extension UnifiedSearchResult: SystemImageable {
+    var systemImage: String {
+        switch self {
+        case let .jellyfin(item):
+            item.systemImage
+        case let .seer(item):
+            switch item.mediaType {
+            case .movie:
+                "film"
+            case .tv:
+                "tv"
+            case .person:
+                "person"
+            case nil:
+                "questionmark"
+            }
+        }
+    }
+}
+
+extension UnifiedSearchResult: Poster {
+    var preferredPosterDisplayType: PosterDisplayType {
+        switch kind {
+        case .person:
+            .portrait
+        case .movie, .series:
+            .portrait
+        default:
+            .portrait
+        }
+    }
+
+    func portraitImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
+        imageSources
+    }
+
+    func landscapeImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
+        imageSources
+    }
+
+    func cinematicImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
+        imageSources
+    }
+
+    func squareImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
+        imageSources
+    }
+
+    @MainActor
+    func transform(image: Image) -> some View {
+        ZStack(alignment: .topTrailing) {
+            image
+
+            if source == .seer, hasSeerPoster {
+                Image("seerr.monochrome")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .padding(.top, 8)
+                    .padding(.trailing, 8)
+            }
+
+            if let seerStatusPillText {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text(seerStatusPillText)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Defaults[.accentColor], in: Capsule())
+                    }
+                }
+                .padding(.trailing, 8)
+                .padding(.bottom, 8)
+            }
+        }
+    }
+
+    var subtitle: String? {
+        nil
+    }
+
+    private var seerStatusPillText: String? {
+        guard case let .seer(item) = self else { return nil }
+        guard let status = item.mediaInfo?.mediaStatus else { return nil }
+        guard status != .unknown else { return nil }
+
+        return switch status {
+        case .pending:
+            "Requested"
+        case .processing:
+            "Processing"
+        case .partiallyAvailable:
+            "Partial"
+        case .available:
+            "Available"
+        case .unknown:
+            nil
+        }
+    }
+}
 
 @MainActor
 @Stateful
@@ -43,7 +241,9 @@ final class SearchViewModel: ViewModel {
     @Published
     private(set) var items: [BaseItemKind: [BaseItemDto]] = [:]
     @Published
-    private(set) var seerItems: [SeerClient.MediaResult] = []
+    private(set) var seerItems: [SeerrClient.MediaResult] = []
+    @Published
+    private(set) var unifiedItems: [BaseItemKind: [UnifiedSearchResult]] = [:]
     @Published
     private(set) var suggestions: [BaseItemDto] = []
 
@@ -52,11 +252,7 @@ final class SearchViewModel: ViewModel {
     let filterViewModel: FilterViewModel
 
     var hasNoResults: Bool {
-        #if os(tvOS)
-        items.values.allSatisfy(\.isEmpty) && seerItems.isEmpty
-        #else
-        items.values.allSatisfy(\.isEmpty)
-        #endif
+        unifiedItems.values.allSatisfy(\.isEmpty)
     }
 
     var canSearch: Bool {
@@ -102,6 +298,7 @@ final class SearchViewModel: ViewModel {
         guard self.canSearch else {
             items.removeAll()
             seerItems = []
+            unifiedItems.removeAll()
             return
         }
 
@@ -149,20 +346,95 @@ final class SearchViewModel: ViewModel {
 
         guard !Task.isCancelled else { return }
         self.items = newItems
+        self.unifiedItems = newItems.mapValues { $0.map(UnifiedSearchResult.jellyfin) }
 
-        #if os(tvOS)
-        let seerResult = await SeerClient.search(query: query)
+        guard seerSearchIsAvailable else {
+            self._resetSeerItems()
+            return
+        }
+
+        let seerResult = await SeerrClient.search(query: query)
         guard !Task.isCancelled else { return }
         switch seerResult {
         case let .success(page):
             self.seerItems = page.results
+            self.mergeSeerResults(page.results)
         case .failure:
-            self.seerItems = []
-            logger.debug("Seer search query='\(query)' failed")
+            self._resetSeerItems()
+            logger.debug("Seerr search query='\(query)' failed")
         }
-        #else
+    }
+
+    private var seerSearchIsAvailable: Bool {
+        Defaults[.Integrations.Seerr.isEnabled]
+            && SeerrIntegration.serverURL != nil
+            && SeerrIntegration.apiKey != nil
+    }
+
+    private func mergeSeerResults(_ seerResults: [SeerrClient.MediaResult]) {
+        var groupedSeer: [BaseItemKind: [SeerrClient.MediaResult]] = [:]
+        for result in seerResults {
+            guard let kind = UnifiedSearchResult.seer(result).kind else { continue }
+            guard kind != .person else { continue }
+            groupedSeer[kind, default: []].append(result)
+        }
+
+        for (kind, typedSeerItems) in groupedSeer {
+            let jellyfinItems = items[kind] ?? []
+            var merged = jellyfinItems.map { item in
+                UnifiedSearchResult.jellyfin(item)
+            }
+
+            let jellyfinSignatures = Set(jellyfinItems.map(seerSignature(for:)))
+            let unmatchedSeer = typedSeerItems.filter { !jellyfinSignatures.contains(seerSignature(for: $0)) }
+
+            merged.append(contentsOf: unmatchedSeer.map { item in
+                UnifiedSearchResult.seer(item)
+            })
+            unifiedItems[kind] = merged
+        }
+    }
+
+    private func seerSignature(for jellyfinItem: BaseItemDto) -> String {
+        let normalizedTitle = jellyfinItem.displayTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        let year = jellyfinItem.productionYear ?? Int(jellyfinItem.premiereDateYear ?? "")
+        return "\(normalizedTitle)-\(year ?? 0)"
+    }
+
+    private func seerSignature(for seerItem: SeerrClient.MediaResult) -> String {
+        let normalizedTitle = (seerItem.title ?? seerItem.name ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        let year = Int((seerItem.releaseDate ?? seerItem.firstAirDate ?? "").prefix(4))
+        return "\(normalizedTitle)-\(year ?? 0)"
+    }
+
+    private func _resetSeerItems() {
         self.seerItems = []
-        #endif
+        for key in [BaseItemKind.movie, .series, .person] {
+            unifiedItems[key] = items[key]?.map { item in
+                UnifiedSearchResult.jellyfin(item)
+            } ?? []
+        }
+    }
+
+    func markSeerItemRequested(id: Int) {
+        seerItems = seerItems.map { item in
+            guard item.id == id else { return item }
+            return item.updatingStatus(.pending)
+        }
+
+        unifiedItems = unifiedItems.mapValues { items in
+            items.map { unifiedItem in
+                guard case let .seer(item) = unifiedItem else { return unifiedItem }
+                guard item.id == id else { return unifiedItem }
+                return .seer(item.updatingStatus(.pending))
+            }
+        }
     }
 
     private func _getItems(query: String, itemType: BaseItemKind) async throws -> [BaseItemDto] {

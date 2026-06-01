@@ -12,7 +12,7 @@ import Foundation
 import SwiftUI
 
 #if os(tvOS)
-struct SeerSettingsView: View {
+struct SeerrSettingsView: View {
 
     @Default(.Integrations.Seerr.isEnabled)
     private var isEnabled
@@ -46,8 +46,8 @@ struct SeerSettingsView: View {
 
     var body: some View {
         Form(systemImage: "server.rack") {
-            Section("Seer") {
-                LabeledContent(L10n.name, value: "Seer")
+            Section("Seerr") {
+                LabeledContent(L10n.name, value: "Seerr")
                 #if os(tvOS)
                     .focusable(false)
                 #endif
@@ -95,11 +95,11 @@ struct SeerSettingsView: View {
             }
 
             Section {
-                Toggle("Enable Seer", isOn: integrationBinding)
+                Toggle("Enable Seerr", isOn: integrationBinding)
                     .disabled(!canValidate || probeState == .validating)
             }
         }
-        .navigationTitle("Seer")
+        .navigationTitle("Seerr")
         .onAppear(perform: loadAPIKey)
         .onChange(of: serverURL, perform: configurationDidChange)
         .onChange(of: apiKey, perform: saveAPIKey)
@@ -115,7 +115,7 @@ struct SeerSettingsView: View {
 
             Button(L10n.cancel, role: .cancel) {}
         } message: {
-            Text("Enter the Seer server URL.")
+            Text("Enter the Seerr server URL.")
         }
         .alert("API key", isPresented: $isPresentingAPIKeyEditor) {
             SecureField("API key", text: $editableAPIKey)
@@ -126,7 +126,7 @@ struct SeerSettingsView: View {
 
             Button(L10n.cancel, role: .cancel) {}
         } message: {
-            Text("Enter the Seer API key.")
+            Text("Enter the Seerr API key.")
         }
     }
 
@@ -172,14 +172,14 @@ struct SeerSettingsView: View {
     private var probeFooter: String {
         switch probeState {
         case .idle:
-            "Provide a Seer server URL and API key to enable the integration."
+            "Provide a Seerr server URL and API key to enable the integration."
         case .validating:
-            "Validating the Seer connection..."
+            "Validating the Seerr connection..."
         case .succeeded:
             if let seerVersion {
-                "Seer \(seerVersion) is enabled and the connection was validated."
+                "Seerr \(seerVersion) is enabled and the connection was validated."
             } else {
-                "Seer is enabled and the connection was validated."
+                "Seerr is enabled and the connection was validated."
             }
         case let .failed(message):
             message
@@ -242,7 +242,7 @@ struct SeerSettingsView: View {
             return
         }
 
-        let result = await SeerClient.status()
+        let result = await SeerrClient.status()
 
         switch result {
         case let .success(status):
@@ -270,7 +270,7 @@ struct SeerSettingsView: View {
         probeState = .validating
 
         Task {
-            let result = await SeerClient.status()
+            let result = await SeerrClient.status()
 
             await MainActor.run {
                 switch result {
@@ -283,10 +283,10 @@ struct SeerSettingsView: View {
 
                 case let .failure(error):
                     isEnabled = false
-                    let errorMessage: String = if error.message.hasPrefix("Seer status failed with HTTP ") {
+                    let errorMessage: String = if error.message.hasPrefix("Seerr status failed with HTTP ") {
                         error.message.replacingOccurrences(
-                            of: "Seer status failed",
-                            with: "Seer connection failed"
+                            of: "Seerr status failed",
+                            with: "Seerr connection failed"
                         )
                     } else {
                         error.localizedDescription
@@ -300,7 +300,7 @@ struct SeerSettingsView: View {
     private enum StatusState: Equatable {
         case idle
         case loading
-        case loaded(SeerClient.Status)
+        case loaded(SeerrClient.Status)
         case failed
     }
 
@@ -312,7 +312,7 @@ struct SeerSettingsView: View {
     }
 }
 
-private extension SeerClient.Status {
+private extension SeerrClient.Status {
 
     var displayVersion: String {
         version ?? appData?.version ?? L10n.unknown

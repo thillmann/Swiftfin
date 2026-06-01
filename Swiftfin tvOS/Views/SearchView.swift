@@ -23,6 +23,8 @@ struct SearchView: View {
 
     @StateObject
     private var viewModel = SearchViewModel(filterViewModel: .init())
+    @State
+    private var pendingSeerRequestItem: SeerrClient.MediaResult?
 
     @ViewBuilder
     private var suggestionsView: some View {
@@ -41,12 +43,8 @@ struct SearchView: View {
     private var resultsView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
-                if viewModel.seerItems.isNotEmpty {
-                    seerMoviesSection
-                }
-
-                if let movies = viewModel.items[.movie], movies.isNotEmpty {
-                    itemsSection(
+                if let movies = viewModel.unifiedItems[.movie], movies.isNotEmpty {
+                    unifiedItemsSection(
                         title: L10n.movies,
                         type: .movie,
                         items: movies,
@@ -54,8 +52,8 @@ struct SearchView: View {
                     )
                 }
 
-                if let series = viewModel.items[.series], series.isNotEmpty {
-                    itemsSection(
+                if let series = viewModel.unifiedItems[.series], series.isNotEmpty {
+                    unifiedItemsSection(
                         title: L10n.tvShows,
                         type: .series,
                         items: series,
@@ -126,8 +124,8 @@ struct SearchView: View {
                     )
                 }
 
-                if let people = viewModel.items[.person], people.isNotEmpty {
-                    itemsSection(
+                if let people = viewModel.unifiedItems[.person], people.isNotEmpty {
+                    unifiedItemsSection(
                         title: L10n.people,
                         type: .person,
                         items: people,
@@ -151,6 +149,15 @@ struct SearchView: View {
         }
     }
 
+    private func select(_ item: UnifiedSearchResult) {
+        switch item {
+        case let .jellyfin(baseItem):
+            select(baseItem)
+        case let .seer(seerItem):
+            pendingSeerRequestItem = seerItem
+        }
+    }
+
     @ViewBuilder
     private func itemsSection(
         title: String,
@@ -167,34 +174,19 @@ struct SearchView: View {
     }
 
     @ViewBuilder
-    private var seerMoviesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Seer Results")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .edgePadding(.horizontal)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(viewModel.seerItems.prefix(20), id: \.id) { movie in
-                        Button {} label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                ImageView(movie.posterImageSource)
-                                    .aspectRatio(2 / 3, contentMode: .fill)
-                                    .frame(width: 180, height: 270)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                                Text(movie.title ?? movie.name ?? "Unknown title")
-                                    .font(.caption)
-                                    .lineLimit(2)
-                                    .frame(width: 180, alignment: .leading)
-                            }
-                        }
-                    }
-                }
-                .edgePadding(.horizontal)
-            }
+    private func unifiedItemsSection(
+        title: String,
+        type: BaseItemKind,
+        items: [UnifiedSearchResult],
+        posterType: PosterDisplayType
+    ) -> some View {
+        PosterHStack(
+            title: title,
+            type: posterType,
+            items: items,
+            action: select
+        ) { item in
+            PosterButton<UnifiedSearchResult>.TitleSubtitleContentView(item: item)
         }
     }
 
@@ -231,5 +223,10 @@ struct SearchView: View {
             viewModel.search(query: newValue)
         }
         .searchable(text: $searchQuery, prompt: L10n.search)
+        .fullScreenCover(item: $pendingSeerRequestItem) { item in
+            SeerrRequestView(item: item) {
+                viewModel.search(query: searchQuery)
+            }
+        }
     }
 }

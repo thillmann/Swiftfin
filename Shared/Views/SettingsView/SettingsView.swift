@@ -144,7 +144,7 @@ struct SettingsView: View {
     private var integrationsSection: some View {
         Section {
             ChevronButton(
-                "Seer",
+                "Seerr",
                 action: {
                     router.route(to: .seerSettings)
                 }
