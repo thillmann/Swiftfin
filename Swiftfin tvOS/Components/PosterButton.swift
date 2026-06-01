@@ -12,6 +12,8 @@ import SwiftUI
 
 private let landscapeMaxWidth: CGFloat = 500
 private let portraitMaxWidth: CGFloat = 500
+private let posterFocusedScale: CGFloat = 1.16
+private let posterLabelSpacing: CGFloat = 8
 
 struct PosterButton<Item: Poster>: View {
 
@@ -20,6 +22,8 @@ struct PosterButton<Item: Poster>: View {
 
     @State
     private var posterSize: CGSize = .zero
+    @FocusState
+    private var isFocused: Bool
 
     private var horizontalAlignment: HorizontalAlignment
     private let item: Item
@@ -27,31 +31,39 @@ struct PosterButton<Item: Poster>: View {
     private let label: any View
     private let action: () -> Void
 
-    @ViewBuilder
-    private func poster(overlay: some View) -> some View {
-        PosterImage(item: item, type: type)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay { overlay }
-            .contentShape(.contextMenuPreview, Rectangle())
-            .posterStyle(type)
-            .posterShadow()
-            .hoverEffect(.highlight)
+    private var effectiveLabelSpacing: CGFloat {
+        let focusedHeightGrowth = posterSize.height * (posterFocusedScale - 1)
+        return posterLabelSpacing + (isFocused ? focusedHeightGrowth / 2 : 0)
     }
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             let overlay = posterOverlayRegistry?(item) ??
                 PosterButton.DefaultOverlay(item: item)
                 .eraseToAnyView()
 
-            poster(overlay: overlay)
-                .trackingSize($posterSize)
+            VStack(alignment: horizontalAlignment, spacing: effectiveLabelSpacing) {
+                PosterImage(item: item, type: type)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay { overlay }
+                    .posterStyle(type)
+                    .trackingSize($posterSize)
+                    .glassLift(
+                        in: RoundedRectangle(cornerRadius: 20, style: .continuous),
+                        isFocused: isFocused,
+                        scale: posterFocusedScale
+                    )
 
-            label
-                .eraseToAnyView()
+                label
+                    .eraseToAnyView()
+            }
+            .animation(.easeInOut(duration: 0.15), value: isFocused)
         }
-        .buttonStyle(.borderless)
-        .buttonBorderShape(.roundedRectangle)
+        .buttonStyle(.focusNeutral)
+        .focusEffectDisabled()
+        .focused($isFocused)
         .focusedValue(\.focusedPoster, AnyPoster(item))
         .accessibilityLabel(item.displayTitle)
         .matchedContextMenu(for: item) {
@@ -210,12 +222,12 @@ extension PosterButton {
                                 .isVisible(showProgress)
                         } else if item.canBePlayed,
                                   !item.isLiveStream,
-                                  showUnplayed != .none
+                                  showUnplayed == .count,
+                                  (item.userData?.unplayedItemCount ?? 0) > 0
                         {
                             UnwatchedIndicator(
                                 size: 45,
-                                count:
-                                showUnplayed == .count ? item.userData?.unplayedItemCount : nil
+                                count: item.userData?.unplayedItemCount
                             )
                             .foregroundStyle(accentColor.overlayColor, accentColor)
                         }

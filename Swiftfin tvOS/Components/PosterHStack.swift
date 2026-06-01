@@ -13,10 +13,17 @@ import SwiftUI
 
 struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element == Element, Data.Index == Int {
 
+    typealias PosterButtonBuilder = (
+        Element,
+        @escaping () -> Void,
+        @escaping () -> AnyView
+    ) -> AnyView
+
     private var data: Data
     private var title: String?
     private var type: PosterDisplayType
     private var label: (Element) -> any View
+    private var posterButton: PosterButtonBuilder
     private var trailingContent: () -> any View
     private let action: (Element) -> Void
 
@@ -37,21 +44,18 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
 
             CollectionHStack(
                 uniqueElements: data,
-                columns: type == .landscape ? 4 : 7
+                columns: type == .landscape ? 4 : 6
             ) { item in
-                PosterButton(
-                    item: item,
-                    type: type
-                ) {
+                posterButton(item, {
                     action(item)
-                } label: {
+                }, {
                     label(item).eraseToAnyView()
-                }
+                })
             }
             .clipsToBounds(false)
             .dataPrefix(20)
             .insets(horizontal: EdgeInsets.edgePadding, vertical: 20)
-            .itemSpacing(EdgeInsets.edgePadding - 20)
+            .itemSpacing(EdgeInsets.edgePadding - 40)
             .scrollBehavior(.continuousLeadingEdge)
         }
         .focusSection()
@@ -65,13 +69,25 @@ extension PosterHStack {
         type: PosterDisplayType,
         items: Data,
         action: @escaping (Element) -> Void,
-        @ViewBuilder label: @escaping (Element) -> any View = { PosterButton<Element>.TitleSubtitleContentView(item: $0) }
+        @ViewBuilder label: @escaping (Element) -> any View = { PosterButton<Element>.TitleSubtitleContentView(item: $0) },
+        posterButton: PosterButtonBuilder? = nil
     ) {
         self.init(
             data: items,
             title: title,
             type: type,
             label: label,
+            posterButton: posterButton ?? { item, action, label in
+                PosterButton(
+                    item: item,
+                    type: type
+                ) {
+                    action()
+                } label: {
+                    label()
+                }
+                .eraseToAnyView()
+            },
             trailingContent: { EmptyView() },
             action: action
         )

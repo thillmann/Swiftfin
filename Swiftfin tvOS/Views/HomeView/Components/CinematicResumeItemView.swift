@@ -19,6 +19,16 @@ extension HomeView {
         @ObservedObject
         var viewModel: HomeViewModel
 
+        private func seasonEpisodeLabel(for item: BaseItemDto) -> String? {
+            if let seasonNumber = item.parentIndexNumber,
+               let episodeNumber = item.indexNumber
+            {
+                return "S\(seasonNumber), E\(episodeNumber)"
+            }
+
+            return item.seasonEpisodeLabel
+        }
+
         private func itemSelectorImageSource(for item: BaseItemDto) -> ImageSource {
             if item.type == .episode {
                 item.seriesImageSource(
@@ -53,20 +63,36 @@ extension HomeView {
                     .aspectRatio(contentMode: .fit)
                     .frame(height: 200, alignment: .bottomLeading)
             }
-            .content { item in
-                // TODO: clean up
-                if item.type == .episode {
-                    PosterButton<BaseItemDto>.EpisodeContentSubtitleContent.Subtitle(item: item)
-                } else {
-                    // swiftlint:disable:next hard_coded_display_string
-                    Text(" ")
-                }
+            .content { _ in
+                EmptyView()
             }
             .posterOverlay(for: BaseItemDto.self) { item in
-                LandscapePosterProgressBar(
-                    title: item.progressLabel ?? L10n.continue,
-                    progress: (item.userData?.playedPercentage ?? 0) / 100
-                )
+                VStack {
+                    Spacer(minLength: 0)
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.fill")
+                            .font(.caption2)
+                        ProgressView(value: (item.userData?.playedPercentage ?? 0) / 100)
+                            .progressViewStyle(
+                                FeatureInlineProgressStyle(
+                                    trackColor: .white.opacity(0.2),
+                                    fillColor: .white
+                                )
+                            )
+                            .frame(width: 40)
+                        DotHStack {
+                            if item.seasonEpisodeLabel != nil {
+                                Text(seasonEpisodeLabel(for: item))
+                                    .font(.caption2)
+                            }
+                            Text(item.progressLabel ?? L10n.continue)
+                                .font(.caption2)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
             }
         }
     }
