@@ -70,6 +70,11 @@ struct HomeView: View {
         }
         .onFirstAppear {
             viewModel.send(.refresh)
+            Task {
+                if Defaults[.Integrations.Seerr.isEnabled] {
+                    _ = await SeerClient.probe()
+                }
+            }
         }
         .ignoresSafeArea()
         .sinceLastDisappear { interval in

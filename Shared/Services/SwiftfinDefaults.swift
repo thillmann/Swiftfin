@@ -420,6 +420,20 @@ extension Defaults.Keys {
         }
     }
 
+    enum Integrations {
+
+        enum Seerr {
+
+            static var isEnabled: Key<Bool> {
+                UserKey("seerrIntegrationEnabled", default: false)
+            }
+
+            static var serverURL: Key<String> {
+                UserKey("seerrServerURL", default: "")
+            }
+        }
+    }
+
     // tvos specific
 
     static var confirmClose: Key<Bool> {

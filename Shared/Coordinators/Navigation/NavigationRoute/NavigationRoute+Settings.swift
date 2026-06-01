@@ -237,6 +237,14 @@ extension NavigationRoute {
     }
     #endif
 
+    #if os(tvOS)
+    static var seerSettings: NavigationRoute {
+        NavigationRoute(id: "seerSettings") {
+            SeerSettingsView()
+        }
+    }
+    #endif
+
     static var settings: NavigationRoute {
         NavigationRoute(
             id: "settings",

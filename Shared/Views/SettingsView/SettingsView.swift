@@ -8,6 +8,7 @@
 
 import Defaults
 import Factory
+import Foundation
 import JellyfinAPI
 import SwiftUI
 
@@ -24,6 +25,14 @@ struct SettingsView: View {
     @Default(.VideoPlayer.videoPlayerType)
     private var videoPlayerType
 
+    #if os(tvOS)
+    @Default(.Integrations.Seerr.isEnabled)
+    private var isSeerrIntegrationEnabled
+
+    @Default(.Integrations.Seerr.serverURL)
+    private var seerrServerURL
+    #endif
+
     @Router
     private var router
 
@@ -36,6 +45,9 @@ struct SettingsView: View {
         Form(image: .jellyfinBlobBlue) {
             serverSection
             videoPlayerSection
+            #if os(tvOS)
+            integrationsSection
+            #endif
             customizeSection
             diagnosticsSection
         }
@@ -123,6 +135,42 @@ struct SettingsView: View {
             )
         }
     }
+
+    #if os(tvOS)
+
+    // MARK: - Integrations Section
+
+    @ViewBuilder
+    private var integrationsSection: some View {
+        Section {
+            ChevronButton(
+                "Seer",
+                action: {
+                    router.route(to: .seerSettings)
+                }
+            ) {
+                Label {
+                    Text(seerrIntegrationStatus)
+                } icon: {
+                    if isSeerrIntegrationEnabled {
+                        Image(systemName: "checkmark.circle.fill")
+                    }
+                }
+                .labelStyle(.sectionFooterWithImage(imageStyle: .green))
+            }
+        } header: {
+            Text("Integrations")
+        }
+    }
+
+    private var seerrIntegrationStatus: String {
+        if isSeerrIntegrationEnabled {
+            return "Enabled"
+        }
+
+        return seerrServerURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Not configured" : "Disabled"
+    }
+    #endif
 
     // MARK: - Customization Section
 
