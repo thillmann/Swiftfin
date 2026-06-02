@@ -12,7 +12,6 @@ import SwiftUI
 
 private let landscapeMaxWidth: CGFloat = 500
 private let portraitMaxWidth: CGFloat = 500
-private let posterFocusedScale: CGFloat = 1.16
 private let posterLabelSpacing: CGFloat = 8
 
 struct PosterButton<Item: Poster>: View {
@@ -20,54 +19,35 @@ struct PosterButton<Item: Poster>: View {
     @EnvironmentTypeValue<Item>(\.posterOverlayRegistry)
     private var posterOverlayRegistry
 
-    @State
-    private var posterSize: CGSize = .zero
-    @FocusState
-    private var isFocused: Bool
-
     private var horizontalAlignment: HorizontalAlignment
     private let item: Item
     private let type: PosterDisplayType
     private let label: any View
     private let action: () -> Void
 
-    private var effectiveLabelSpacing: CGFloat {
-        let focusedHeightGrowth = posterSize.height * (posterFocusedScale - 1)
-        return posterLabelSpacing + (isFocused ? focusedHeightGrowth / 2 : 0)
-    }
-
     var body: some View {
-        Button {
-            action()
-        } label: {
-            let overlay = posterOverlayRegistry?(item) ??
-                PosterButton.DefaultOverlay(item: item)
-                .eraseToAnyView()
+        let overlay = posterOverlayRegistry?(item) ??
+            PosterButton.DefaultOverlay(item: item)
+            .eraseToAnyView()
 
-            VStack(alignment: horizontalAlignment, spacing: effectiveLabelSpacing) {
+        VStack(alignment: horizontalAlignment, spacing: posterLabelSpacing) {
+            Button {
+                action()
+            } label: {
                 PosterImage(item: item, type: type)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .overlay { overlay }
                     .posterStyle(type)
-                    .trackingSize($posterSize)
-                    .glassLift(
-                        in: RoundedRectangle(cornerRadius: 20, style: .continuous),
-                        isFocused: isFocused,
-                        scale: posterFocusedScale
-                    )
-
-                label
-                    .eraseToAnyView()
             }
-            .animation(.easeInOut(duration: 0.15), value: isFocused)
-        }
-        .buttonStyle(.focusNeutral)
-        .focusEffectDisabled()
-        .focused($isFocused)
-        .focusedValue(\.focusedPoster, AnyPoster(item))
-        .accessibilityLabel(item.displayTitle)
-        .matchedContextMenu(for: item) {
-            EmptyView()
+            .buttonStyle(.card)
+            .focusedValue(\.focusedPoster, AnyPoster(item))
+            .accessibilityLabel(item.displayTitle)
+            .matchedContextMenu(for: item) {
+                EmptyView()
+            }
+
+            label
+                .eraseToAnyView()
         }
     }
 }

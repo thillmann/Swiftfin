@@ -6,13 +6,14 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import BlurHashKit
 import JellyfinAPI
 import SwiftUI
 
-private let castAndCrewFocusedScale: CGFloat = 1.16
+private let castAndCrewFocusedScale: CGFloat = 1.1
 private let castAndCrewLabelSpacing: CGFloat = 10
 private let castAndCrewPosterLength: CGFloat = 208
+private let castAndCrewPosterImageMaxWidth: CGFloat = 500
+private let castAndCrewFocusAnimation = Animation.easeInOut(duration: 0.18)
 
 extension ItemView {
 
@@ -33,14 +34,12 @@ extension ItemView {
             ) { person in
                 router.route(to: .item(item: .init(person: person)))
             } label: { person in
-                CastAndCrewLabel(person: person)
-            } posterButton: { person, action, label in
+                CastAndCrewLabel(person: person, isFocused: false)
+            } posterButton: { person, action, _ in
                 CastAndCrewButton(
                     person: person,
                     action: action
-                ) {
-                    label()
-                }
+                )
                 .eraseToAnyView()
             }
         }
@@ -51,142 +50,134 @@ private struct CastAndCrewButton: View {
 
     @EnvironmentTypeValue<BaseItemPerson>(\.posterOverlayRegistry)
     private var posterOverlayRegistry
-    @Environment(\.isFocused)
-    private var isEnvironmentFocused
 
-    @State
-    private var posterSize: CGSize = .zero
     @FocusState
     private var isFocused: Bool
 
     let person: BaseItemPerson
     let action: () -> Void
-    let label: any View
-
-    init(
-        person: BaseItemPerson,
-        action: @escaping () -> Void,
-        @ViewBuilder label: () -> any View
-    ) {
-        self.person = person
-        self.action = action
-        self.label = label()
-    }
-
-    private var effectiveFocus: Bool {
-        isFocused || isEnvironmentFocused
-    }
 
     private var effectiveLabelSpacing: CGFloat {
-        let posterLength = min(posterSize.width, posterSize.height)
-        let focusedGrowth = posterLength * (castAndCrewFocusedScale - 1)
-        let focusedBottomGrowth = focusedGrowth / 2
+        let focusedBottomGrowth = castAndCrewPosterLength * (castAndCrewFocusedScale - 1) / 2
 
-        return castAndCrewLabelSpacing + (effectiveFocus ? focusedBottomGrowth : 0)
-    }
-
-    @ViewBuilder
-    private var posterImage: some View {
-        CastAndCrewPosterImage(person: person)
+        return castAndCrewLabelSpacing + (isFocused ? focusedBottomGrowth : 0)
     }
 
     @ViewBuilder
     private func poster(overlay: some View) -> some View {
-        ZStack {
-            posterImage
-                .overlay { overlay }
-        }
+        PosterImage(
+            item: CastAndCrewSquarePoster(person: person),
+            type: .square,
+            maxWidth: castAndCrewPosterImageMaxWidth
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay { overlay }
         .contentShape(.contextMenuPreview, Circle())
+        .clipShape(Circle())
         .containerShape(.circle)
         .compositingGroup()
-        .glassLift(
-            in: Circle(),
-            isFocused: effectiveFocus,
-            scale: castAndCrewFocusedScale,
-            shadowOpacity: 0.32,
-            shadowRadius: 10,
-            shadowY: 6,
-            highlightOpacity: 0.9
-        )
+        .if(isFocused) { view in
+            if #available(tvOS 26.0, *) {
+                view
+                    .glassEffect(.regular.interactive(), in: Circle())
+            } else {
+                view
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func posterButton(overlay: some View) -> some View {
+        Button(action: action) {
+            poster(overlay: overlay)
+        }
+        .buttonStyle(.castAndCrewNeutral)
+        .scaleEffect(isFocused ? castAndCrewFocusedScale : 1, anchor: .center)
+        .animation(castAndCrewFocusAnimation, value: isFocused)
     }
 
     var body: some View {
-        Button(action: action) {
-            let overlay = posterOverlayRegistry?(person) ??
-                PosterButton<BaseItemPerson>.DefaultOverlay(item: person)
-                .eraseToAnyView()
+        let overlay = posterOverlayRegistry?(person) ??
+            PosterButton<BaseItemPerson>.DefaultOverlay(item: person)
+            .eraseToAnyView()
 
-            VStack(spacing: effectiveLabelSpacing) {
-                poster(overlay: overlay)
-                    .trackingSize($posterSize)
+        VStack(spacing: effectiveLabelSpacing) {
+            posterButton(overlay: overlay)
+                .focused($isFocused)
+                .focusedValue(\.focusedPoster, AnyPoster(person))
+                .accessibilityLabel(person.displayTitle)
+                .matchedContextMenu(for: person) {
+                    EmptyView()
+                }
 
-                label
-                    .eraseToAnyView()
-            }
-            .animation(.easeInOut(duration: 0.15), value: effectiveFocus)
+            CastAndCrewLabel(person: person, isFocused: isFocused)
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
         }
-        .buttonStyle(.focusNeutral)
-        .focused($isFocused)
-        .focusedValue(\.focusedPoster, AnyPoster(person))
-        .accessibilityLabel(person.displayTitle)
-        .matchedContextMenu(for: person) {
-            EmptyView()
-        }
+        .animation(castAndCrewFocusAnimation, value: isFocused)
+        .frame(maxWidth: .infinity)
     }
 }
 
-private struct CastAndCrewPosterImage: View {
+private struct CastAndCrewNeutralButtonStyle: ButtonStyle {
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.85 : 1)
+    }
+}
+
+fileprivate extension ButtonStyle where Self == CastAndCrewNeutralButtonStyle {
+
+    static var castAndCrewNeutral: CastAndCrewNeutralButtonStyle {
+        CastAndCrewNeutralButtonStyle()
+    }
+}
+
+private struct CastAndCrewSquarePoster: Poster {
 
     let person: BaseItemPerson
 
-    private var imageSources: [ImageSource] {
-        person.portraitImageSources(maxWidth: castAndCrewPosterLength, quality: 90)
+    var id: String {
+        person.id ?? ""
     }
 
-    var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(.complexSecondary)
+    var unwrappedIDHashOrZero: Int {
+        person.unwrappedIDHashOrZero
+    }
 
-            AlternateLayoutView {
-                Color.clear
-            } content: { size in
-                ImageView(imageSources)
-                    .image { image in
-                        person.transform(image: image)
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: size.width, height: size.height)
-                            .clipped()
-                    }
-                    .placeholder { imageSource in
-                        if let blurHash = imageSource.blurHash {
-                            BlurHashView(blurHash: blurHash)
-                        } else {
-                            SystemImageContentView(
-                                systemName: person.systemImage
-                            )
-                        }
-                    }
-                    .failure {
-                        SystemImageContentView(
-                            systemName: person.systemImage
-                        )
-                    }
-                    .frame(width: size.width, height: size.height)
-                    .clipped()
-            }
-        }
-        .aspectRatio(1, contentMode: .fill)
+    var displayTitle: String {
+        person.displayTitle
+    }
+
+    var preferredPosterDisplayType: PosterDisplayType {
+        .square
+    }
+
+    var subtitle: String? {
+        person.subtitle
+    }
+
+    var systemImage: String {
+        person.systemImage
+    }
+
+    func squareImageSources(maxWidth: CGFloat?, quality: Int?) -> [ImageSource] {
+        person.portraitImageSources(maxWidth: maxWidth, quality: quality)
+    }
+
+    func transform(image: Image) -> some View {
+        image
+            .resizable()
+            .aspectRatio(contentMode: .fill)
     }
 }
 
 private struct CastAndCrewLabel: View {
 
-    @Environment(\.isFocused)
-    private var isFocused
-
     let person: BaseItemPerson
+    let isFocused: Bool
 
     var body: some View {
         VStack(spacing: 2) {
@@ -200,7 +191,7 @@ private struct CastAndCrewLabel: View {
                 .foregroundColor(isFocused ? .white : .secondary)
                 .lineLimit(1, reservesSpace: true)
         }
-        .frame(width: castAndCrewPosterLength)
+        .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .combine)
     }

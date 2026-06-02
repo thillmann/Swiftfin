@@ -16,9 +16,6 @@ extension ItemView.AboutView {
         @Router
         private var router
 
-        @FocusState
-        private var isFocused: Bool
-
         let item: BaseItemDto
 
         private var genres: String? {
@@ -58,20 +55,12 @@ extension ItemView.AboutView {
                 .frame(width: 900, height: 405, alignment: .topLeading)
                 .background {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.white.opacity(isFocused ? 0.22 : 0.12))
+                        .fill(.white.opacity(0.12))
                 }
-                .glassLift(
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous),
-                    isFocused: isFocused,
-                    scale: 1.04,
-                    shadowOpacity: 0.18,
-                    shadowRadius: 14,
-                    shadowY: 8
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .containerShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-            .buttonStyle(.focusNeutral)
-            .focusEffectDisabled()
-            .focused($isFocused)
+            .buttonStyle(.card)
         }
     }
 }
