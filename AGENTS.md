@@ -1,5 +1,6 @@
 # Agent Instructions
 
+- Unless specifically asked for, only consider tvOS app.
 - Do not run builds by default.
 - Only run a build when the change is a really big change, such as:
   - Multi-file or cross-module refactors
