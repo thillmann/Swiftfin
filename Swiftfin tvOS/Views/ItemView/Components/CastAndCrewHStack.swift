@@ -106,9 +106,7 @@ private struct CastAndCrewButton: View {
                 .focused($isFocused)
                 .focusedValue(\.focusedPoster, AnyPoster(person))
                 .accessibilityLabel(person.displayTitle)
-                .matchedContextMenu(for: person) {
-                    EmptyView()
-                }
+                .matchedContextMenu(for: person)
 
             CastAndCrewLabel(person: person, isFocused: isFocused)
                 .transaction { transaction in

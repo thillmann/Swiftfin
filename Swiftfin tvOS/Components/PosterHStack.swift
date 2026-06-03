@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CollectionHStack
 import SwiftUI
 
 // TODO: trailing content refactor?
@@ -27,6 +26,57 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
     private var trailingContent: () -> any View
     private let action: (Element) -> Void
 
+    @State
+    private var contentSize: CGSize = .zero
+
+    private var aspectRatio: CGFloat {
+        switch type {
+        case .landscape:
+            1.77
+        case .portrait:
+            2 / 3
+        case .square:
+            1
+        }
+    }
+
+    private var columnCount: CGFloat {
+        type == .landscape ? 4 : 6
+    }
+
+    private var horizontalPadding: CGFloat {
+        EdgeInsets.edgePadding
+    }
+
+    private var itemSpacing: CGFloat {
+        EdgeInsets.edgePadding - 40
+    }
+
+    private var verticalPadding: CGFloat {
+        20
+    }
+
+    private var itemWidth: CGFloat {
+        let availableWidth = contentSize.width > 0 ? contentSize.width : UIScreen.main.bounds.width
+        let width = (
+            availableWidth - horizontalPadding * 2 - itemSpacing * (columnCount - 1)
+        ) / columnCount
+
+        return max(width, 1)
+    }
+
+    private var itemHeight: CGFloat {
+        itemWidth / aspectRatio
+    }
+
+    private var rowHeight: CGFloat {
+        itemHeight + verticalPadding * 2
+    }
+
+    private var visibleData: [Element] {
+        Array(data.prefix(20))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
 
@@ -42,22 +92,27 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
                 }
             }
 
-            CollectionHStack(
-                uniqueElements: data,
-                columns: type == .landscape ? 4 : 6
-            ) { item in
-                posterButton(item, {
-                    action(item)
-                }, {
-                    label(item).eraseToAnyView()
-                })
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: itemSpacing) {
+                    ForEach(visibleData, id: \.self) { item in
+                        posterButton(item, {
+                            action(item)
+                        }, {
+                            label(item).eraseToAnyView()
+                        })
+                        .frame(width: itemWidth, height: itemHeight)
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, verticalPadding)
             }
-            .clipsToBounds(false)
-            .dataPrefix(20)
-            .insets(horizontal: EdgeInsets.edgePadding, vertical: 20)
-            .itemSpacing(EdgeInsets.edgePadding - 40)
-            .scrollBehavior(.continuousLeadingEdge)
+            .frame(height: rowHeight)
+            .scrollClipDisabled()
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.viewAligned)
         }
+        .trackingSize($contentSize)
         .focusSection()
     }
 }
@@ -69,7 +124,7 @@ extension PosterHStack {
         type: PosterDisplayType,
         items: Data,
         action: @escaping (Element) -> Void,
-        @ViewBuilder label: @escaping (Element) -> any View = { PosterButton<Element>.TitleSubtitleContentView(item: $0) },
+        @ViewBuilder label: @escaping (Element) -> any View = { _ in EmptyView() },
         posterButton: PosterButtonBuilder? = nil
     ) {
         self.init(
@@ -77,14 +132,12 @@ extension PosterHStack {
             title: title,
             type: type,
             label: label,
-            posterButton: posterButton ?? { item, action, label in
+            posterButton: posterButton ?? { item, action, _ in
                 PosterButton(
                     item: item,
                     type: type
                 ) {
                     action()
-                } label: {
-                    label()
                 }
                 .eraseToAnyView()
             },

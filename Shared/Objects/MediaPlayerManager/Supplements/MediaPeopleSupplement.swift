@@ -84,9 +84,7 @@ extension MediaPeopleSupplement {
             PosterButton(
                 item: person,
                 type: .portrait
-            ) {} label: {
-                PosterButton<BaseItemPerson>.TitleSubtitleContentView(item: person)
-            }
+            ) {}
             #endif
         }
 

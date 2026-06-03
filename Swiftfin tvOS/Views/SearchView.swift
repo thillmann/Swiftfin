@@ -185,9 +185,7 @@ struct SearchView: View {
             type: posterType,
             items: items,
             action: select
-        ) { item in
-            PosterButton<UnifiedSearchResult>.TitleSubtitleContentView(item: item)
-        }
+        )
     }
 
     var body: some View {

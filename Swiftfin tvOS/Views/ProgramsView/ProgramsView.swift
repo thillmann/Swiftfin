@@ -72,8 +72,6 @@ struct ProgramsView: View {
 //                to: \.liveVideoPlayer,
 //                LiveVideoPlayerManager(item: channelProgram.channel, mediaSource: mediaSource)
 //            )
-        } label: {
-            ProgramButtonContent(program: $0)
         }
         .posterOverlay(for: BaseItemDto.self) {
             ProgramProgressOverlay(program: $0)

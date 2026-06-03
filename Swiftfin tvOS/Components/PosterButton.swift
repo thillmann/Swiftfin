@@ -12,165 +12,54 @@ import SwiftUI
 
 private let landscapeMaxWidth: CGFloat = 500
 private let portraitMaxWidth: CGFloat = 500
-private let posterLabelSpacing: CGFloat = 8
 
 struct PosterButton<Item: Poster>: View {
 
     @EnvironmentTypeValue<Item>(\.posterOverlayRegistry)
     private var posterOverlayRegistry
 
-    private var horizontalAlignment: HorizontalAlignment
+    @FocusState
+    private var isFocused: Bool
+
     private let item: Item
     private let type: PosterDisplayType
-    private let label: any View
     private let action: () -> Void
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        action: @escaping () -> Void
+    ) {
+        self.item = item
+        self.type = type
+        self.action = action
+    }
 
     var body: some View {
         let overlay = posterOverlayRegistry?(item) ??
             PosterButton.DefaultOverlay(item: item)
             .eraseToAnyView()
 
-        VStack(alignment: horizontalAlignment, spacing: posterLabelSpacing) {
-            Button {
-                action()
-            } label: {
-                PosterImage(item: item, type: type)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay { overlay }
-                    .posterStyle(type)
-            }
-            .buttonStyle(.card)
-            .focusedValue(\.focusedPoster, AnyPoster(item))
-            .accessibilityLabel(item.displayTitle)
-            .matchedContextMenu(for: item) {
-                EmptyView()
-            }
-
-            label
-                .eraseToAnyView()
+        Button {
+            action()
+        } label: {
+            PosterImage(item: item, type: type)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay {
+                    overlay
+                        .environment(\.isPosterFocused, isFocused)
+                }
+                .posterStyle(type)
         }
+        .buttonStyle(.card)
+        .focused($isFocused)
+        .focusedValue(\.focusedPoster, AnyPoster(item))
+        .accessibilityLabel(item.displayTitle)
+        .matchedContextMenu(for: item)
     }
 }
 
 extension PosterButton {
-
-    init(
-        item: Item,
-        type: PosterDisplayType,
-        action: @escaping () -> Void,
-        @ViewBuilder label: @escaping () -> any View
-    ) {
-        self.item = item
-        self.type = type
-        self.action = action
-        self.label = label()
-        self.horizontalAlignment = .leading
-    }
-
-    func horizontalAlignment(_ alignment: HorizontalAlignment) -> Self {
-        copy(modifying: \.horizontalAlignment, with: alignment)
-    }
-}
-
-// TODO: Shared default content with iOS?
-//       - check if content is generally same
-
-extension PosterButton {
-
-    // MARK: Default Content
-
-    struct TitleContentView: View {
-
-        let item: Item
-
-        var body: some View {
-            Text(item.displayTitle)
-                .font(.footnote.weight(.regular))
-                .foregroundColor(.primary)
-                .accessibilityLabel(item.displayTitle)
-        }
-    }
-
-    struct SubtitleContentView: View {
-
-        let item: Item
-
-        var body: some View {
-            Text(item.subtitle ?? "")
-                .font(.caption.weight(.medium))
-                .foregroundColor(.secondary)
-        }
-    }
-
-    struct TitleSubtitleContentView: View {
-
-        let item: Item
-
-        var body: some View {
-            VStack(alignment: .leading) {
-                if item.showTitle {
-                    TitleContentView(item: item)
-                        .lineLimit(1, reservesSpace: true)
-                }
-
-                SubtitleContentView(item: item)
-                    .lineLimit(1, reservesSpace: true)
-            }
-        }
-    }
-
-    // TODO: clean up
-
-    // Content specific for BaseItemDto episode items
-    struct EpisodeContentSubtitleContent: View {
-
-        let item: Item
-
-        var body: some View {
-            if let item = item as? BaseItemDto {
-                // Unsure why this needs 0 spacing
-                // compared to other default content
-                VStack(alignment: .leading, spacing: 0) {
-                    if item.showTitle, let seriesName = item.seriesName {
-                        Text(seriesName)
-                            .font(.footnote.weight(.regular))
-                            .foregroundColor(.primary)
-                            .lineLimit(1, reservesSpace: true)
-                    }
-
-                    Subtitle(item: item)
-                }
-            }
-        }
-
-        struct Subtitle: View {
-
-            let item: BaseItemDto
-
-            var body: some View {
-
-                SeparatorHStack {
-                    Circle()
-                        .frame(width: 2, height: 2)
-                        .padding(.horizontal, 3)
-                } content: {
-                    SeparatorHStack {
-                        Text(item.seasonEpisodeLabel ?? .emptyDash)
-
-                        if item.showTitle {
-                            Text(item.displayTitle)
-
-                        } else if let seriesName = item.seriesName {
-                            Text(seriesName)
-                        }
-                    }
-                }
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-            }
-        }
-    }
 
     // TODO: Find better way for these indicators, see EpisodeCard
     struct DefaultOverlay: View {

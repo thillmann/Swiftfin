@@ -31,8 +31,6 @@ extension HomeView {
                     items: viewModel.elements
                 ) { item in
                     router.route(to: .item(item: item))
-                } label: { _ in
-                    EmptyView()
                 }
             }
         }

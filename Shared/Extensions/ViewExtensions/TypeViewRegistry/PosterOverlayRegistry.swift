@@ -12,6 +12,9 @@ extension EnvironmentValues {
 
     @Entry
     var posterOverlayRegistry: TypeViewRegistry = .init()
+
+    @Entry
+    var isPosterFocused = false
 }
 
 extension View {

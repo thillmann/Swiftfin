@@ -181,15 +181,6 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
             type: .landscape
         ) {
             action(item)
-        } label: {
-            if item.showTitle {
-                PosterButton<Element>.TitleContentView(item: item)
-                    .lineLimit(1, reservesSpace: true)
-            } else if viewModel.parent?.libraryType == .folder {
-                PosterButton<Element>.TitleContentView(item: item)
-                    .lineLimit(1, reservesSpace: true)
-                    .hidden()
-            }
         }
     }
 
@@ -202,15 +193,6 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
             type: .portrait
         ) {
             action(item)
-        } label: {
-            if item.showTitle {
-                PosterButton<Element>.TitleContentView(item: item)
-                    .lineLimit(1, reservesSpace: true)
-            } else if viewModel.parent?.libraryType == .folder {
-                PosterButton<Element>.TitleContentView(item: item)
-                    .lineLimit(1, reservesSpace: true)
-                    .hidden()
-            }
         }
     }
 

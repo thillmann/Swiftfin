@@ -38,15 +38,16 @@ struct CinematicItemSelector<Item: Poster>: View {
                 topContent(focusedItem)
                     .eraseToAnyView()
                     .id(focusedItem.hashValue)
-                    .transition(.opacity)
+                    .transaction { transaction in
+                        transaction.animation = nil
+                    }
             }
 
             // TODO: fix intrinsic content sizing without frame
             PosterHStack(
                 type: .landscape,
                 items: items,
-                action: action,
-                label: itemContent
+                action: action
             )
             .frame(height: 400)
         }
