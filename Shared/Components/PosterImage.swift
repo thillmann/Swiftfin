@@ -19,17 +19,20 @@ struct PosterImage<Item: Poster>: View {
     private let contentMode: ContentMode
     private let imageMaxWidth: CGFloat
     private let item: Item
+    private let prefersBlurHashPlaceholder: Bool
     private let type: PosterDisplayType
 
     init(
         item: Item,
         type: PosterDisplayType,
         contentMode: ContentMode = .fill,
-        maxWidth: CGFloat? = nil
+        maxWidth: CGFloat? = nil,
+        prefersBlurHashPlaceholder: Bool = true
     ) {
         self.contentMode = contentMode
         self.imageMaxWidth = maxWidth ?? (type == .landscape ? landscapeMaxWidth : portraitMaxWidth)
         self.item = item
+        self.prefersBlurHashPlaceholder = prefersBlurHashPlaceholder
         self.type = type
     }
 
@@ -44,6 +47,20 @@ struct PosterImage<Item: Poster>: View {
         }
     }
 
+    @ViewBuilder
+    private var placeholderContent: some View {
+        if item.showTitle {
+            SystemImageContentView(
+                systemName: item.systemImage
+            )
+        } else {
+            SystemImageContentView(
+                title: item.displayTitle,
+                systemName: item.systemImage
+            )
+        }
+    }
+
     var body: some View {
         ZStack {
             Rectangle()
@@ -55,30 +72,14 @@ struct PosterImage<Item: Poster>: View {
                 ImageView(imageSources)
                     .image(item.transform)
                     .placeholder { imageSource in
-                        if let blurHash = imageSource.blurHash {
+                        if prefersBlurHashPlaceholder, let blurHash = imageSource.blurHash {
                             BlurHashView(blurHash: blurHash)
-                        } else if item.showTitle {
-                            SystemImageContentView(
-                                systemName: item.systemImage
-                            )
                         } else {
-                            SystemImageContentView(
-                                title: item.displayTitle,
-                                systemName: item.systemImage
-                            )
+                            placeholderContent
                         }
                     }
                     .failure {
-                        if item.showTitle {
-                            SystemImageContentView(
-                                systemName: item.systemImage
-                            )
-                        } else {
-                            SystemImageContentView(
-                                title: item.displayTitle,
-                                systemName: item.systemImage
-                            )
-                        }
+                        placeholderContent
                     }
             }
         }

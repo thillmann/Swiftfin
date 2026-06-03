@@ -25,7 +25,7 @@ struct HomeView: View {
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: 0) {
 
                 if viewModel.resumeItems.isNotEmpty {
                     CinematicResumeView(viewModel: viewModel)

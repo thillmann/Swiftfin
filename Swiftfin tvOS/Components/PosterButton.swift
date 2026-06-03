@@ -22,15 +22,18 @@ struct PosterButton<Item: Poster>: View {
     private var isFocused: Bool
 
     private let item: Item
+    private let prefersBlurHashPlaceholder: Bool
     private let type: PosterDisplayType
     private let action: () -> Void
 
     init(
         item: Item,
         type: PosterDisplayType,
+        prefersBlurHashPlaceholder: Bool = true,
         action: @escaping () -> Void
     ) {
         self.item = item
+        self.prefersBlurHashPlaceholder = prefersBlurHashPlaceholder
         self.type = type
         self.action = action
     }
@@ -43,13 +46,17 @@ struct PosterButton<Item: Poster>: View {
         Button {
             action()
         } label: {
-            PosterImage(item: item, type: type)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay {
-                    overlay
-                        .environment(\.isPosterFocused, isFocused)
-                }
-                .posterStyle(type)
+            PosterImage(
+                item: item,
+                type: type,
+                prefersBlurHashPlaceholder: prefersBlurHashPlaceholder
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay {
+                overlay
+                    .environment(\.isPosterFocused, isFocused)
+            }
+            .posterStyle(type)
         }
         .buttonStyle(.card)
         .focused($isFocused)
