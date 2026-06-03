@@ -11,7 +11,6 @@ import SwiftUI
 
 private let castAndCrewFocusedScale: CGFloat = 1.1
 private let castAndCrewLabelSpacing: CGFloat = 10
-private let castAndCrewPosterLength: CGFloat = 208
 private let castAndCrewPosterImageMaxWidth: CGFloat = 500
 private let castAndCrewFocusAnimation = Animation.easeInOut(duration: 0.18)
 
@@ -57,20 +56,23 @@ private struct CastAndCrewButton: View {
     let person: BaseItemPerson
     let action: () -> Void
 
-    private var effectiveLabelSpacing: CGFloat {
-        let focusedBottomGrowth = castAndCrewPosterLength * (castAndCrewFocusedScale - 1) / 2
+    private func effectiveLabelSpacing(posterLength: CGFloat) -> CGFloat {
+        let focusedBottomGrowth = posterLength * (castAndCrewFocusedScale - 1) / 2
 
         return castAndCrewLabelSpacing + (isFocused ? focusedBottomGrowth : 0)
     }
 
     @ViewBuilder
-    private func poster(overlay: some View) -> some View {
+    private func poster(
+        overlay: some View,
+        length: CGFloat
+    ) -> some View {
         PosterImage(
             item: CastAndCrewSquarePoster(person: person),
             type: .square,
             maxWidth: castAndCrewPosterImageMaxWidth
         )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(width: length, height: length)
         .overlay { overlay }
         .contentShape(.contextMenuPreview, Circle())
         .clipShape(Circle())
@@ -87,9 +89,12 @@ private struct CastAndCrewButton: View {
     }
 
     @ViewBuilder
-    private func posterButton(overlay: some View) -> some View {
+    private func posterButton(
+        overlay: some View,
+        length: CGFloat
+    ) -> some View {
         Button(action: action) {
-            poster(overlay: overlay)
+            poster(overlay: overlay, length: length)
         }
         .buttonStyle(.castAndCrewNeutral)
         .scaleEffect(isFocused ? castAndCrewFocusedScale : 1, anchor: .center)
@@ -101,20 +106,19 @@ private struct CastAndCrewButton: View {
             PosterButton<BaseItemPerson>.DefaultOverlay(item: person)
             .eraseToAnyView()
 
-        VStack(spacing: effectiveLabelSpacing) {
-            posterButton(overlay: overlay)
-                .focused($isFocused)
-                .focusedValue(\.focusedPoster, AnyPoster(person))
-                .accessibilityLabel(person.displayTitle)
-                .matchedContextMenu(for: person)
+        GeometryReader { proxy in
+            VStack(spacing: effectiveLabelSpacing(posterLength: proxy.size.width)) {
+                posterButton(overlay: overlay, length: proxy.size.width)
+                    .focused($isFocused)
+                    .focusedValue(\.focusedPoster, AnyPoster(person))
+                    .accessibilityLabel(person.displayTitle)
+                    .matchedContextMenu(for: person)
 
-            CastAndCrewLabel(person: person, isFocused: isFocused)
-                .transaction { transaction in
-                    transaction.animation = nil
-                }
+                CastAndCrewLabel(person: person, isFocused: isFocused)
+            }
+            .animation(castAndCrewFocusAnimation, value: isFocused)
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
         }
-        .animation(castAndCrewFocusAnimation, value: isFocused)
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -186,9 +190,11 @@ private struct CastAndCrewLabel: View {
 
             Text(person.subtitle ?? "")
                 .font(.caption2.weight(.medium))
-                .foregroundColor(isFocused ? .white : .secondary)
+                .foregroundColor(.white)
+                .opacity(isFocused ? 1 : 0.6)
                 .lineLimit(1, reservesSpace: true)
         }
+        .animation(castAndCrewFocusAnimation, value: isFocused)
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .combine)
