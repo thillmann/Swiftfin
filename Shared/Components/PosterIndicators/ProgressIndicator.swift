@@ -22,9 +22,11 @@ struct ProgressIndicator: View {
         VStack {
             Spacer()
 
-            accentColor
-                .scaleEffect(x: progress, y: 1, anchor: .leading)
-                .frame(height: height)
+            if progress > 0 {
+                accentColor
+                    .scaleEffect(x: progress, y: 1, anchor: .leading)
+                    .frame(height: height)
+            }
         }
         .frame(maxWidth: .infinity)
     }

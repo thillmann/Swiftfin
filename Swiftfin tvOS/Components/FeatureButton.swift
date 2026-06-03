@@ -128,12 +128,18 @@ struct FeatureInlineProgressStyle: ProgressViewStyle {
             Capsule(style: .continuous)
                 .fill(trackColor)
 
-            GeometryReader { proxy in
-                Capsule(style: .continuous)
-                    .fill(fillColor)
-                    .frame(width: proxy.size.width * value)
+            if value > 0 {
+                GeometryReader { proxy in
+                    let fillWidth = proxy.size.width * value
+
+                    if fillWidth > 0 {
+                        Capsule(style: .continuous)
+                            .fill(fillColor)
+                            .frame(width: fillWidth)
+                    }
+                }
+                .clipShape(Capsule(style: .continuous))
             }
-            .clipShape(Capsule(style: .continuous))
         }
         .frame(height: height)
         .shadow(color: .clear, radius: 0) // explicit: no shadow
