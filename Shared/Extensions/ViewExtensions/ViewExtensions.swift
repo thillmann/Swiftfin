@@ -449,7 +449,7 @@ extension View {
 
     // TODO: look at changing to symbolEffect
     func videoPlayerActionButtonTransition() -> some View {
-        transition(.opacity.combined(with: .scale).animation(.snappy))
+        transition(.opacity.combined(with: .scale(scale: 0.01)).animation(.snappy))
     }
 
     // MARK: debug
