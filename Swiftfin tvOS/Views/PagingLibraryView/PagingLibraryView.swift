@@ -100,80 +100,25 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
         }
     }
 
-    private var gridColumns: [GridItem] {
-        Array(
-            repeating: GridItem(.flexible(), spacing: 50),
-            count: activeColumnCount
-        )
-    }
-
-    // MARK: Landscape Grid Item View
-
-    private func landscapeGridItemView(item: Element) -> some View {
-        PosterButton(
-            item: item,
-            type: .landscape,
-            prefersBlurHashPlaceholder: false
-        ) {
-            action(item)
-        }
-    }
-
-    // MARK: Portrait Grid Item View
-
-    @ViewBuilder
-    private func portraitGridItemView(item: Element) -> some View {
-        PosterButton(
-            item: item,
-            type: .portrait,
-            prefersBlurHashPlaceholder: false
-        ) {
-            action(item)
-        }
-    }
-
-    // MARK: List Item View
-
-    @ViewBuilder
-    private func listItemView(item: Element, posterType: PosterDisplayType) -> some View {
-        LibraryRow(
-            item: item,
-            posterType: posterType
-        ) {
-            action(item)
-        }
-    }
-
     // MARK: Grid View
 
     @ViewBuilder
     private var gridView: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVGrid(columns: gridColumns, spacing: 50) {
-                ForEach(Array(viewModel.elements.enumerated()), id: \.element.id) { index, item in
-                    Group {
-                        switch (activePosterType, activeDisplayType) {
-                        case (.landscape, .grid):
-                            landscapeGridItemView(item: item)
-                        case (.portrait, .grid), (.square, .grid):
-                            portraitGridItemView(item: item)
-                        case (_, .list):
-                            listItemView(item: item, posterType: activePosterType)
-                        }
-                    }
-                    .onAppear {
-                        loadNextPageIfNeeded(for: index)
-                    }
-                }
-            }
-            .padding(50)
+        VirtualizedPosterGrid(
+            items: Array(viewModel.elements),
+            posterType: activePosterType,
+            displayType: activeDisplayType,
+            columnCount: activeColumnCount,
+            spacing: 50,
+            pagingPrefetchRows: pagingPrefetchRows
+        ) { item in
+            action(item)
+        } onNearEnd: {
+            loadNextPageIfNeeded()
         }
     }
 
-    private func loadNextPageIfNeeded(for index: Int) {
-        let nextPageThreshold = max(viewModel.elements.count - activeColumnCount * pagingPrefetchRows, 0)
-
-        guard index >= nextPageThreshold else { return }
+    private func loadNextPageIfNeeded() {
         guard !viewModel.backgroundStates.contains(.gettingNextPage) else { return }
 
         viewModel.send(.getNextPage)
