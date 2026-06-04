@@ -1442,6 +1442,14 @@ internal enum L10n {
   internal static let seeAll = L10n.tr("Localizable", "seeAll", fallback: "See all")
   /// See more
   internal static let seeMore = L10n.tr("Localizable", "seeMore", fallback: "See more")
+  /// Available
+  internal static let seerrStatusAvailable = L10n.tr("Localizable", "seerrStatusAvailable", fallback: "Available")
+  /// Partial
+  internal static let seerrStatusPartial = L10n.tr("Localizable", "seerrStatusPartial", fallback: "Partial")
+  /// Processing
+  internal static let seerrStatusProcessing = L10n.tr("Localizable", "seerrStatusProcessing", fallback: "Processing")
+  /// Requested
+  internal static let seerrStatusRequested = L10n.tr("Localizable", "seerrStatusRequested", fallback: "Requested")
   /// Select all
   internal static let selectAll = L10n.tr("Localizable", "selectAll", fallback: "Select all")
   /// Select image

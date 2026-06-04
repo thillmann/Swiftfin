@@ -220,6 +220,9 @@ struct SearchView: View {
                 router.route(to: .library(viewModel: viewModel))
             }
         }
+        .posterOverlay(for: UnifiedSearchResult.self) { item in
+            UnifiedSearchResultPosterOverlay(item: item)
+        }
     }
 
     var body: some View {

@@ -75,12 +75,6 @@ enum UnifiedSearchResult: Identifiable {
             [item.posterImageSource]
         }
     }
-
-    var hasSeerPoster: Bool {
-        guard case let .seer(item) = self else { return false }
-        guard let posterPath = item.posterPath else { return false }
-        return !posterPath.isEmpty
-    }
 }
 
 extension UnifiedSearchResult: Hashable {
@@ -126,6 +120,8 @@ extension UnifiedSearchResult: SystemImageable {
 }
 
 extension UnifiedSearchResult: Poster {
+    typealias ImageBody = Image
+
     var preferredPosterDisplayType: PosterDisplayType {
         switch kind {
         case .person:
@@ -153,59 +149,72 @@ extension UnifiedSearchResult: Poster {
         imageSources
     }
 
-    @MainActor
-    func transform(image: Image) -> some View {
-        ZStack(alignment: .topTrailing) {
-            image
-
-            if source == .seer, hasSeerPoster {
-                Image("seerr.monochrome")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 22, height: 22)
-                    .padding(.top, 8)
-                    .padding(.trailing, 8)
-            }
-
-            if let seerStatusPillText {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Text(seerStatusPillText)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Defaults[.accentColor], in: Capsule())
-                    }
-                }
-                .padding(.trailing, 8)
-                .padding(.bottom, 8)
-            }
-        }
-    }
-
     var subtitle: String? {
         nil
     }
 
-    private var seerStatusPillText: String? {
+    var seerStatusPillText: String? {
         guard case let .seer(item) = self else { return nil }
         guard let status = item.mediaInfo?.mediaStatus else { return nil }
         guard status != .unknown else { return nil }
 
         return switch status {
         case .pending:
-            "Requested"
+            L10n.seerrStatusRequested
         case .processing:
-            "Processing"
+            L10n.seerrStatusProcessing
         case .partiallyAvailable:
-            "Partial"
+            L10n.seerrStatusPartial
         case .available:
-            "Available"
+            L10n.seerrStatusAvailable
         case .unknown:
             nil
+        }
+    }
+}
+
+struct UnifiedSearchResultPosterOverlay: View {
+
+    @Environment(\.isPosterFocused)
+    private var isPosterFocused
+
+    let item: UnifiedSearchResult
+
+    private var overlayOpacity: Double {
+        isPosterFocused ? 1 : 0.55
+    }
+
+    var body: some View {
+        if item.source != .seer {
+            EmptyView()
+        } else {
+            ZStack(alignment: .topTrailing) {
+                Color.clear
+
+                HStack(spacing: 6) {
+                    Spacer()
+
+                    if let seerStatusPillText = item.seerStatusPillText {
+                        Text(seerStatusPillText)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Defaults[.accentColor], in: Capsule())
+                    }
+
+                    Image("seerr.monochrome")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 22, height: 22)
+                }
+                .padding(.top, 12)
+                .padding(.trailing, 12)
+                .opacity(overlayOpacity)
+                .animation(.easeInOut(duration: 0.15), value: isPosterFocused)
+            }
+            .allowsHitTesting(false)
         }
     }
 }

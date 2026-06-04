@@ -186,6 +186,9 @@ struct SearchView: View {
             items: items,
             action: select
         )
+        .posterOverlay(for: UnifiedSearchResult.self) { item in
+            UnifiedSearchResultPosterOverlay(item: item)
+        }
     }
 
     var body: some View {

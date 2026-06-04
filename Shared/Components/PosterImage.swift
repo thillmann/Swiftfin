@@ -49,16 +49,10 @@ struct PosterImage<Item: Poster>: View {
 
     @ViewBuilder
     private var placeholderContent: some View {
-        if item.showTitle {
-            SystemImageContentView(
-                systemName: item.systemImage
-            )
-        } else {
-            SystemImageContentView(
-                title: item.displayTitle,
-                systemName: item.systemImage
-            )
-        }
+        PosterFallbackContentView(
+            title: item.displayTitle,
+            systemName: item.systemImage
+        )
     }
 
     var body: some View {
@@ -87,5 +81,33 @@ struct PosterImage<Item: Poster>: View {
             type,
             contentMode: contentMode
         )
+    }
+}
+
+private struct PosterFallbackContentView: View {
+
+    let title: String?
+    let systemName: String?
+
+    var body: some View {
+        ZStack {
+            SystemImageContentView(systemName: systemName)
+
+            if let title {
+                VStack {
+                    Spacer()
+
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(.thinMaterial)
+                }
+            }
+        }
     }
 }
