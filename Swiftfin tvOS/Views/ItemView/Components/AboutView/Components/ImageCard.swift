@@ -30,7 +30,7 @@ extension ItemView.AboutView {
                 type: .portrait,
                 action: action
             )
-            .posterOverlay(for: BaseItemDto.self) { _ in EmptyView() }
+            .posterOverlayComponents([])
             .frame(height: 405)
         }
 

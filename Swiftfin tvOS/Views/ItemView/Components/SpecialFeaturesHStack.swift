@@ -29,7 +29,7 @@ extension ItemView {
 //                    to: .videoPlayer(manager: OnlineVideoPlayerManager(item: item, mediaSource: mediaSource))
 //                )
             }
-            .posterOverlay(for: BaseItemDto.self) { _ in EmptyView() }
+            .posterOverlayComponents([])
         }
     }
 }
