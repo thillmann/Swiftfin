@@ -10,28 +10,43 @@ import SwiftUI
 
 extension ItemView {
     struct MovieItemContentView: View {
+
+        private let castAndCrewSectionSpacing: CGFloat = 20
+        private let sectionSpacing: CGFloat = 40
+
         @ObservedObject
         var viewModel: MovieItemViewModel
 
+        @ViewBuilder
+        private var remainingSections: some View {
+            if viewModel.additionalParts.isNotEmpty {
+                AdditionalPartsHStack(items: viewModel.additionalParts)
+            }
+
+            if viewModel.specialFeatures.isNotEmpty {
+                ItemView.SpecialFeaturesHStack(items: viewModel.specialFeatures)
+            }
+
+            if viewModel.similarItems.isNotEmpty {
+                ItemView.SimilarItemsHStack(items: viewModel.similarItems)
+            }
+
+            ItemView.AboutView(viewModel: viewModel)
+        }
+
         var body: some View {
-            VStack(spacing: 40) {
+            VStack(spacing: sectionSpacing) {
                 if let castAndCrew = viewModel.item.people, castAndCrew.isNotEmpty {
-                    ItemView.CastAndCrewHStack(people: castAndCrew)
-                }
+                    VStack(spacing: castAndCrewSectionSpacing) {
+                        ItemView.CastAndCrewHStack(people: castAndCrew)
 
-                if viewModel.additionalParts.isNotEmpty {
-                    AdditionalPartsHStack(items: viewModel.additionalParts)
+                        VStack(spacing: sectionSpacing) {
+                            remainingSections
+                        }
+                    }
+                } else {
+                    remainingSections
                 }
-
-                if viewModel.specialFeatures.isNotEmpty {
-                    ItemView.SpecialFeaturesHStack(items: viewModel.specialFeatures)
-                }
-
-                if viewModel.similarItems.isNotEmpty {
-                    ItemView.SimilarItemsHStack(items: viewModel.similarItems)
-                }
-
-                ItemView.AboutView(viewModel: viewModel)
             }
         }
     }

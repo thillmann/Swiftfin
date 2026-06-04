@@ -11,6 +11,7 @@ import SwiftUI
 
 private let castAndCrewFocusedScale: CGFloat = 1.1
 private let castAndCrewLabelSpacing: CGFloat = 10
+private let castAndCrewRowAspectRatio: CGFloat = 0.75
 private let castAndCrewPosterImageMaxWidth: CGFloat = 500
 private let castAndCrewFocusAnimation = Animation.easeInOut(duration: 0.18)
 
@@ -41,6 +42,7 @@ extension ItemView {
                 )
                 .eraseToAnyView()
             }
+            .itemContentAspectRatio(castAndCrewRowAspectRatio)
         }
     }
 }

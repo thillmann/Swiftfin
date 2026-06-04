@@ -13,6 +13,9 @@ import SwiftUI
 
 struct HomeView: View {
 
+    private let bottomPadding: CGFloat = 80
+    private let sectionSpacing: CGFloat = 40
+
     @Router
     private var router
 
@@ -25,7 +28,7 @@ struct HomeView: View {
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: sectionSpacing) {
 
                 if viewModel.resumeItems.isNotEmpty {
                     CinematicResumeView(viewModel: viewModel)
@@ -48,6 +51,7 @@ struct HomeView: View {
                     LatestInLibraryView(viewModel: viewModel)
                 }
             }
+            .padding(.bottom, bottomPadding)
         }
     }
 

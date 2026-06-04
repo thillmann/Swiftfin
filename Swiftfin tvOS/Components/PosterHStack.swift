@@ -21,6 +21,7 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
     private var data: Data
     private var title: String?
     private var type: PosterDisplayType
+    private var itemContentAspectRatio: CGFloat?
     private var label: (Element) -> any View
     private var posterButton: PosterButtonBuilder
     private var trailingContent: () -> any View
@@ -66,7 +67,7 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
     }
 
     private var itemHeight: CGFloat {
-        itemWidth / aspectRatio
+        itemWidth / (itemContentAspectRatio ?? aspectRatio)
     }
 
     private var rowHeight: CGFloat {
@@ -131,6 +132,7 @@ extension PosterHStack {
             data: items,
             title: title,
             type: type,
+            itemContentAspectRatio: nil,
             label: label,
             posterButton: posterButton ?? { item, action, _ in
                 PosterButton(
@@ -148,5 +150,9 @@ extension PosterHStack {
 
     func trailing(@ViewBuilder _ content: @escaping () -> any View) -> Self {
         copy(modifying: \.trailingContent, with: content)
+    }
+
+    func itemContentAspectRatio(_ aspectRatio: CGFloat) -> Self {
+        copy(modifying: \.itemContentAspectRatio, with: aspectRatio)
     }
 }

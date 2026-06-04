@@ -43,6 +43,7 @@ extension ItemView {
                     .padding(.horizontal, 80)
                     .padding(.vertical, 40)
                 }
+                .scrollClipDisabled()
             }
             .focusSection()
         }

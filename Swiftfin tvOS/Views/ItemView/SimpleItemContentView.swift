@@ -12,16 +12,23 @@ extension ItemView {
 
     struct SimpleItemContentView: View {
 
+        private let castAndCrewSectionSpacing: CGFloat = 20
+        private let sectionSpacing: CGFloat = 40
+
         @ObservedObject
         var viewModel: ItemViewModel
 
         var body: some View {
-            VStack(spacing: 40) {
+            VStack(spacing: sectionSpacing) {
                 if let castAndCrew = viewModel.item.people, castAndCrew.isNotEmpty {
-                    ItemView.CastAndCrewHStack(people: castAndCrew)
-                }
+                    VStack(spacing: castAndCrewSectionSpacing) {
+                        ItemView.CastAndCrewHStack(people: castAndCrew)
 
-                ItemView.AboutView(viewModel: viewModel)
+                        ItemView.AboutView(viewModel: viewModel)
+                    }
+                } else {
+                    ItemView.AboutView(viewModel: viewModel)
+                }
             }
         }
     }
