@@ -107,9 +107,6 @@ extension PosterButton {
 
     struct DefaultOverlay: View {
 
-        @Default(.Customization.Indicators.showPlayed)
-        private var showPlayed
-
         @Default(.Customization.Indicators.showUnplayed)
         private var showUnplayed
 
@@ -141,7 +138,8 @@ extension PosterButton {
         }
 
         private var isPlayed: Bool {
-            baseItem?.userData?.isPlayed == true
+            baseItem?.userData?.isPlayed == true ||
+                (baseItem?.userData?.playedPercentage ?? 0) >= 100
         }
 
         private var playedPercentage: Double {
@@ -161,7 +159,7 @@ extension PosterButton {
                 return false
             }
 
-            return isPlayed ? showPlayed : showUnplayed != .none
+            return isPlayed || showUnplayed != .none || components.contains(.durationLeft)
         }
 
         private var playIconSystemName: String {
@@ -196,7 +194,11 @@ extension PosterButton {
                 return nil
             }
 
-            return baseItem?.progressLabel
+            if hasPlaybackProgress, !isPlayed, let progressLabel = baseItem?.progressLabel {
+                return progressLabel
+            }
+
+            return baseItem?.runTimeLabel
         }
 
         private var shouldShowFavoriteIcon: Bool {

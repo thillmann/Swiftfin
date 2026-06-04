@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import JellyfinAPI
 import SwiftUI
 
@@ -14,28 +13,78 @@ extension SeriesEpisodeSelector {
 
     struct EpisodeContent: View {
 
-        @Default(.accentColor)
-        private var accentColor
-
         private let action: () -> Void
 
         let subHeader: String
         let header: String
         let content: String
+        let releaseDate: String?
+        let isPosterFocused: Bool
+
+        @FocusState
+        private var isFocused: Bool
+
+        private var isHighlighted: Bool {
+            isFocused || isPosterFocused
+        }
+
+        private var primaryTextColor: Color {
+            .primary
+        }
+
+        private var secondaryTextColor: Color {
+            .secondary
+        }
+
+        private var backgroundOpacity: Double {
+            if isFocused {
+                0.34
+            } else if isPosterFocused {
+                0.16
+            } else {
+                0
+            }
+        }
+
+        private var posterFocusOffset: CGFloat {
+            isPosterFocused && !isFocused ? 18 : 0
+        }
+
+        @ViewBuilder
+        private var backgroundView: some View {
+            let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+
+            ZStack {
+                if #available(tvOS 26.0, *) {
+                    shape
+                        .fill(.clear)
+                        .glassEffect(.regular.interactive(), in: shape)
+                        .opacity(isFocused ? 1 : 0)
+                } else {
+                    shape
+                        .fill(.regularMaterial)
+                        .opacity(isFocused ? 1 : 0)
+                }
+
+                shape
+                    .fill(.white.opacity(backgroundOpacity))
+            }
+        }
 
         @ViewBuilder
         private var subHeaderView: some View {
             Text(subHeader)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(secondaryTextColor)
                 .lineLimit(1)
+                .textCase(.uppercase)
         }
 
         @ViewBuilder
         private var headerView: some View {
             Text(header)
-                .font(.footnote)
-                .foregroundColor(.primary)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(primaryTextColor)
                 .lineLimit(1)
                 .multilineTextAlignment(.leading)
                 .padding(.bottom, 1)
@@ -44,18 +93,27 @@ extension SeriesEpisodeSelector {
         @ViewBuilder
         private var contentView: some View {
             Text(content)
-                .font(.caption.weight(.light))
-                .foregroundColor(.secondary)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(secondaryTextColor)
                 .multilineTextAlignment(.leading)
-                .lineLimit(3, reservesSpace: true)
-                .font(.caption.weight(.light))
+                .lineLimit(2, reservesSpace: true)
+        }
+
+        @ViewBuilder
+        private var releaseDateView: some View {
+            if let releaseDate {
+                Text(releaseDate)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(secondaryTextColor)
+                    .lineLimit(1)
+            }
         }
 
         var body: some View {
             Button {
                 action()
             } label: {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     subHeaderView
 
                     headerView
@@ -63,24 +121,36 @@ extension SeriesEpisodeSelector {
                     contentView
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(L10n.seeMore)
-                        .font(.caption.weight(.light))
-                        .foregroundStyle(accentColor)
+                    releaseDateView
                 }
                 .padding()
+                .background {
+                    backgroundView
+                }
             }
-            .buttonStyle(.card)
+            .buttonStyle(.borderless)
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .offset(y: posterFocusOffset)
+            .scaleEffect(isFocused ? 1.12 : 1)
+            .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: isFocused ? 18 : 0, y: isFocused ? 10 : 0)
+            .animation(.easeOut(duration: 0.18), value: isFocused)
+            .animation(.easeOut(duration: 0.18), value: isPosterFocused)
         }
 
         init(
             subHeader: String,
             header: String,
             content: String,
+            releaseDate: String? = nil,
+            isPosterFocused: Bool = false,
             action: @escaping () -> Void = {}
         ) {
             self.subHeader = subHeader
             self.header = header
             self.content = content
+            self.releaseDate = releaseDate
+            self.isPosterFocused = isPosterFocused
             self.action = action
         }
     }

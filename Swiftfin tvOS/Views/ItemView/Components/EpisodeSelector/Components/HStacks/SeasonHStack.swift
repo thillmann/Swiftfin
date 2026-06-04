@@ -46,7 +46,7 @@ extension SeriesEpisodeSelector {
                     }
                     .padding(.horizontal, EdgeInsets.edgePadding)
                 }
-                .padding(.bottom, 45)
+                .padding(.bottom, 24)
                 .focusSection()
                 .focusGuide(
                     focusGuide,
