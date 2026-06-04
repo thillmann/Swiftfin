@@ -60,7 +60,12 @@ struct CinematicBackgroundView: View {
         )
         .filter { $0.url != nil }
 
-        guard imageSources.isNotEmpty else { return }
+        guard imageSources.isNotEmpty else {
+            proxy.update {
+                Color.clear
+            }
+            return
+        }
 
         proxy.update {
             ImageView(imageSources)
