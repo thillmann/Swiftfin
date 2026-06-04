@@ -45,4 +45,12 @@ enum SeerrIntegration {
 
         return apiKey?.isEmpty == false ? apiKey : nil
     }
+
+    static var isConfigured: Bool {
+        serverURL != nil && apiKey != nil
+    }
+
+    static var isAvailable: Bool {
+        Defaults[.Integrations.Seerr.isEnabled] && isConfigured
+    }
 }

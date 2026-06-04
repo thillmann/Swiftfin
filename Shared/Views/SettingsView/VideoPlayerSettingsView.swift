@@ -21,10 +21,12 @@ struct VideoPlayerSettingsView: View {
 
     // MARK: - Button Defaults
 
+    #if !os(tvOS)
     @Default(.VideoPlayer.jumpBackwardInterval)
     private var jumpBackwardLength
     @Default(.VideoPlayer.jumpForwardInterval)
     private var jumpForwardLength
+    #endif
     @Default(.VideoPlayer.barActionButtons)
     private var barActionButtons
     @Default(.VideoPlayer.menuActionButtons)
@@ -56,10 +58,10 @@ struct VideoPlayerSettingsView: View {
     @Default(.VideoPlayer.Subtitle.subtitleColor)
     private var subtitleColor
 
-    // MARK: - Timestamp Defaults
-
+    #if !os(tvOS)
     @Default(.VideoPlayer.Overlay.trailingTimestampType)
     private var trailingTimestampType
+    #endif
 
     @Router
     private var router
@@ -95,7 +97,9 @@ struct VideoPlayerSettingsView: View {
 
             supplementSettings
 
+            #if !os(tvOS)
             timestampSettings
+            #endif
 
             audioSettings
 
@@ -132,6 +136,7 @@ struct VideoPlayerSettingsView: View {
     @ViewBuilder
     private var buttonSettings: some View {
         Section(L10n.buttons) {
+            #if !os(tvOS)
             JumpIntervalPicker(
                 title: L10n.jumpBackwardLength,
                 selection: $jumpBackwardLength
@@ -141,6 +146,7 @@ struct VideoPlayerSettingsView: View {
                 title: L10n.jumpForwardLength,
                 selection: $jumpForwardLength
             )
+            #endif
 
             ChevronButton(L10n.barButtons) {
                 router.route(to: .actionBarButtonSelector(
@@ -217,12 +223,14 @@ struct VideoPlayerSettingsView: View {
 
     // MARK: - Timestamp Settings
 
+    #if !os(tvOS)
     @ViewBuilder
     private var timestampSettings: some View {
         Section(L10n.timestamp) {
             PlatformPicker(L10n.trailingValue, selection: $trailingTimestampType)
         }
     }
+    #endif
 
     // MARK: - Audio Settings
 

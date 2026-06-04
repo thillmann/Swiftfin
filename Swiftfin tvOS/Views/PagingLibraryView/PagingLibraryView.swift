@@ -17,8 +17,6 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
     private let pagingPrefetchRows = 8
 
-    @Default(.Customization.Library.enabledDrawerFilters)
-    private var enabledDrawerFilters
     @Default(.Customization.Library.rememberLayout)
     private var rememberLayout
 

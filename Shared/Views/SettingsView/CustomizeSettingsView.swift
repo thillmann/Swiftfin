@@ -51,8 +51,10 @@ struct CustomizeSettingsView: View {
 
     // MARK: - Poster Defaults
 
+    #if !os(tvOS)
     @Default(.Customization.showPosterLabels)
     private var showPosterLabels
+    #endif
     @Default(.Customization.nextUpPosterType)
     private var nextUpPosterType
     @Default(.Customization.recentlyAddedPosterType)
@@ -269,7 +271,9 @@ struct CustomizeSettingsView: View {
     @ViewBuilder
     private var posterSettings: some View {
         Section(L10n.posters) {
+            #if !os(tvOS)
             Toggle(L10n.showPosterLabels, isOn: $showPosterLabels)
+            #endif
 
             ChevronButton(L10n.indicators) {
                 router.route(to: .indicatorSettings)

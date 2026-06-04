@@ -375,9 +375,7 @@ final class SearchViewModel: ViewModel {
     }
 
     private var seerSearchIsAvailable: Bool {
-        Defaults[.Integrations.Seerr.isEnabled]
-            && SeerrIntegration.serverURL != nil
-            && SeerrIntegration.apiKey != nil
+        SeerrIntegration.isAvailable
     }
 
     private func mergeSeerResults(_ seerResults: [SeerrClient.MediaResult]) {

@@ -152,7 +152,7 @@ struct SettingsView: View {
                 Label {
                     Text(seerrIntegrationStatus)
                 } icon: {
-                    if isSeerrIntegrationEnabled {
+                    if SeerrIntegration.isAvailable {
                         Image(systemName: "checkmark.circle.fill")
                     }
                 }
@@ -164,11 +164,15 @@ struct SettingsView: View {
     }
 
     private var seerrIntegrationStatus: String {
-        if isSeerrIntegrationEnabled {
-            return "Enabled"
+        let storedServerURL = seerrServerURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !storedServerURL.isEmpty,
+              SeerrIntegration.isConfigured
+        else {
+            return "Not configured"
         }
 
-        return seerrServerURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Not configured" : "Disabled"
+        return isSeerrIntegrationEnabled ? L10n.enabled : L10n.disabled
     }
     #endif
 
