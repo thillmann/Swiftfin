@@ -38,7 +38,7 @@ extension SeriesEpisodeSelector {
         var body: some View {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: EdgeInsets.edgePadding / 2) {
+                    HStack(spacing: 10) {
                         ForEach(viewModel.seasons) { season in
                             seasonButton(season: season)
                                 .id(season.id)
@@ -93,24 +93,29 @@ extension SeriesEpisodeSelector {
 
         @ViewBuilder
         private func seasonButton(season: SeasonItemViewModel) -> some View {
+            let isFocused = focusedSeason == season.id
+            let isSelected = selection == season.id
+
             Button {
                 selection = season.id
             } label: {
                 Marquee(season.season.displayTitle, animateWhenFocused: true)
                     .frame(maxWidth: 300)
-                    .font(.headline)
                     .fontWeight(.semibold)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 20)
-                    .if(selection == season.id) { text in
-                        text
-                            .background(.white)
-                            .foregroundColor(.black)
+                    .foregroundStyle(isFocused ? .black : .white.opacity(isSelected ? 1 : 0.72))
+                    .padding(.horizontal, 32)
+                    .frame(height: FeatureButtonTokens.baseHeight)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(.white.opacity(isFocused ? 1 : isSelected ? 0.3 : 0))
                     }
             }
             .focused($focusedSeason, equals: season.id)
-            .buttonStyle(.card)
-            .padding(.horizontal, 4)
+            .buttonStyle(.borderless)
+            .focusEffectDisabled()
+            .scaleEffect(isFocused ? 1.06 : 1)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
+            .animation(.easeOut(duration: 0.15), value: isSelected)
             .padding(.vertical)
         }
     }
