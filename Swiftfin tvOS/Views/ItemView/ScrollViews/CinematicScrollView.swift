@@ -11,13 +11,31 @@ import SwiftUI
 
 extension ItemView {
 
+    enum CinematicFocusRegion {
+        case header
+        case belowHeader
+        case episodes
+    }
+
+    struct CinematicFocusRegionActionKey: EnvironmentKey {
+        static let defaultValue: (CinematicFocusRegion) -> Void = { _ in }
+    }
+}
+
+extension EnvironmentValues {
+    var cinematicFocusRegionChanged: (ItemView.CinematicFocusRegion) -> Void {
+        get { self[ItemView.CinematicFocusRegionActionKey.self] }
+        set { self[ItemView.CinematicFocusRegionActionKey.self] = newValue }
+    }
+}
+
+extension ItemView {
+
     struct CinematicScrollView<Content: View>: ScrollContainerView {
 
         @ObservedObject
         private var viewModel: ItemViewModel
 
-        @StateObject
-        private var focusGuide = FocusGuide()
         @State
         private var collapsesSeriesHero = false
         @State
@@ -76,14 +94,6 @@ extension ItemView {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 0) {
                             CinematicHeaderView(viewModel: viewModel)
-                                .ifLet(viewModel as? SeriesItemViewModel) { view, _ in
-                                    view
-                                        .focusGuide(
-                                            focusGuide,
-                                            tag: "header",
-                                            bottom: "belowHeader"
-                                        )
-                                }
                                 .frame(height: expandedHeaderHeight, alignment: .top)
                                 .offset(y: -expandedHeaderHeight * collapseProgress)
                                 .frame(height: visibleHeaderHeight, alignment: .top)
@@ -108,34 +118,33 @@ extension ItemView {
                                     }
                                 }
                         }
-                        .environmentObject(focusGuide)
+                        .environment(\.cinematicFocusRegionChanged) { region in
+                            updateSeriesHeroCollapse(for: region)
+                        }
                     }
                 }
                 .onAppear {
                     hasEstablishedSeriesHeaderFocus = false
-                    updateSeriesHeroCollapse(for: focusGuide.focusedTag)
-                }
-                .onChange(of: focusGuide.focusedTag) { _, newTag in
-                    updateSeriesHeroCollapse(for: newTag)
+                    collapsesSeriesHero = false
                 }
             }
             .ignoresSafeArea()
         }
 
-        private func updateSeriesHeroCollapse(for focusedTag: String?) {
+        private func updateSeriesHeroCollapse(for focusedRegion: CinematicFocusRegion) {
             guard viewModel.item.type == .series else {
                 collapsesSeriesHero = false
                 hasEstablishedSeriesHeaderFocus = false
                 return
             }
 
-            if focusedTag == "header" {
+            if focusedRegion == .header {
                 hasEstablishedSeriesHeaderFocus = true
                 collapsesSeriesHero = false
                 return
             }
 
-            let shouldCollapse = focusedTag == "belowHeader" || focusedTag == "episodes"
+            let shouldCollapse = focusedRegion == .episodes
             collapsesSeriesHero = hasEstablishedSeriesHeaderFocus && shouldCollapse
         }
     }
@@ -156,6 +165,8 @@ extension ItemView {
 
         @ObservedObject
         var viewModel: ItemViewModel
+        @Environment(\.cinematicFocusRegionChanged)
+        private var focusRegionChanged
         @FocusState
         private var focusedLayer: CinematicHeaderFocusLayer?
 
@@ -192,6 +203,18 @@ extension ItemView {
                     .frame(maxWidth: 400, maxHeight: 200, alignment: .leading)
             } else {
                 heroTitleFallback
+            }
+        }
+
+        private func focusPrimaryHeaderControl() {
+            if viewModel.item.type == .person {
+                return
+            }
+
+            if viewModel.item.presentPlayButton {
+                focusedLayer = .playButton
+            } else {
+                focusedLayer = .actionButtons
             }
         }
 
@@ -274,15 +297,12 @@ extension ItemView {
             .padding(.trailing, 50)
             .onChange(of: focusedLayer) { _, layer in
                 if layer == .top {
-                    if viewModel.item.type == .person {
-                        return
-                    }
+                    focusPrimaryHeaderControl()
+                    return
+                }
 
-                    if viewModel.item.presentPlayButton {
-                        focusedLayer = .playButton
-                    } else {
-                        focusedLayer = .actionButtons
-                    }
+                if layer != nil {
+                    focusRegionChanged(.header)
                 }
             }
         }

@@ -14,21 +14,25 @@ extension SeriesEpisodeSelector {
 
         // MARK: - Environment & Observed Objects
 
-        @EnvironmentObject
-        private var focusGuide: FocusGuide
+        @Environment(\.cinematicFocusRegionChanged)
+        private var focusRegionChanged
 
         @ObservedObject
         var viewModel: SeriesItemViewModel
 
-        // MARK: - Selection Binding
+        // MARK: - Active Season Binding
 
         @Binding
-        var selection: SeasonItemViewModel.ID?
+        var activeSeasonID: SeasonItemViewModel.ID?
+        @Binding
+        var focusedRegion: SeriesEpisodeSelector.FocusRegion?
 
         // MARK: - Focus Variables
 
         @FocusState
         private var focusedSeason: SeasonItemViewModel.ID?
+        @Namespace
+        private var focusScope
 
         @State
         private var didScrollToPlayButtonSeason = false
@@ -48,12 +52,11 @@ extension SeriesEpisodeSelector {
                 }
                 .padding(.bottom, 24)
                 .focusSection()
-                .focusGuide(
-                    focusGuide,
-                    tag: "belowHeader",
-                    onContentFocus: { focusedSeason = selection },
-                    top: "header",
-                    bottom: "episodes"
+                .focusScope(focusScope)
+                .defaultFocus(
+                    $focusedSeason,
+                    activeSeasonID,
+                    priority: .userInitiated
                 )
                 .mask {
                     VStack(spacing: 0) {
@@ -70,9 +73,29 @@ extension SeriesEpisodeSelector {
                         .frame(height: 20)
                     }
                 }
-                .onChange(of: focusedSeason) { _, newValue in
-                    if let newValue {
-                        selection = newValue
+                .onChange(of: focusedSeason) { oldValue, newValue in
+                    guard let newValue else { return }
+
+                    if oldValue == nil || focusedRegion != .seasons,
+                       let activeSeasonID,
+                       newValue != activeSeasonID
+                    {
+                        DispatchQueue.main.async {
+                            proxy.scrollTo(activeSeasonID)
+                            focusedSeason = activeSeasonID
+                        }
+                        return
+                    }
+
+                    activeSeasonID = newValue
+                    focusedRegion = .seasons
+                    focusRegionChanged(.belowHeader)
+                }
+                .onChange(of: activeSeasonID) { _, newValue in
+                    guard let newValue else { return }
+
+                    DispatchQueue.main.async {
+                        proxy.scrollTo(newValue)
                     }
                 }
                 .onFirstAppear {
@@ -80,9 +103,9 @@ extension SeriesEpisodeSelector {
                     didScrollToPlayButtonSeason = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        guard let selection else { return }
+                        guard let activeSeasonID else { return }
 
-                        proxy.scrollTo(selection)
+                        proxy.scrollTo(activeSeasonID)
                     }
                 }
             }
@@ -94,10 +117,10 @@ extension SeriesEpisodeSelector {
         @ViewBuilder
         private func seasonButton(season: SeasonItemViewModel) -> some View {
             let isFocused = focusedSeason == season.id
-            let isSelected = selection == season.id
+            let isSelected = activeSeasonID == season.id
 
             Button {
-                selection = season.id
+                activeSeasonID = season.id
             } label: {
                 Marquee(season.season.displayTitle, animateWhenFocused: true)
                     .frame(maxWidth: 300)

@@ -14,6 +14,7 @@ extension SeriesEpisodeSelector {
     struct EpisodeContent: View {
 
         private let action: () -> Void
+        private let onFocusChange: (Bool) -> Void
 
         let subHeader: String
         let header: String
@@ -136,6 +137,9 @@ extension SeriesEpisodeSelector {
             .shadow(color: .black.opacity(isFocused ? 0.35 : 0), radius: isFocused ? 18 : 0, y: isFocused ? 10 : 0)
             .animation(.easeOut(duration: 0.18), value: isFocused)
             .animation(.easeOut(duration: 0.18), value: isPosterFocused)
+            .onChange(of: isFocused) { _, newValue in
+                onFocusChange(newValue)
+            }
         }
 
         init(
@@ -144,6 +148,7 @@ extension SeriesEpisodeSelector {
             content: String,
             releaseDate: String? = nil,
             isPosterFocused: Bool = false,
+            onFocusChange: @escaping (Bool) -> Void = { _ in },
             action: @escaping () -> Void = {}
         ) {
             self.subHeader = subHeader
@@ -151,6 +156,7 @@ extension SeriesEpisodeSelector {
             self.content = content
             self.releaseDate = releaseDate
             self.isPosterFocused = isPosterFocused
+            self.onFocusChange = onFocusChange
             self.action = action
         }
     }

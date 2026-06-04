@@ -12,37 +12,50 @@ import SwiftUI
 
 struct SeriesEpisodeSelector: View {
 
+    enum FocusRegion {
+        case seasons
+        case episodes
+    }
+
     // MARK: - Observed & Environment Objects
 
     @ObservedObject
     var viewModel: SeriesItemViewModel
-
-    @EnvironmentObject
-    private var parentFocusGuide: FocusGuide
 
     // MARK: - State Variables
 
     @State
     private var didSelectPlayButtonSeason = false
     @State
-    private var selection: SeasonItemViewModel.ID?
+    private var activeSeasonID: SeasonItemViewModel.ID?
+    @State
+    private var activeEpisodeID: String?
+    @State
+    private var focusedRegion: FocusRegion?
 
     // MARK: - Calculated Variables
 
-    private var selectionViewModel: SeasonItemViewModel? {
-        viewModel.seasons.first(where: { $0.id == selection })
+    private var activeSeasonViewModel: SeasonItemViewModel? {
+        viewModel.seasons.first(where: { $0.id == activeSeasonID })
     }
 
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: 0) {
-            SeasonsHStack(viewModel: viewModel, selection: $selection)
-                .environmentObject(parentFocusGuide)
+            SeasonsHStack(
+                viewModel: viewModel,
+                activeSeasonID: $activeSeasonID,
+                focusedRegion: $focusedRegion
+            )
 
-            if let selectionViewModel {
-                EpisodeHStack(viewModel: selectionViewModel, playButtonItem: viewModel.playButtonItem)
-                    .environmentObject(parentFocusGuide)
+            if let activeSeasonViewModel {
+                EpisodeHStack(
+                    viewModel: activeSeasonViewModel,
+                    activeEpisodeID: $activeEpisodeID,
+                    focusedRegion: $focusedRegion,
+                    playButtonItem: viewModel.playButtonItem
+                )
             }
         }
         .onReceive(viewModel.playButtonItem.publisher) { newValue in
@@ -51,16 +64,18 @@ struct SeriesEpisodeSelector: View {
             didSelectPlayButtonSeason = true
 
             if let playButtonSeason = viewModel.seasons.first(where: { $0.id == newValue.seasonID }) {
-                selection = playButtonSeason.id
+                activeSeasonID = playButtonSeason.id
             } else {
-                selection = viewModel.seasons.first?.id
+                activeSeasonID = viewModel.seasons.first?.id
             }
-        }
-        .onChange(of: selection) { _, _ in
-            guard let selectionViewModel else { return }
 
-            if selectionViewModel.state == .initial {
-                selectionViewModel.send(.refresh)
+            activeEpisodeID = newValue.id
+        }
+        .onChange(of: activeSeasonID) { _, _ in
+            guard let activeSeasonViewModel else { return }
+
+            if activeSeasonViewModel.state == .initial {
+                activeSeasonViewModel.send(.refresh)
             }
         }
     }

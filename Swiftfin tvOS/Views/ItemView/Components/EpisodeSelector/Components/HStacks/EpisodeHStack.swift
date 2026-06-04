@@ -15,8 +15,8 @@ extension SeriesEpisodeSelector {
 
     struct EpisodeHStack: View {
 
-        @EnvironmentObject
-        private var focusGuide: FocusGuide
+        @Environment(\.cinematicFocusRegionChanged)
+        private var focusRegionChanged
 
         @FocusState
         private var focusedEpisodeID: String?
@@ -24,15 +24,61 @@ extension SeriesEpisodeSelector {
         @ObservedObject
         var viewModel: SeasonItemViewModel
 
+        @Binding
+        var activeEpisodeID: String?
+        @Binding
+        var focusedRegion: SeriesEpisodeSelector.FocusRegion?
+
         @State
         private var didScrollToPlayButtonItem = false
-        @State
-        private var lastFocusedEpisodeID: String?
 
         @StateObject
         private var proxy = CollectionHStackProxy()
 
         let playButtonItem: BaseItemDto?
+
+        private var preferredEpisodeFocusID: String? {
+            switch viewModel.state {
+            case .content:
+                if viewModel.elements.isEmpty {
+                    return "emptyCard"
+                }
+
+                if let activeEpisodeID,
+                   viewModel.elements.contains(where: { $0.id == activeEpisodeID })
+                {
+                    return activeEpisodeID
+                }
+
+                if let playButtonItem,
+                   viewModel.elements.contains(where: { $0.id == playButtonItem.id })
+                {
+                    return playButtonItem.id
+                }
+
+                return viewModel.elements.first?.id
+            case .error:
+                return "errorCard"
+            case .initial, .refreshing:
+                return "loadingCard"
+            }
+        }
+
+        private func scrollToPreferredEpisode(animated: Bool = false) {
+            guard let preferredEpisodeFocusID,
+                  let episode = viewModel.elements.first(where: { $0.id == preferredEpisodeFocusID })
+            else { return }
+
+            proxy.scrollTo(id: episode.unwrappedIDHashOrZero, animated: animated)
+        }
+
+        private func updateActiveEpisodeForCurrentSeason() {
+            guard viewModel.state == .content,
+                  activeEpisodeID == nil || !viewModel.elements.contains(where: { $0.id == activeEpisodeID })
+            else { return }
+
+            activeEpisodeID = preferredEpisodeFocusID
+        }
 
         // MARK: - Content View
 
@@ -42,9 +88,15 @@ extension SeriesEpisodeSelector {
                 id: \.unwrappedIDHashOrZero,
                 columns: 3.5
             ) { episode in
-                SeriesEpisodeSelector.EpisodeCard(episode: episode)
-                    .focused($focusedEpisodeID, equals: episode.id)
-                    .padding(.horizontal, 4)
+                SeriesEpisodeSelector.EpisodeCard(
+                    episode: episode,
+                    isEntryFocused: focusedEpisodeID == episode.id
+                ) { isFocused in
+                    if isFocused {
+                        focusedEpisodeID = episode.id
+                    }
+                }
+                .padding(.horizontal, 4)
             }
             .scrollBehavior(.continuousLeadingEdge)
             .insets(horizontal: EdgeInsets.edgePadding)
@@ -54,40 +106,10 @@ extension SeriesEpisodeSelector {
                 guard !didScrollToPlayButtonItem else { return }
                 didScrollToPlayButtonItem = true
 
-                lastFocusedEpisodeID = playButtonItem?.id
-
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    guard let playButtonItem else { return }
-                    proxy.scrollTo(id: playButtonItem.unwrappedIDHashOrZero, animated: false)
+                    updateActiveEpisodeForCurrentSeason()
+                    scrollToPreferredEpisode()
                 }
-            }
-        }
-
-        // MARK: - Determine Which Episode should be Focused
-
-        private func getContentFocus() {
-            switch viewModel.state {
-            case .content:
-                if viewModel.elements.isEmpty {
-                    /// Focus the EmptyCard if the Season has no elements
-                    focusedEpisodeID = "emptyCard"
-                } else {
-                    if let lastFocusedEpisodeID,
-                       viewModel.elements.contains(where: { $0.id == lastFocusedEpisodeID })
-                    {
-                        /// Return focus to the Last Focused Episode if it exists in the current Season
-                        focusedEpisodeID = lastFocusedEpisodeID
-                    } else {
-                        /// Focus the First Episode in the season as a last resort
-                        focusedEpisodeID = viewModel.elements.first?.id
-                    }
-                }
-            case .error:
-                /// Focus the ErrorCard if the Season failed to load
-                focusedEpisodeID = "errorCard"
-            case .initial, .refreshing:
-                /// Focus the LoadingCard if the Season is currently loading
-                focusedEpisodeID = "loadingCard"
             }
         }
 
@@ -114,24 +136,28 @@ extension SeriesEpisodeSelector {
             }
             .padding(.bottom, 45)
             .focusSection()
-            .focusGuide(
-                focusGuide,
-                tag: "episodes",
-                onContentFocus: {
-                    getContentFocus()
-                },
-                top: "belowHeader"
-            )
             .onChange(of: viewModel.id) {
-                lastFocusedEpisodeID = viewModel.elements.first?.id
+                updateActiveEpisodeForCurrentSeason()
+
+                DispatchQueue.main.async {
+                    scrollToPreferredEpisode()
+                }
+            }
+            .onChange(of: activeEpisodeID) { _, _ in
+                DispatchQueue.main.async {
+                    scrollToPreferredEpisode()
+                }
             }
             .onChange(of: focusedEpisodeID) { _, newValue in
                 guard let newValue else { return }
-                lastFocusedEpisodeID = newValue
+
+                activeEpisodeID = newValue
+                focusedRegion = .episodes
+                focusRegionChanged(.episodes)
             }
             .onChange(of: viewModel.state) { _, newValue in
                 if newValue == .content {
-                    lastFocusedEpisodeID = viewModel.elements.first?.id
+                    updateActiveEpisodeForCurrentSeason()
                 }
             }
         }

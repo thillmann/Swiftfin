@@ -50,7 +50,7 @@ struct PosterImage<Item: Poster>: View {
     @ViewBuilder
     private var placeholderContent: some View {
         PosterFallbackContentView(
-            title: item.displayTitle,
+            title: item.showTitle ? item.displayTitle : nil,
             systemName: item.systemImage
         )
     }

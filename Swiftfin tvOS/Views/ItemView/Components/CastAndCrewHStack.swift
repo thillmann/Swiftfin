@@ -163,6 +163,10 @@ private struct CastAndCrewSquarePoster: Poster {
         person.subtitle
     }
 
+    var showTitle: Bool {
+        false
+    }
+
     var systemImage: String {
         person.systemImage
     }
@@ -186,7 +190,7 @@ private struct CastAndCrewLabel: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(person.displayTitle)
-                .font(.caption.weight(.regular))
+                .font(.caption.weight(.semibold))
                 .foregroundColor(.primary)
                 .lineLimit(1, reservesSpace: true)
 
