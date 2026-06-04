@@ -22,18 +22,73 @@ struct CinematicBackgroundView: View {
 
     var body: some View {
         RotateContentView(proxy: proxy)
-            .onChange(of: viewModel.currentItem) { _, newItem in
-                proxy.update {
-                    ImageView(newItem?.cinematicImageSources(maxWidth: nil) ?? [])
-                        .placeholder { _ in
-                            Color.clear
-                        }
-                        .failure {
-                            Color.clear
-                        }
-                        .aspectRatio(contentMode: .fill)
-                }
+            .overlay {
+                bottomBlur
             }
+            .onAppear {
+                updateBackground(for: viewModel.currentItem?._poster ?? initialItem)
+            }
+            .onChange(of: viewModel.currentItem) { _, newItem in
+                updateBackground(for: newItem?._poster)
+            }
+    }
+
+    private var bottomBlur: some View {
+        GeometryReader { proxy in
+            BlurView(style: .dark)
+                .mask {
+                    VStack(spacing: 0) {
+                        LinearGradient(gradient: Gradient(stops: [
+                            .init(color: .white, location: 0),
+                            .init(color: .white.opacity(0.7), location: 0.4),
+                            .init(color: .white.opacity(0), location: 1),
+                        ]), startPoint: .bottom, endPoint: .top)
+                            .frame(height: max(proxy.size.height - 150, 0))
+
+                        Color.white
+                    }
+                }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func updateBackground(for item: (any Poster)?) {
+        let imageSources = (
+            homeImageSources(for: item) +
+                (item?.cinematicImageSources(maxWidth: nil) ?? []) +
+                (item?.landscapeImageSources(maxWidth: nil) ?? [])
+        )
+        .filter { $0.url != nil }
+
+        guard imageSources.isNotEmpty else { return }
+
+        proxy.update {
+            ImageView(imageSources)
+                .placeholder { _ in
+                    Color.clear
+                }
+                .failure {
+                    Color.clear
+                }
+                .aspectRatio(contentMode: .fill)
+        }
+    }
+
+    private func homeImageSources(for item: (any Poster)?) -> [ImageSource] {
+        guard let item, let item = item as? BaseItemDto else {
+            return []
+        }
+
+        let imageType: ImageType = {
+            switch item.type {
+            case .episode, .musicVideo, .video:
+                .primary
+            default:
+                .backdrop
+            }
+        }()
+
+        return [item.imageSource(imageType, maxWidth: 1920)]
     }
 
     class Proxy: ObservableObject {
@@ -54,7 +109,7 @@ struct CinematicBackgroundView: View {
                 .store(in: &cancellables)
         }
 
-        func select(item: some Poster) {
+        func select(item: any Poster) {
             currentItemSubject.send(AnyPoster(item))
         }
     }

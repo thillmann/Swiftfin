@@ -31,13 +31,23 @@ struct CinematicItemSelector<Item: Poster>: View {
 
     let items: [Item]
 
+    private var currentFocusedItem: Item? {
+        guard isSectionFocused else { return nil }
+
+        return focusedPoster?._poster as? Item
+    }
+
+    private var selectedItem: Item? {
+        currentFocusedItem ?? viewModel.currentItem?._poster as? Item ?? items.first
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
 
-            if let focusedPoster, let focusedItem = focusedPoster._poster as? Item {
-                topContent(focusedItem)
+            if let selectedItem {
+                topContent(selectedItem)
                     .eraseToAnyView()
-                    .id(focusedItem.hashValue)
+                    .id(selectedItem.hashValue)
                     .transaction { transaction in
                         transaction.animation = nil
                     }
@@ -58,14 +68,6 @@ struct CinematicItemSelector<Item: Poster>: View {
                 viewModel: viewModel,
                 initialItem: items.first
             )
-            .overlay {
-                Color.black
-                    .maskLinearGradient {
-                        (location: 0.5, opacity: 0)
-                        (location: 0.6, opacity: 0.4)
-                        (location: 1, opacity: 1)
-                    }
-            }
             .frame(height: UIScreen.main.bounds.height)
             .maskLinearGradient {
                 (location: 0.9, opacity: 1)
@@ -74,7 +76,7 @@ struct CinematicItemSelector<Item: Poster>: View {
         }
         .onChange(of: focusedPoster) {
             guard let focusedPoster, isSectionFocused else { return }
-            viewModel.select(item: focusedPoster)
+            viewModel.select(item: focusedPoster._poster)
         }
         .focusSection()
         .focused($isSectionFocused)
