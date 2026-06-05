@@ -76,11 +76,9 @@ struct HomeView: View {
             viewModel.send(.refresh)
         }
         .ignoresSafeArea()
-        .sinceLastDisappear { interval in
-            if interval > 60 || viewModel.notificationsReceived.contains(.itemMetadataDidChange) {
-                viewModel.send(.backgroundRefresh)
-                viewModel.notificationsReceived.remove(.itemMetadataDidChange)
-            }
+        .sinceLastDisappear { _ in
+            viewModel.send(.backgroundRefresh)
+            viewModel.notificationsReceived.remove(.itemMetadataDidChange)
         }
     }
 }
