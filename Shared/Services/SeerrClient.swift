@@ -153,12 +153,22 @@ enum SeerrClient {
             let cast: [Cast]?
         }
 
+        struct Episode: Decodable, Equatable {
+            let id: Int?
+            let name: String?
+            let overview: String?
+            let airDate: String?
+            let episodeNumber: Int?
+            let seasonNumber: Int?
+        }
+
         let id: Int
         let name: String?
         let overview: String?
         let posterPath: String?
         let backdropPath: String?
         let firstAirDate: String?
+        let nextEpisodeToAir: Episode?
         let voteAverage: Double?
         let genres: [Genre]?
         let seasons: [Season]?

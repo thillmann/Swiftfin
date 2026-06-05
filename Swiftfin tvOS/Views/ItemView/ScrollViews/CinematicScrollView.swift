@@ -189,6 +189,14 @@ extension ItemView {
             return viewModel.item
         }
 
+        private var upcomingEpisodePillLabel: String? {
+            guard let seriesViewModel = viewModel as? SeriesItemViewModel else {
+                return nil
+            }
+
+            return seriesViewModel.upcomingEpisodePillLabel
+        }
+
         @ViewBuilder
         private var heroLogoOrTitle: some View {
             if viewModel.item.imageURL(.logo, maxHeight: 200) != nil {
@@ -200,9 +208,10 @@ extension ItemView {
                         heroTitleFallback
                     }
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 400, maxHeight: 200, alignment: .leading)
+                    .frame(width: 400, height: 200, alignment: .leading)
             } else {
                 heroTitleFallback
+                    .frame(width: 800, height: 200, alignment: .leading)
             }
         }
 
@@ -227,6 +236,10 @@ extension ItemView {
 
                 HStack(alignment: .bottom, spacing: 80) {
                     VStack(alignment: .leading, spacing: 24) {
+                        if let upcomingEpisodePillLabel {
+                            UpcomingEpisodePill(label: upcomingEpisodePillLabel)
+                        }
+
                         heroLogoOrTitle
 
                         DotHStack {
@@ -305,6 +318,29 @@ extension ItemView {
                     focusRegionChanged(.header)
                 }
             }
+        }
+    }
+
+    private struct UpcomingEpisodePill: View {
+
+        let label: String
+
+        var body: some View {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .padding(.horizontal, 24)
+                .frame(height: 52)
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(.black.opacity(0.38))
+                }
+                .overlay {
+                    Capsule(style: .continuous)
+                        .stroke(.white.opacity(0.24), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
         }
     }
 }
