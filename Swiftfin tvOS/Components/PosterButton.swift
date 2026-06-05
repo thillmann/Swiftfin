@@ -8,7 +8,6 @@
 
 import Defaults
 import JellyfinAPI
-import Logging
 import SwiftUI
 
 private let landscapeMaxWidth: CGFloat = 500
@@ -116,9 +115,6 @@ extension PosterButton {
         @Default(.Customization.Indicators.showProgress)
         private var showProgress
 
-        @State
-        private var didLogMissingDuration = false
-
         @Environment(\.isPosterFocused)
         private var isPosterFocused
 
@@ -127,7 +123,6 @@ extension PosterButton {
 
         let item: Item
 
-        private let logger = Logger.swiftfin()
         private let gradientHeight: CGFloat = 68
 
         private var baseItem: BaseItemDto? {
@@ -204,54 +199,6 @@ extension PosterButton {
             }
 
             return baseItem?.runTimeLabel
-        }
-
-        private func logMissingDurationIfNeeded(reason: String) {
-            guard components.contains(.durationLeft),
-                  durationLeftLabel == nil,
-                  !didLogMissingDuration
-            else {
-                return
-            }
-
-            didLogMissingDuration = true
-            logDurationState(reason: reason)
-        }
-
-        private func logDurationState(reason: String) {
-            guard components.contains(.durationLeft) else {
-                return
-            }
-
-            guard let baseItem else {
-                logger.debug("Poster overlay duration missing BaseItemDto; reason=\(reason), item=\(item.displayTitle)")
-                return
-            }
-
-            let itemID = baseItem.id ?? "nil"
-            let itemType = String(describing: baseItem.type)
-            let label = durationLeftLabel ?? "nil"
-            let runtime = baseItem.runTimeLabel ?? "nil"
-            let remaining = baseItem.progressLabel ?? "nil"
-            let runTimeTicks = String(describing: baseItem.runTimeTicks)
-            let mediaSourceRunTimeTicks = String(describing: baseItem.mediaSources?.first?.runTimeTicks)
-            let mediaSourceCount = baseItem.mediaSources?.count ?? 0
-            let playbackPositionTicks = String(describing: baseItem.userData?.playbackPositionTicks)
-            let playedPercentage = String(describing: baseItem.userData?.playedPercentage)
-
-            logger.debug(
-                """
-                Poster overlay duration state; reason=\(reason), id=\(itemID), title=\(baseItem
-                    .displayTitle), type=\(itemType), label=\(label), runtime=\(runtime), remaining=\(remaining), runTimeTicks=\(
-                    runTimeTicks
-                ), mediaSourceRunTimeTicks=\(mediaSourceRunTimeTicks), mediaSourceCount=\(
-                    mediaSourceCount
-                ), playbackPositionTicks=\(playbackPositionTicks), playedPercentage=\(playedPercentage), isPlayed=\(
-                    isPlayed
-                ), hasPlaybackProgress=\(hasPlaybackProgress), canBePlayed=\(baseItem
-                    .canBePlayed), isLiveStream=\(baseItem.isLiveStream), components=\(components.rawValue)
-                """
-            )
         }
 
         private var shouldShowFavoriteIcon: Bool {
@@ -379,16 +326,6 @@ extension PosterButton {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.easeInOut(duration: 0.18), value: isPosterFocused)
-            .onAppear {
-                logMissingDurationIfNeeded(reason: "appear")
-            }
-            .onChange(of: isPosterFocused) { _, newValue in
-                if newValue {
-                    logDurationState(reason: "focused")
-                } else {
-                    logMissingDurationIfNeeded(reason: "focus-ended")
-                }
-            }
         }
     }
 }
