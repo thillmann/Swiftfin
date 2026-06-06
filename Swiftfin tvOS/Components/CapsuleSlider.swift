@@ -52,11 +52,17 @@ private struct CapsuleSliderContent: SliderContentView {
     @EnvironmentObject
     var sliderState: SliderContainerState<Double>
 
+    private var trackHeight: CGFloat {
+        sliderState.isFocused || sliderState.isEditing ? 30 : 12
+    }
+
     var body: some View {
         ProgressView(value: sliderState.value, total: sliderState.total)
             .progressViewStyle(PlaybackProgressViewStyle(cornerStyle: .round))
             .opacity(sliderState.isFocused ? 1 : 0.7)
             .animation(.linear(duration: 0.1), value: sliderState.value)
             .animation(.easeInOut(duration: 0.2), value: sliderState.isFocused)
+            .frame(height: trackHeight)
+            .animation(.easeInOut(duration: 0.2), value: trackHeight)
     }
 }

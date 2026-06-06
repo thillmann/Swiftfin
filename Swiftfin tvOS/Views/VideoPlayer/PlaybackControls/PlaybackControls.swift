@@ -35,6 +35,12 @@ extension VideoPlayer {
         var isSpeedBoosting: Bool = false
         @State
         var pendingJumpWork: DispatchWorkItem?
+        @State
+        private var playbackSeconds: Duration = .zero
+
+        private var isInIntroSegment: Bool {
+            manager.currentIntroSegment(at: playbackSeconds) != nil
+        }
 
         var body: some View {
             VStack(spacing: 30) {
@@ -46,6 +52,10 @@ extension VideoPlayer {
                             !containerState.isPresentingSupplement
                     )
                     .disabled(containerState.isPresentingSupplement)
+
+                SkipIntroButton()
+                    .isVisible(isInIntroSegment && !containerState.isScrubbing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
 
                 PlaybackProgress()
                     .focused($isPlaybackProgressFocused)
@@ -83,6 +93,9 @@ extension VideoPlayer {
             }
             .onReceive(containerState.containerView?.onPressEvent ?? .init()) { press in
                 handlePressEvent(press)
+            }
+            .onReceive(manager.secondsBox.$value) { newValue in
+                playbackSeconds = newValue
             }
             .onChange(of: containerState.isProgressBarFocused) { _, newValue in
                 if !newValue {

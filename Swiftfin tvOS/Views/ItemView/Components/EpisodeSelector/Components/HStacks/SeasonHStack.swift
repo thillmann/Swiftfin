@@ -36,6 +36,10 @@ extension SeriesEpisodeSelector {
 
         @State
         private var didScrollToPlayButtonSeason = false
+        @State
+        private var seasonSelectionTask: Task<Void, Never>?
+        @State
+        private var pendingSeasonSelectionID: SeasonItemViewModel.ID?
 
         // MARK: - Body
 
@@ -87,12 +91,17 @@ extension SeriesEpisodeSelector {
                         return
                     }
 
-                    activeSeasonID = newValue
+                    debounceActiveSeasonSelection(newValue)
                     focusedRegion = .seasons
                     focusRegionChanged(.belowHeader)
                 }
                 .onChange(of: activeSeasonID) { _, newValue in
                     guard let newValue else { return }
+
+                    if pendingSeasonSelectionID != nil {
+                        seasonSelectionTask?.cancel()
+                        pendingSeasonSelectionID = nil
+                    }
 
                     DispatchQueue.main.async {
                         proxy.scrollTo(newValue)
@@ -110,6 +119,9 @@ extension SeriesEpisodeSelector {
                 }
             }
             .scrollClipDisabled()
+            .onDisappear {
+                seasonSelectionTask?.cancel()
+            }
         }
 
         // MARK: - Season Button
@@ -120,6 +132,8 @@ extension SeriesEpisodeSelector {
             let isSelected = activeSeasonID == season.id
 
             Button {
+                seasonSelectionTask?.cancel()
+                pendingSeasonSelectionID = nil
                 activeSeasonID = season.id
             } label: {
                 Marquee(season.season.displayTitle, animateWhenFocused: true)
@@ -140,6 +154,29 @@ extension SeriesEpisodeSelector {
             .animation(.easeOut(duration: 0.15), value: isFocused)
             .animation(.easeOut(duration: 0.15), value: isSelected)
             .padding(.vertical)
+        }
+
+        // MARK: - Active Season Selection
+
+        private func debounceActiveSeasonSelection(_ seasonID: SeasonItemViewModel.ID) {
+            guard seasonID != activeSeasonID else { return }
+
+            seasonSelectionTask?.cancel()
+            pendingSeasonSelectionID = seasonID
+            seasonSelectionTask = Task {
+                do {
+                    try await Task.sleep(nanoseconds: 300_000_000)
+                } catch {
+                    return
+                }
+
+                await MainActor.run {
+                    guard pendingSeasonSelectionID == seasonID else { return }
+
+                    pendingSeasonSelectionID = nil
+                    activeSeasonID = seasonID
+                }
+            }
         }
     }
 }

@@ -48,6 +48,63 @@ extension View {
     func posterOverlayComponents(_ components: PosterOverlayComponents) -> some View {
         environment(\.posterOverlayComponents, components)
     }
+
+    func posterOverlayFocus(_ isFocused: Bool) -> some View {
+        modifier(PosterOverlayFocusModifier(isFocused: isFocused))
+    }
+}
+
+private struct PosterOverlayFocusModifier: ViewModifier {
+
+    let isFocused: Bool
+
+    @State
+    private var isOverlayFocused = false
+    @State
+    private var focusTask: Task<Void, Never>?
+    @State
+    private var pendingFocusValue: Bool?
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.isPosterFocused, isOverlayFocused)
+            .onAppear {
+                updateOverlayFocus(isFocused)
+            }
+            .onChange(of: isFocused) { _, newValue in
+                updateOverlayFocus(newValue)
+            }
+            .onDisappear {
+                focusTask?.cancel()
+                pendingFocusValue = nil
+            }
+    }
+
+    private func updateOverlayFocus(_ newValue: Bool) {
+        focusTask?.cancel()
+
+        guard newValue else {
+            pendingFocusValue = nil
+            isOverlayFocused = false
+            return
+        }
+
+        pendingFocusValue = true
+        focusTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 120_000_000)
+            } catch {
+                return
+            }
+
+            await MainActor.run {
+                guard pendingFocusValue == true else { return }
+
+                pendingFocusValue = nil
+                isOverlayFocused = true
+            }
+        }
+    }
 }
 
 struct PosterButton<Item: Poster>: View {
@@ -91,7 +148,7 @@ struct PosterButton<Item: Poster>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay {
                 overlay
-                    .environment(\.isPosterFocused, isFocused)
+                    .posterOverlayFocus(isFocused)
             }
             .posterStyle(type)
         }

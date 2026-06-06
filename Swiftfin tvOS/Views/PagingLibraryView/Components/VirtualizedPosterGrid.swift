@@ -250,7 +250,7 @@ private struct VirtualizedPosterCellContent<Item: Poster>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay {
             overlay
-                .environment(\.isPosterFocused, isFocused)
+                .posterOverlayFocus(isFocused)
         }
         .posterStyle(type)
         .virtualizedCellFocusEffect(isFocused)

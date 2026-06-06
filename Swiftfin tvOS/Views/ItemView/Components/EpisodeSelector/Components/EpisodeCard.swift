@@ -70,7 +70,7 @@ extension SeriesEpisodeSelector {
                     .posterStyle(.landscape)
                     .overlay {
                         PosterButton<BaseItemDto>.DefaultOverlay(item: episode)
-                            .environment(\.isPosterFocused, isFocused)
+                            .posterOverlayFocus(isFocused)
                             .posterOverlayComponents([.playIcon, .progressBar, .durationLeft])
                     }
                 }
