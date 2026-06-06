@@ -213,8 +213,7 @@ extension PagingLibraryView.VirtualizedPosterGrid {
                 VirtualizedPosterCellContent(
                     item: item,
                     type: parent.posterType,
-                    isFocused: isFocused,
-                    prefersBlurHashPlaceholder: false
+                    isFocused: isFocused
                 )
             case .list:
                 VirtualizedLibraryRowContent(
@@ -235,7 +234,6 @@ private struct VirtualizedPosterCellContent<Item: Poster>: View {
     let item: Item
     let type: PosterDisplayType
     let isFocused: Bool
-    let prefersBlurHashPlaceholder: Bool
 
     var body: some View {
         let overlay = posterOverlayRegistry?(item) ??
@@ -245,7 +243,7 @@ private struct VirtualizedPosterCellContent<Item: Poster>: View {
         PosterImage(
             item: item,
             type: type,
-            prefersBlurHashPlaceholder: prefersBlurHashPlaceholder
+            prefersBlurHashPlaceholder: false
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay {

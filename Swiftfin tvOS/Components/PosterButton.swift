@@ -116,18 +116,15 @@ struct PosterButton<Item: Poster>: View {
     private var isFocused: Bool
 
     private let item: Item
-    private let prefersBlurHashPlaceholder: Bool
     private let type: PosterDisplayType
     private let action: () -> Void
 
     init(
         item: Item,
         type: PosterDisplayType,
-        prefersBlurHashPlaceholder: Bool = true,
         action: @escaping () -> Void
     ) {
         self.item = item
-        self.prefersBlurHashPlaceholder = prefersBlurHashPlaceholder
         self.type = type
         self.action = action
     }
@@ -143,7 +140,7 @@ struct PosterButton<Item: Poster>: View {
             PosterImage(
                 item: item,
                 type: type,
-                prefersBlurHashPlaceholder: prefersBlurHashPlaceholder,
+                prefersBlurHashPlaceholder: false,
                 showsTitleInPlaceholder: false
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
