@@ -83,8 +83,8 @@ struct PlaybackRateMediaPlayerSupplement: MediaPlayerSupplement {
         }
 
         var tvOSView: some View {
-            Color.orange
-                .opacity(0.5)
+            compactView
+                .frame(width: 360)
         }
     }
 }

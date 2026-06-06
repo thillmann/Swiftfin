@@ -107,6 +107,7 @@ final class MediaPlayerManager: ViewModel {
                 seconds = playbackItem.baseItem.startSeconds ?? .zero
                 playbackItem.manager = self
                 setSupplements()
+                loadMediaSegments(for: playbackItem.baseItem)
 
                 logger.info(
                     "Playing new item",
@@ -136,6 +137,9 @@ final class MediaPlayerManager: ViewModel {
 
     @Published
     var queue: AnyMediaPlayerQueue? = nil
+
+    @Published
+    private(set) var mediaSegments: [MediaSegmentDto] = []
 
     @Published
     var supplements: [any MediaPlayerSupplement] = []
@@ -178,6 +182,7 @@ final class MediaPlayerManager: ViewModel {
         }
     }
 
+    private var mediaSegmentsTask: Task<Void, Never>?
     private var initialMediaPlayerItemProvider: MediaPlayerItemProvider?
 
     // MARK: init
@@ -370,6 +375,8 @@ final class MediaPlayerManager: ViewModel {
     private func _stop() async throws {
         await self.cancel()
 
+        mediaSegmentsTask?.cancel()
+        mediaSegments = []
         proxy?.stop()
         Container.shared.mediaPlayerManagerPublisher().send(nil)
         Container.shared.mediaPlayerManager.reset()
@@ -435,5 +442,88 @@ final class MediaPlayerManager: ViewModel {
 
         self.playbackItem = newItem
         self.seconds = currentSeconds
+    }
+}
+
+extension MediaPlayerManager {
+
+    var currentIntroSegment: MediaSegmentDto? {
+        currentIntroSegment(at: seconds)
+    }
+
+    func currentIntroSegment(at seconds: Duration) -> MediaSegmentDto? {
+        mediaSegments.first { segment in
+            guard segment.type == .intro,
+                  let startSeconds = segment.startSeconds,
+                  let endSeconds = segment.endSeconds
+            else {
+                return false
+            }
+
+            return seconds >= startSeconds && seconds < endSeconds
+        }
+    }
+
+    func skipCurrentIntro() {
+        guard let endSeconds = currentIntroSegment?.endSeconds else { return }
+        proxy?.setSeconds(endSeconds)
+        seconds = endSeconds
+    }
+
+    private func loadMediaSegments(for item: BaseItemDto) {
+        mediaSegmentsTask?.cancel()
+        mediaSegments = []
+
+        guard let itemID = item.id,
+              let itemType = item.type,
+              [.episode, .movie, .musicVideo, .video].contains(itemType)
+        else {
+            return
+        }
+
+        guard let userSession else { return }
+        let logger = logger
+
+        mediaSegmentsTask = Task { [weak self, userSession, logger] in
+            let request = Paths.getItemSegments(
+                itemID: itemID,
+                includeSegmentTypes: [.intro]
+            )
+
+            do {
+                let response = try await userSession.client.send(request)
+                let segments = (response.value.items ?? [])
+                    .filter { $0.type == .intro && $0.startSeconds != nil && $0.endSeconds != nil }
+                    .sorted {
+                        ($0.startSeconds ?? .zero) < ($1.startSeconds ?? .zero)
+                    }
+
+                await MainActor.run {
+                    guard self?.item.id == itemID else { return }
+                    self?.mediaSegments = segments
+                }
+            } catch {
+                logger.debug(
+                    "Unable to load media segments",
+                    metadata: [
+                        "error": .stringConvertible(error.localizedDescription),
+                        "itemID": .stringConvertible(itemID),
+                    ]
+                )
+            }
+        }
+    }
+}
+
+private extension MediaSegmentDto {
+
+    static let ticksPerSecond: Double = 10_000_000
+
+    var startSeconds: Duration? {
+        startTicks.map { .seconds(Double($0) / Self.ticksPerSecond) }
+    }
+
+    var endSeconds: Duration? {
+        endTicks.map { .seconds(Double($0) / Self.ticksPerSecond) }
     }
 }
