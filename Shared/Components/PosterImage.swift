@@ -20,6 +20,7 @@ struct PosterImage<Item: Poster>: View {
     private let imageMaxWidth: CGFloat
     private let item: Item
     private let prefersBlurHashPlaceholder: Bool
+    private let showsTitleInPlaceholder: Bool
     private let type: PosterDisplayType
 
     init(
@@ -27,12 +28,14 @@ struct PosterImage<Item: Poster>: View {
         type: PosterDisplayType,
         contentMode: ContentMode = .fill,
         maxWidth: CGFloat? = nil,
-        prefersBlurHashPlaceholder: Bool = true
+        prefersBlurHashPlaceholder: Bool = true,
+        showsTitleInPlaceholder: Bool = true
     ) {
         self.contentMode = contentMode
         self.imageMaxWidth = maxWidth ?? (type == .landscape ? landscapeMaxWidth : portraitMaxWidth)
         self.item = item
         self.prefersBlurHashPlaceholder = prefersBlurHashPlaceholder
+        self.showsTitleInPlaceholder = showsTitleInPlaceholder
         self.type = type
     }
 
@@ -49,6 +52,14 @@ struct PosterImage<Item: Poster>: View {
 
     @ViewBuilder
     private var placeholderContent: some View {
+        PosterFallbackContentView(
+            title: showsTitleInPlaceholder && item.showTitle ? item.displayTitle : nil,
+            systemName: item.systemImage
+        )
+    }
+
+    @ViewBuilder
+    private var fallbackContent: some View {
         PosterFallbackContentView(
             title: item.showTitle ? item.displayTitle : nil,
             systemName: item.systemImage
@@ -73,7 +84,7 @@ struct PosterImage<Item: Poster>: View {
                         }
                     }
                     .failure {
-                        placeholderContent
+                        fallbackContent
                     }
             }
         }

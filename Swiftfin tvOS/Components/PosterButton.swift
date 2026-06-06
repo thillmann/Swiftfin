@@ -143,7 +143,8 @@ struct PosterButton<Item: Poster>: View {
             PosterImage(
                 item: item,
                 type: type,
-                prefersBlurHashPlaceholder: prefersBlurHashPlaceholder
+                prefersBlurHashPlaceholder: prefersBlurHashPlaceholder,
+                showsTitleInPlaceholder: false
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay {
