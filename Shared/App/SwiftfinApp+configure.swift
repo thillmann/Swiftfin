@@ -18,9 +18,7 @@ extension SwiftfinApp {
 
     static func configure() {
 
-        #if DEBUG
-        SwizzleDefaults.set(Defaults[.isLiquidGlassEnabled], for: "com.apple.SwiftUI.IgnoreSolariumOptOut")
-        #endif
+        SwizzleDefaults.set(true, for: "com.apple.SwiftUI.IgnoreSolariumOptOut")
 
         // Logging
         LoggingSystem.bootstrap { label in
