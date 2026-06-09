@@ -7,6 +7,7 @@
 //
 
 import JellyfinAPI
+import Nuke
 import SwiftUI
 import UIKit
 
@@ -68,8 +69,32 @@ extension PagingLibraryView.VirtualizedPosterGrid {
         }
 
         private var dataSource: UICollectionViewDiffableDataSource<Section, Element.ID>?
+        private let imagePrefetcher = ImagePrefetcher(
+            pipeline: ImagePipeline.Swiftfin.posters,
+            destination: .memoryCache,
+            maxConcurrentRequestCount: 2
+        )
         private var itemLookup: [Element.ID: Element] = [:]
+        private var lastItemIDs: [Element.ID] = []
+        private var lastLayoutState: LayoutState?
+        private var lastNearEndItemCount = 0
+        private var isNearEndCallbackScheduled = false
         private var parent: PagingLibraryView.VirtualizedPosterGrid
+        private var preheatedImageURLs: Set<URL> = []
+
+        private let preheatedItemWindowCount = 36
+        private let gridLandscapeMaxWidth: CGFloat = 300
+        private let gridPortraitMaxWidth: CGFloat = 200
+        private let listLandscapeMaxWidth: CGFloat = 110
+        private let listPortraitMaxWidth: CGFloat = 60
+
+        private struct LayoutState: Equatable {
+            let width: CGFloat
+            let posterType: PosterDisplayType
+            let displayType: LibraryDisplayType
+            let columnCount: Int
+            let spacing: CGFloat
+        }
 
         init(parent: PagingLibraryView.VirtualizedPosterGrid) {
             self.parent = parent
@@ -86,15 +111,11 @@ extension PagingLibraryView.VirtualizedPosterGrid {
                     cell.backgroundColor = .clear
                     cell.clipsToBounds = false
                     cell.contentView.clipsToBounds = false
-                    cell.focusChanged = { [weak self, weak cell, item] isFocused in
-                        guard let self, let cell else { return }
-
-                        self.configure(cell, with: item, isFocused: isFocused)
-                    }
+                    cell.applyFocusAppearance(isFocused: cell.isFocused, animated: false)
                     self.configure(
                         cell,
                         with: item,
-                        isFocused: cell.isFocused
+                        focusState: cell.focusState
                     )
                 }
 
@@ -111,11 +132,32 @@ extension PagingLibraryView.VirtualizedPosterGrid {
         }
 
         func update(parent: PagingLibraryView.VirtualizedPosterGrid, in collectionView: UICollectionView) {
-            self.parent = parent
-            itemLookup = Dictionary(uniqueKeysWithValues: parent.items.map { ($0.id, $0) })
+            if parent.items.count < lastNearEndItemCount {
+                lastNearEndItemCount = 0
+            }
 
-            updateLayout(in: collectionView)
-            applySnapshot()
+            self.parent = parent
+
+            let itemIDs = parent.items.map(\.id)
+            if itemIDs != lastItemIDs {
+                itemLookup = Dictionary(uniqueKeysWithValues: parent.items.map { ($0.id, $0) })
+                applySnapshot(itemIDs: itemIDs)
+                lastItemIDs = itemIDs
+                updatePreheatedImages(in: collectionView)
+            }
+
+            let layoutState = LayoutState(
+                width: collectionView.bounds.width,
+                posterType: parent.posterType,
+                displayType: parent.displayType,
+                columnCount: parent.columnCount,
+                spacing: parent.spacing
+            )
+
+            if layoutState != lastLayoutState {
+                updateLayout(in: collectionView)
+                lastLayoutState = layoutState
+            }
         }
 
         func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -133,11 +175,18 @@ extension PagingLibraryView.VirtualizedPosterGrid {
             forItemAt indexPath: IndexPath
         ) {
             loadNextPageIfNeeded(for: indexPath.item)
+            updatePreheatedImages(in: collectionView)
         }
 
         func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
             guard let maxIndex = indexPaths.map(\.item).max() else { return }
             loadNextPageIfNeeded(for: maxIndex)
+            updatePreheatedImages(in: collectionView, around: maxIndex)
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            guard let collectionView = scrollView as? UICollectionView else { return }
+            updatePreheatedImages(in: collectionView)
         }
 
         func collectionView(
@@ -148,11 +197,21 @@ extension PagingLibraryView.VirtualizedPosterGrid {
             itemSize(for: collectionView.bounds.width)
         }
 
-        private func applySnapshot() {
-            var snapshot = NSDiffableDataSourceSnapshot<Section, Element.ID>()
-            snapshot.appendSections([.main])
-            snapshot.appendItems(parent.items.map(\.id))
-            dataSource?.apply(snapshot, animatingDifferences: false)
+        private func applySnapshot(itemIDs: [Element.ID]) {
+            guard let dataSource else { return }
+
+            if lastItemIDs.isEmpty || itemIDs.count < lastItemIDs.count || !itemIDs.starts(with: lastItemIDs) {
+                var snapshot = NSDiffableDataSourceSnapshot<Section, Element.ID>()
+                snapshot.appendSections([.main])
+                snapshot.appendItems(itemIDs, toSection: .main)
+                dataSource.apply(snapshot, animatingDifferences: false)
+                return
+            }
+
+            var snapshot = dataSource.snapshot()
+            let newItemIDs = itemIDs.dropFirst(lastItemIDs.count)
+            snapshot.appendItems(Array(newItemIDs), toSection: .main)
+            dataSource.apply(snapshot, animatingDifferences: false)
         }
 
         private func updateLayout(in collectionView: UICollectionView) {
@@ -169,22 +228,99 @@ extension PagingLibraryView.VirtualizedPosterGrid {
             return itemLookup[id]
         }
 
-        private func configure(_ cell: UICollectionViewCell, with item: Element, isFocused: Bool) {
+        private func configure(
+            _ cell: UICollectionViewCell,
+            with item: Element,
+            focusState: VirtualizedCellFocusState
+        ) {
             cell.contentConfiguration = UIHostingConfiguration {
                 self.cellContent(
                     for: item,
-                    isFocused: isFocused
+                    focusState: focusState
                 )
             }
             .margins(.all, 0)
         }
 
         private func loadNextPageIfNeeded(for index: Int) {
-            let nextPageThreshold = max(parent.items.count - parent.columnCount * parent.pagingPrefetchRows, 0)
+            let itemCount = parent.items.count
+            let nextPageThreshold = max(itemCount - parent.columnCount * parent.pagingPrefetchRows, 0)
 
             guard index >= nextPageThreshold else { return }
+            guard itemCount > lastNearEndItemCount else { return }
+            guard !isNearEndCallbackScheduled else { return }
 
-            parent.onNearEnd()
+            lastNearEndItemCount = itemCount
+            isNearEndCallbackScheduled = true
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.isNearEndCallbackScheduled = false
+                self.parent.onNearEnd()
+            }
+        }
+
+        private func updatePreheatedImages(in collectionView: UICollectionView, around preferredIndex: Int? = nil) {
+            guard parent.items.isNotEmpty else {
+                stopPreheatingImages()
+                return
+            }
+
+            let visibleIndices = collectionView.indexPathsForVisibleItems.map(\.item)
+            let centerIndex: Int = if let preferredIndex {
+                preferredIndex
+            } else if let minIndex = visibleIndices.min(), let maxIndex = visibleIndices.max() {
+                (minIndex + maxIndex) / 2
+            } else {
+                0
+            }
+
+            let halfWindow = preheatedItemWindowCount / 2
+            var lowerBound = max(centerIndex - halfWindow, 0)
+            let upperBound = min(lowerBound + preheatedItemWindowCount, parent.items.count)
+            lowerBound = max(upperBound - preheatedItemWindowCount, 0)
+
+            let urls = Set(parent.items[lowerBound ..< upperBound].compactMap { preheatedImageURL(for: $0) })
+            guard urls != preheatedImageURLs else { return }
+
+            let urlsToStop = preheatedImageURLs.subtracting(urls)
+            let urlsToStart = urls.subtracting(preheatedImageURLs)
+
+            imagePrefetcher.stopPrefetching(with: Array(urlsToStop))
+            imagePrefetcher.startPrefetching(with: Array(urlsToStart))
+            preheatedImageURLs = urls
+        }
+
+        private func stopPreheatingImages() {
+            guard preheatedImageURLs.isNotEmpty else { return }
+
+            imagePrefetcher.stopPrefetching()
+            preheatedImageURLs.removeAll()
+        }
+
+        private func preheatedImageURL(for item: Element) -> URL? {
+            let imageSources: [ImageSource] = switch parent.displayType {
+            case .grid:
+                switch parent.posterType {
+                case .landscape:
+                    item.landscapeImageSources(maxWidth: gridLandscapeMaxWidth, quality: 90)
+                case .portrait:
+                    item.portraitImageSources(maxWidth: gridPortraitMaxWidth, quality: 90)
+                case .square:
+                    item.squareImageSources(maxWidth: gridPortraitMaxWidth, quality: 90)
+                }
+            case .list:
+                switch parent.posterType {
+                case .landscape:
+                    item.landscapeImageSources(maxWidth: listLandscapeMaxWidth, quality: 90)
+                case .portrait:
+                    item.portraitImageSources(maxWidth: listPortraitMaxWidth, quality: 90)
+                case .square:
+                    item.squareImageSources(maxWidth: listPortraitMaxWidth, quality: 90)
+                }
+            }
+
+            return imageSources.first?.url
         }
 
         private func itemSize(for collectionWidth: CGFloat) -> CGSize {
@@ -207,23 +343,28 @@ extension PagingLibraryView.VirtualizedPosterGrid {
         }
 
         @ViewBuilder
-        private func cellContent(for item: Element, isFocused: Bool) -> some View {
+        private func cellContent(for item: Element, focusState: VirtualizedCellFocusState) -> some View {
             switch parent.displayType {
             case .grid:
                 VirtualizedPosterCellContent(
                     item: item,
                     type: parent.posterType,
-                    isFocused: isFocused
+                    focusState: focusState
                 )
             case .list:
                 VirtualizedLibraryRowContent(
                     item: item,
                     posterType: parent.posterType,
-                    isFocused: isFocused
+                    focusState: focusState
                 )
             }
         }
     }
+}
+
+private final class VirtualizedCellFocusState: ObservableObject {
+    @Published
+    var isFocused = false
 }
 
 private struct VirtualizedPosterCellContent<Item: Poster>: View {
@@ -233,7 +374,9 @@ private struct VirtualizedPosterCellContent<Item: Poster>: View {
 
     let item: Item
     let type: PosterDisplayType
-    let isFocused: Bool
+
+    @ObservedObject
+    var focusState: VirtualizedCellFocusState
 
     var body: some View {
         let overlay = posterOverlayRegistry?(item) ??
@@ -248,10 +391,10 @@ private struct VirtualizedPosterCellContent<Item: Poster>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay {
             overlay
-                .posterOverlayFocus(isFocused)
+                .posterOverlayFocus(focusState.isFocused)
         }
         .posterStyle(type)
-        .virtualizedCellFocusEffect(isFocused)
+        .virtualizedCellFocusEffect(focusState.isFocused)
         .accessibilityLabel(item.displayTitle)
         .matchedContextMenu(for: item)
     }
@@ -264,7 +407,9 @@ private struct VirtualizedLibraryRowContent<Item: Poster>: View {
 
     let item: Item
     let posterType: PosterDisplayType
-    let isFocused: Bool
+
+    @ObservedObject
+    var focusState: VirtualizedCellFocusState
 
     private func imageSources(from item: Item) -> [ImageSource] {
         switch posterType {
@@ -354,14 +499,14 @@ private struct VirtualizedLibraryRowContent<Item: Poster>: View {
         }
         .padding(.horizontal, EdgeInsets.edgePadding)
         .foregroundStyle(.primary, .secondary)
-        .virtualizedCellFocusEffect(isFocused)
+        .virtualizedCellFocusEffect(focusState.isFocused)
         .accessibilityLabel(item.displayTitle)
     }
 }
 
 private final class FocusableHostingCollectionViewCell: UICollectionViewCell {
 
-    var focusChanged: ((Bool) -> Void)?
+    let focusState = VirtualizedCellFocusState()
 
     override var canBecomeFocused: Bool {
         true
@@ -377,15 +522,33 @@ private final class FocusableHostingCollectionViewCell: UICollectionViewCell {
         let isCellFocused = nextView == self || nextView?.isDescendant(of: self) == true
 
         coordinator.addCoordinatedAnimations {
-            self.layer.zPosition = isCellFocused ? 1 : 0
-            self.focusChanged?(isCellFocused)
+            self.focusState.isFocused = isCellFocused
+            self.applyFocusAppearance(isFocused: isCellFocused, animated: true)
         }
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        focusChanged = nil
+        focusState.isFocused = false
+        applyFocusAppearance(isFocused: false, animated: false)
         contentConfiguration = nil
+    }
+
+    func applyFocusAppearance(isFocused: Bool, animated: Bool) {
+        let changes = {
+            self.transform = isFocused ? CGAffineTransform(scaleX: 1.06, y: 1.06) : .identity
+            self.layer.zPosition = isFocused ? 1 : 0
+            self.layer.shadowColor = UIColor.black.cgColor
+            self.layer.shadowOpacity = isFocused ? 0.45 : 0.22
+            self.layer.shadowRadius = isFocused ? 24 : 4
+            self.layer.shadowOffset = CGSize(width: 0, height: isFocused ? 14 : 2)
+        }
+
+        if animated {
+            changes()
+        } else {
+            UIView.performWithoutAnimation(changes)
+        }
     }
 }
 
@@ -396,22 +559,23 @@ private extension View {
         let cornerRadius: CGFloat = 18
 
         if #available(tvOS 26.0, *) {
-            clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .glassEffect(
-                    isFocused ? .regular.interactive() : .identity,
-                    in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                )
-                .scaleEffect(isFocused ? 1.06 : 1)
-                .shadow(color: .black.opacity(isFocused ? 0.45 : 0.22), radius: isFocused ? 24 : 4, y: isFocused ? 14 : 2)
-                .animation(.easeOut(duration: 0.18), value: isFocused)
+            Group {
+                if isFocused {
+                    clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                        .glassEffect(
+                            .regular.interactive(),
+                            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        )
+                } else {
+                    clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                }
+            }
         } else {
             clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(.white.opacity(isFocused ? 0.24 : 0.12), lineWidth: 1)
                 }
-                .scaleEffect(isFocused ? 1.06 : 1)
-                .shadow(color: .black.opacity(isFocused ? 0.45 : 0.22), radius: isFocused ? 24 : 4, y: isFocused ? 14 : 2)
                 .animation(.easeOut(duration: 0.18), value: isFocused)
         }
     }

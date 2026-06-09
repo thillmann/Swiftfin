@@ -44,11 +44,12 @@ final class RecentlyAddedLibraryViewModel: PagingLibraryViewModel<BaseItemDto> {
         parameters.limit = pageSize
         parameters.sortBy = [ItemSortBy.dateCreated]
         parameters.sortOrder = [.descending]
-        parameters.startIndex = page
 
         // Necessary to get an actual "next page" with this endpoint.
-        // Could be a performance issue for lots of items, but there's
-        // nothing we can do about it.
+        // This intentionally does not use `startIndex = page * pageSize`
+        // because excluded IDs may be filtered before the offset is applied.
+        // Could be a performance issue for lots of items, but there's nothing
+        // we can do about it.
         parameters.excludeItemIDs = elements.compactMap(\.id)
 
         if user.data.configuration?.isHidePlayedInLatest == true {

@@ -97,9 +97,16 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     var backgroundStates: Set<BackgroundState> = []
     /// - Keys: the `hashValue` of the `Element.ID`
     @Published
-    var elements: IdentifiedArray<Int, Element>
+    var elements: IdentifiedArray<Int, Element> {
+        didSet {
+            itemSnapshot = elements.elements
+        }
+    }
+
     @Published
     var state: State = .initial
+
+    private(set) var itemSnapshot: [Element]
 
     final let filterViewModel: FilterViewModel?
     final let parent: (any LibraryParent)?
@@ -129,8 +136,15 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
         _ data: some Collection<Element>,
         parent: (any LibraryParent)? = nil
     ) {
+        let elements: IdentifiedArray<Int, Element> = IdentifiedArray(
+            data,
+            id: \.unwrappedIDHashOrZero,
+            uniquingIDsWith: { x, _ in x }
+        )
+
         self.filterViewModel = nil
-        self.elements = IdentifiedArray(data, id: \.unwrappedIDHashOrZero, uniquingIDsWith: { x, _ in x })
+        self.elements = elements
+        self.itemSnapshot = elements.elements
         self.isStatic = true
         self.hasNextPage = false
         self.pageSize = DefaultPageSize
@@ -167,7 +181,14 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
         filters: ItemFilterCollection? = nil,
         pageSize: Int = DefaultPageSize
     ) {
-        self.elements = IdentifiedArray([], id: \.unwrappedIDHashOrZero, uniquingIDsWith: { x, _ in x })
+        let elements: IdentifiedArray<Int, Element> = IdentifiedArray(
+            [],
+            id: \.unwrappedIDHashOrZero,
+            uniquingIDsWith: { x, _ in x }
+        )
+
+        self.elements = elements
+        self.itemSnapshot = elements.elements
         self.isStatic = false
         self.pageSize = pageSize
         self.parent = parent
@@ -352,7 +373,7 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
         let pageItems = try await get(page: currentPage)
 
-        hasNextPage = !(pageItems.count < DefaultPageSize)
+        hasNextPage = !(pageItems.count < pageSize)
 
         await MainActor.run {
             elements.append(contentsOf: pageItems)
@@ -360,7 +381,7 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     }
 
     /// Gets the items at the given page. If the number of items
-    /// is less than `DefaultPageSize`, then it is inferred that
+    /// is less than `pageSize`, then it is inferred that
     /// there is not a next page and subsequent calls to `getNextPage`
     /// will immediately return.
     func get(page: Int) async throws -> [Element] {

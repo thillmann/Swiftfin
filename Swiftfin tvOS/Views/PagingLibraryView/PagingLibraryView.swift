@@ -103,7 +103,7 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
     @ViewBuilder
     private var gridView: some View {
         VirtualizedPosterGrid(
-            items: Array(viewModel.elements),
+            items: viewModel.itemSnapshot,
             posterType: activePosterType,
             displayType: activeDisplayType,
             columnCount: activeColumnCount,
@@ -128,7 +128,7 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
     private var contentView: some View {
         switch viewModel.state {
         case .content:
-            if viewModel.elements.isEmpty {
+            if viewModel.itemSnapshot.isEmpty {
                 ContentUnavailableView(L10n.noItems.localizedCapitalized, systemImage: "rectangle.on.rectangle.slash")
             } else {
                 gridView
