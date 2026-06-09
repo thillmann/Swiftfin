@@ -102,17 +102,28 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
     @ViewBuilder
     private var gridView: some View {
-        VirtualizedPosterGrid(
-            items: viewModel.itemSnapshot,
-            posterType: activePosterType,
-            displayType: activeDisplayType,
-            columnCount: activeColumnCount,
-            spacing: 50,
-            pagingPrefetchRows: pagingPrefetchRows
-        ) { item in
-            action(item)
-        } onNearEnd: {
-            loadNextPageIfNeeded()
+        switch activeDisplayType {
+        case .grid:
+            LazyPosterVGrid(
+                data: viewModel.lazyCollection,
+                posterType: activePosterType,
+                columnCount: activeColumnCount
+            ) { item in
+                action(item)
+            }
+        case .list:
+            VirtualizedPosterGrid(
+                items: viewModel.itemSnapshot,
+                posterType: activePosterType,
+                displayType: activeDisplayType,
+                columnCount: activeColumnCount,
+                spacing: 50,
+                pagingPrefetchRows: pagingPrefetchRows
+            ) { item in
+                action(item)
+            } onNearEnd: {
+                loadNextPageIfNeeded()
+            }
         }
     }
 

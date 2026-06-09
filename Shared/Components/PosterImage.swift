@@ -67,31 +67,22 @@ struct PosterImage<Item: Poster>: View {
     }
 
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(.complexSecondary)
-
-            AlternateLayoutView {
-                Color.clear
-            } content: {
-                ImageView(imageSources)
-                    .image(item.transform)
-                    .placeholder { imageSource in
-                        if prefersBlurHashPlaceholder, let blurHash = imageSource.blurHash {
-                            BlurHashView(blurHash: blurHash)
-                        } else {
-                            placeholderContent
-                        }
-                    }
-                    .failure {
-                        fallbackContent
-                    }
+        ImageView(imageSources)
+            .image(item.transform)
+            .placeholder { imageSource in
+                if prefersBlurHashPlaceholder, let blurHash = imageSource.blurHash {
+                    BlurHashView(blurHash: blurHash)
+                } else {
+                    placeholderContent
+                }
             }
-        }
-        .posterStyle(
-            type,
-            contentMode: contentMode
-        )
+            .failure {
+                fallbackContent
+            }
+            .posterStyle(
+                type,
+                contentMode: contentMode
+            )
     }
 }
 
@@ -110,14 +101,11 @@ private struct PosterFallbackContentView: View {
 
                     Text(title)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 8)
                         .frame(maxWidth: .infinity)
-                        .background(.thinMaterial)
                 }
+                .padding(16)
             }
         }
     }

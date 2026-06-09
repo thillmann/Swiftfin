@@ -108,6 +108,8 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
     private(set) var itemSnapshot: [Element]
 
+    private(set) var lazyCollection: LazyLibraryCollection<Element>!
+
     final let filterViewModel: FilterViewModel?
     final let parent: (any LibraryParent)?
 
@@ -152,10 +154,14 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
         super.init()
 
+        self.lazyCollection = LazyLibraryCollection(data)
+        observeLazyCollection()
+
         Notifications[.didDeleteItem]
             .publisher
             .receive(on: RunLoop.main)
             .sink { id in
+                self.lazyCollection.removeAll { $0.unwrappedIDHashOrZero == id.hashValue }
                 self.elements.remove(id: id.hashValue)
             }
             .store(in: &cancellables)
@@ -214,9 +220,17 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
         super.init()
 
+        self.lazyCollection = LazyLibraryCollection(pageSize: pageSize) { [weak self] page, _, _ in
+            guard let self else { return [] }
+
+            return try await self.get(page: page)
+        }
+        observeLazyCollection()
+
         Notifications[.didDeleteItem]
             .publisher
             .sink { id in
+                self.lazyCollection.removeAll { $0.unwrappedIDHashOrZero == id.hashValue }
                 self.elements.remove(id: id.hashValue)
             }
             .store(in: &cancellables)
@@ -351,14 +365,8 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
     final func refresh() async throws {
 
-        currentPage = -1
-        hasNextPage = true
-
-        await MainActor.run {
-            elements.removeAll()
-        }
-
-        try await getNextPage()
+        try await lazyCollection.refresh()
+        syncElementsFromLazyCollection()
     }
 
     /// Gets the next page of items or immediately returns if
@@ -369,15 +377,8 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     final func getNextPage() async throws {
         guard hasNextPage else { return }
 
-        currentPage += 1
-
-        let pageItems = try await get(page: currentPage)
-
-        hasNextPage = !(pageItems.count < pageSize)
-
-        await MainActor.run {
-            elements.append(contentsOf: pageItems)
-        }
+        try await lazyCollection.loadNextPage()
+        syncElementsFromLazyCollection()
     }
 
     /// Gets the items at the given page. If the number of items
@@ -392,5 +393,28 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     /// come from another source instead.
     func getRandomItem() async throws -> Element? {
         elements.randomElement()
+    }
+
+    private func syncElementsFromLazyCollection() {
+        currentPage = lazyCollection.currentPage
+        hasNextPage = lazyCollection.hasNextPage
+        elements = IdentifiedArray(
+            lazyCollection,
+            id: \.unwrappedIDHashOrZero,
+            uniquingIDsWith: { x, _ in x }
+        )
+    }
+
+    private func observeLazyCollection() {
+        lazyCollection.objectWillChange
+            .sink { [weak self] _ in
+                guard let self else { return }
+
+                Task { @MainActor in
+                    await Task.yield()
+                    self.syncElementsFromLazyCollection()
+                }
+            }
+            .store(in: &cancellables)
     }
 }
