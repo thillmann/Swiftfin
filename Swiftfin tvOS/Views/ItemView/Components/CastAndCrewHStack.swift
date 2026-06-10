@@ -76,6 +76,7 @@ private struct CastAndCrewButton: View {
         )
         .frame(width: length, height: length)
         .overlay { overlay }
+        .background(.gray)
         .contentShape(.contextMenuPreview, Circle())
         .clipShape(Circle())
         .containerShape(.circle)

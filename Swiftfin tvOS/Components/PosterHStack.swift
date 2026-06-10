@@ -95,7 +95,7 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
 
             ScrollView(.horizontal) {
                 LazyHStack(spacing: itemSpacing) {
-                    ForEach(visibleData, id: \.self) { item in
+                    ForEach(visibleData, id: \.unwrappedIDHashOrZero) { item in
                         posterButton(item, {
                             action(item)
                         }, {
@@ -135,9 +135,11 @@ extension PosterHStack {
             itemContentAspectRatio: nil,
             label: label,
             posterButton: posterButton ?? { item, action, _ in
-                PosterButton(
+                MyPosterButton(
                     item: item,
-                    type: type
+                    type: type,
+                    overlayOptions: .default,
+                    unplayedIndicatorType: .none
                 ) {
                     action()
                 }

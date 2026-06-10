@@ -6,151 +6,23 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import JellyfinAPI
 import SwiftUI
 
-struct LazyPosterVGrid<Element: Poster>: View {
-
-    @ObservedObject
-    private var data: LazyLibraryCollection<Element>
-
-    @State
-    private var error: Error?
-
-    @Default(.Customization.Indicators.showPlayed)
-    private var showPlayed
-    @Default(.Customization.Indicators.showUnplayed)
-    private var showUnplayed
-    @Default(.Customization.Indicators.showFavorited)
-    private var showFavorited
-    @Default(.Customization.Indicators.showProgress)
-    private var showProgress
-
-    private let columnCount: Int
-    private let posterType: PosterDisplayType
-    private let onSelect: (Element) -> Void
-
-    private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 40), count: columnCount)
-    }
-
-    private var overlayOptions: MyPosterButtonOverlayOptions {
-        var options: MyPosterButtonOverlayOptions = []
-        if showPlayed {
-            options.insert(.watched)
-        }
-        if showUnplayed != .none {
-            options.insert(.unwatched)
-        }
-        if showFavorited {
-            options.insert(.favorite)
-        }
-        if showProgress {
-            options.insert(.progress)
-        }
-        return options
-    }
-
-    init(
-        data: LazyLibraryCollection<Element>,
-        posterType: PosterDisplayType = .portrait,
-        columnCount: Int = 6,
-        onSelect: @escaping (Element) -> Void
-    ) {
-        self.data = data
-        self.posterType = posterType
-        self.columnCount = columnCount
-        self.onSelect = onSelect
-    }
-
-    private func cell(for item: Element) -> some View {
-        MyPosterButton(
-            item: item,
-            type: posterType,
-            overlayOptions: overlayOptions,
-            unplayedIndicatorType: showUnplayed
-        ) {
-            onSelect(item)
-        }
-    }
-
-    var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 40) {
-                ForEach(data, id: \.unwrappedIDHashOrZero) { item in
-                    cell(for: item)
-                        .onAppear {
-                            scheduleLoadMoreIfNeeded(currentItem: item)
-                        }
-                }
-            }
-            .padding(80)
-            .padding(.top, 120)
-
-            if data.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .padding(.vertical)
-            }
-
-            if let error {
-                Text(error.localizedDescription)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-            }
-        }
-        .task {
-            await loadInitialPage()
-        }
-    }
-
-    private func scheduleLoadMoreIfNeeded(currentItem: Element) {
-        Task {
-            await loadMoreIfNeeded(currentItem: currentItem)
-        }
-    }
-
-    private func loadInitialPage() async {
-        guard data.isEmpty else { return }
-
-        do {
-            try await data.loadInitialPages()
-        } catch {
-            self.error = error
-        }
-    }
-
-    private func loadMoreIfNeeded(currentItem: Element) async {
-        do {
-            try await data.loadNextPageIfNeeded(
-                currentItem: currentItem,
-                prefetchItemCount: data.pageSize,
-                matches: { item, currentItem in
-                    item.unwrappedIDHashOrZero == currentItem.unwrappedIDHashOrZero
-                }
-            )
-        } catch {
-            self.error = error
-        }
-    }
-}
-
-private struct MyPosterButton<Item: Poster>: View {
+struct MyPosterButton<Item: Poster>: View {
     let item: Item
     let posterType: PosterDisplayType
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
+
     private let action: () -> Void
 
     init(
         item: Item,
         type: PosterDisplayType,
-        overlayOptions: MyPosterButtonOverlayOptions,
-        unplayedIndicatorType: UnplayedIndicatorType,
-        action: @escaping () -> Void
+        overlayOptions: MyPosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        action: @escaping () -> Void,
     ) {
         self.item = item
         self.posterType = type
@@ -171,10 +43,13 @@ private struct MyPosterButton<Item: Poster>: View {
             )
         }
         .buttonStyle(.card)
+        .accessibilityLabel(item.displayTitle)
+        .matchedContextMenu(for: item)
+//        .focusedValue(\.focusedPoster, AnyPoster(item))
     }
 }
 
-private struct MyPosterButtonOverlayOptions: OptionSet {
+struct MyPosterButtonOverlayOptions: OptionSet {
     let rawValue: Int
 
     static let watched = Self(rawValue: 1 << 0)
@@ -190,9 +65,12 @@ private struct MyPosterButtonOverlayOptions: OptionSet {
     ]
 }
 
-private struct PosterButtonContent<Item: Poster>: View {
+struct PosterButtonContent<Item: Poster>: View {
     @Environment(\.isFocused)
     private var isFocused
+
+    @EnvironmentTypeValue<Item>(\.posterOverlayRegistry)
+    private var posterOverlayRegistry
 
     let item: Item
     let posterType: PosterDisplayType
@@ -214,6 +92,28 @@ private struct PosterButtonContent<Item: Poster>: View {
 
     private var hasPlaybackProgress: Bool {
         (baseItem?.userData?.playbackPositionTicks ?? 0) > 0
+    }
+
+    private var seasonEpisodeLabel: String? {
+        guard let baseItem else {
+            return nil
+        }
+
+        if let seasonNumber = baseItem.parentIndexNumber,
+           let episodeNumber = baseItem.indexNumber
+        {
+            return "S\(seasonNumber), E\(episodeNumber)"
+        }
+
+        return baseItem.seasonEpisodeLabel
+    }
+
+    private var durationLeftLabel: String? {
+        if hasPlaybackProgress, !isPlayed, let progressLabel = baseItem?.progressLabel {
+            return progressLabel
+        }
+
+        return baseItem?.runTimeLabel
     }
 
     private var canShowStatusIndicator: Bool {
@@ -293,9 +193,44 @@ private struct PosterButtonContent<Item: Poster>: View {
         }
     }
 
+    @ViewBuilder
+    private var durationLeftOverlay: some View {
+        if let durationLeftLabel {
+            Text(durationLeftLabel)
+                .font(.caption2)
+                .foregroundStyle(.white)
+                .opacity(isFocused ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isFocused)
+        }
+    }
+
+    @ViewBuilder
+    private var metadataOverlay: some View {
+        if baseItem?.type == .episode {
+            DotHStack {
+                Text(seasonEpisodeLabel)
+                    .font(.caption2)
+                    .foregroundStyle(.white)
+                    .opacity(isFocused ? 1 : 0.4)
+                    .animation(.easeInOut(duration: 0.18), value: isFocused)
+
+                durationLeftOverlay
+            }.foregroundStyle(.white).opacity(isFocused ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isFocused)
+        }
+
+        if baseItem?.type == .movie {
+            durationLeftOverlay
+        }
+    }
+
     private var shouldShowWatchedOverlay: Bool {
         isWatchedBranch &&
             overlayOptions.contains(.watched)
+    }
+
+    private var shouldShowFavorite: Bool {
+        overlayOptions.contains(.favorite) && baseItem?.userData?.isFavorite == true
     }
 
     private var shouldShowProgressOverlay: Bool {
@@ -368,7 +303,30 @@ private struct PosterButtonContent<Item: Poster>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    @ViewBuilder
+    private var defaultOverlay: some View {
+        if shouldShowFavorite {
+            favoritedOverlay
+        }
+
+        if shouldShowBottomOverlay {
+            bottomContent {
+                playOverlay
+
+                if shouldShowProgressOverlay {
+                    progressOverlay
+                } else if shouldShowUnwatchedOverlay {
+                    unwatchedCountOverlay
+                }
+
+                metadataOverlay
+            }
+        }
+    }
+
     var body: some View {
+        let overlay = posterOverlayRegistry?(item) ?? defaultOverlay.eraseToAnyView()
+
         ZStack {
             PosterImage(
                 item: item,
@@ -376,21 +334,7 @@ private struct PosterButtonContent<Item: Poster>: View {
                 prefersBlurHashPlaceholder: false
             )
 
-            if overlayOptions.contains(.favorite) && baseItem?.userData?.isFavorite == true {
-                favoritedOverlay
-            }
-
-            if shouldShowBottomOverlay {
-                bottomContent {
-                    playOverlay
-
-                    if shouldShowProgressOverlay {
-                        progressOverlay
-                    } else if shouldShowUnwatchedOverlay {
-                        unwatchedCountOverlay
-                    }
-                }
-            }
+            overlay.posterOverlayFocus(isFocused)
         }
     }
 }

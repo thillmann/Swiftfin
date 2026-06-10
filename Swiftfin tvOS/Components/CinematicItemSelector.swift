@@ -42,7 +42,7 @@ struct CinematicItemSelector<Item: Poster>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 20) {
 
             if let selectedItem {
                 topContent(selectedItem)
@@ -53,13 +53,11 @@ struct CinematicItemSelector<Item: Poster>: View {
                     }
             }
 
-            // TODO: fix intrinsic content sizing without frame
             PosterHStack(
                 type: .landscape,
                 items: items,
                 action: action
             )
-            .frame(height: 400)
         }
         .frame(height: UIScreen.main.bounds.height - 75, alignment: .bottomLeading)
         .frame(maxWidth: .infinity)

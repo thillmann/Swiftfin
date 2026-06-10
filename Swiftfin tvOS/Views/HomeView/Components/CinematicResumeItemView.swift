@@ -14,7 +14,7 @@ extension HomeView {
     struct CinematicResumeView: View {
 
         private let logoHeight: CGFloat = 200
-        private let logoWidth = UIScreen.main.bounds.width * 0.4
+        private let logoWidth = UIScreen.main.bounds.width * 0.6
 
         @Router
         private var router
@@ -64,7 +64,6 @@ extension HomeView {
             .content { _ in
                 EmptyView()
             }
-            .posterOverlayComponents(.resume)
         }
     }
 }

@@ -15,8 +15,6 @@ import SwiftUI
 
 struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
-    private let pagingPrefetchRows = 8
-
     @Default(.Customization.Library.rememberLayout)
     private var rememberLayout
 
@@ -102,35 +100,14 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
     @ViewBuilder
     private var gridView: some View {
-        switch activeDisplayType {
-        case .grid:
-            LazyPosterVGrid(
-                data: viewModel.lazyCollection,
-                posterType: activePosterType,
-                columnCount: activeColumnCount
-            ) { item in
-                action(item)
-            }
-        case .list:
-            VirtualizedPosterGrid(
-                items: viewModel.itemSnapshot,
-                posterType: activePosterType,
-                displayType: activeDisplayType,
-                columnCount: activeColumnCount,
-                spacing: 50,
-                pagingPrefetchRows: pagingPrefetchRows
-            ) { item in
-                action(item)
-            } onNearEnd: {
-                loadNextPageIfNeeded()
-            }
+        PosterVGrid(
+            data: viewModel.lazyCollection,
+            layout: activeDisplayType,
+            posterType: activePosterType,
+            columnCount: activeColumnCount
+        ) { item in
+            action(item)
         }
-    }
-
-    private func loadNextPageIfNeeded() {
-        guard !viewModel.backgroundStates.contains(.gettingNextPage) else { return }
-
-        viewModel.send(.getNextPage)
     }
 
     // MARK: Content View
