@@ -65,17 +65,19 @@ struct ProgramsView: View {
         PosterHStack(
             title: title,
             type: .landscape,
-            items: programsViewModel[keyPath: keyPath]
-        ) { _ in
+            items: programsViewModel[keyPath: keyPath],
+            posterButton: { item in
+                MyPosterButton(item: item, type: .landscape) {
 //            guard let mediaSource = channelProgram.channel.mediaSources?.first else { return }
 //            router.route(
 //                to: \.liveVideoPlayer,
 //                LiveVideoPlayerManager(item: channelProgram.channel, mediaSource: mediaSource)
 //            )
-        }
-        .posterOverlay(for: BaseItemDto.self) {
-            ProgramProgressOverlay(program: $0)
-        }
+                } overlay: {
+                    ProgramProgressOverlay(program: item)
+                }
+            }
+        )
     }
 
     var body: some View {

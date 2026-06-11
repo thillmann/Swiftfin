@@ -9,13 +9,14 @@
 import JellyfinAPI
 import SwiftUI
 
-struct MyPosterButton<Item: Poster>: View {
+struct MyPosterButton<Item: Poster, Overlay: View>: View {
     let item: Item
     let posterType: PosterDisplayType
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
 
     private let action: () -> Void
+    private let overlay: () -> Overlay
 
     init(
         item: Item,
@@ -23,12 +24,14 @@ struct MyPosterButton<Item: Poster>: View {
         overlayOptions: MyPosterButtonOverlayOptions = .default,
         unplayedIndicatorType: UnplayedIndicatorType = .none,
         action: @escaping () -> Void,
+        @ViewBuilder overlay: @escaping () -> Overlay
     ) {
         self.item = item
         self.posterType = type
         self.overlayOptions = overlayOptions
         self.unplayedIndicatorType = unplayedIndicatorType
         self.action = action
+        self.overlay = overlay
     }
 
     var body: some View {
@@ -39,13 +42,38 @@ struct MyPosterButton<Item: Poster>: View {
                 item: item,
                 posterType: posterType,
                 overlayOptions: overlayOptions,
-                unplayedIndicatorType: unplayedIndicatorType
+                unplayedIndicatorType: unplayedIndicatorType,
+                overlay: overlay
             )
         }
         .buttonStyle(.card)
         .accessibilityLabel(item.displayTitle)
         .matchedContextMenu(for: item)
-//        .focusedValue(\.focusedPoster, AnyPoster(item))
+    }
+}
+
+extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item> {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        overlayOptions: MyPosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        action: @escaping () -> Void
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
+            action: action
+        ) {
+            MyPosterButtonDefaultOverlay(
+                item: item,
+                overlayOptions: overlayOptions,
+                unplayedIndicatorType: unplayedIndicatorType
+            )
+        }
     }
 }
 
@@ -65,15 +93,34 @@ struct MyPosterButtonOverlayOptions: OptionSet {
     ]
 }
 
-struct PosterButtonContent<Item: Poster>: View {
+struct PosterButtonContent<Item: Poster, Overlay: View>: View {
     @Environment(\.isFocused)
     private var isFocused
 
-    @EnvironmentTypeValue<Item>(\.posterOverlayRegistry)
-    private var posterOverlayRegistry
-
     let item: Item
     let posterType: PosterDisplayType
+    let overlayOptions: MyPosterButtonOverlayOptions
+    let unplayedIndicatorType: UnplayedIndicatorType
+    let overlay: () -> Overlay
+
+    var body: some View {
+        ZStack {
+            PosterImage(
+                item: item,
+                type: posterType,
+                prefersBlurHashPlaceholder: false
+            )
+
+            overlay().posterOverlayFocus(isFocused)
+        }
+    }
+}
+
+struct MyPosterButtonDefaultOverlay<Item: Poster>: View {
+    @Environment(\.isFocused)
+    private var isFocused
+
+    let item: Item
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
 
@@ -325,16 +372,6 @@ struct PosterButtonContent<Item: Poster>: View {
     }
 
     var body: some View {
-        let overlay = posterOverlayRegistry?(item) ?? defaultOverlay.eraseToAnyView()
-
-        ZStack {
-            PosterImage(
-                item: item,
-                type: posterType,
-                prefersBlurHashPlaceholder: false
-            )
-
-            overlay.posterOverlayFocus(isFocused)
-        }
+        defaultOverlay
     }
 }

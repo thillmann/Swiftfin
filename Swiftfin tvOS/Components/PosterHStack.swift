@@ -10,22 +10,14 @@ import SwiftUI
 
 // TODO: trailing content refactor?
 
-struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element == Element, Data.Index == Int {
-
-    typealias PosterButtonBuilder = (
-        Element,
-        @escaping () -> Void,
-        @escaping () -> AnyView
-    ) -> AnyView
+struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: View where Data.Element == Element, Data.Index == Int {
 
     private var data: Data
     private var title: String?
     private var type: PosterDisplayType
     private var itemContentAspectRatio: CGFloat?
-    private var label: (Element) -> any View
-    private var posterButton: PosterButtonBuilder
+    private var posterButton: (Element) -> PosterButtonView
     private var trailingContent: () -> any View
-    private let action: (Element) -> Void
 
     @State
     private var contentSize: CGSize = .zero
@@ -96,12 +88,8 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
             ScrollView(.horizontal) {
                 LazyHStack(spacing: itemSpacing) {
                     ForEach(visibleData, id: \.unwrappedIDHashOrZero) { item in
-                        posterButton(item, {
-                            action(item)
-                        }, {
-                            label(item).eraseToAnyView()
-                        })
-                        .frame(width: itemWidth, height: itemHeight)
+                        posterButton(item)
+                            .frame(width: itemWidth, height: itemHeight)
                     }
                 }
                 .scrollTargetLayout()
@@ -118,35 +106,49 @@ struct PosterHStack<Element: Poster, Data: Collection>: View where Data.Element 
     }
 }
 
-extension PosterHStack {
+extension PosterHStack where PosterButtonView == MyPosterButton<Element, MyPosterButtonDefaultOverlay<Element>> {
 
     init(
         title: String? = nil,
         type: PosterDisplayType,
         items: Data,
-        action: @escaping (Element) -> Void,
-        @ViewBuilder label: @escaping (Element) -> any View = { _ in EmptyView() },
-        posterButton: PosterButtonBuilder? = nil
+        action: @escaping (Element) -> Void
     ) {
         self.init(
             data: items,
             title: title,
             type: type,
             itemContentAspectRatio: nil,
-            label: label,
-            posterButton: posterButton ?? { item, action, _ in
+            posterButton: { item in
                 MyPosterButton(
                     item: item,
                     type: type,
                     overlayOptions: .default,
                     unplayedIndicatorType: .none
                 ) {
-                    action()
+                    action(item)
                 }
-                .eraseToAnyView()
             },
-            trailingContent: { EmptyView() },
-            action: action
+            trailingContent: { EmptyView() }
+        )
+    }
+}
+
+extension PosterHStack {
+
+    init(
+        title: String? = nil,
+        type: PosterDisplayType,
+        items: Data,
+        @ViewBuilder posterButton: @escaping (Element) -> PosterButtonView
+    ) {
+        self.init(
+            data: items,
+            title: title,
+            type: type,
+            itemContentAspectRatio: nil,
+            posterButton: posterButton,
+            trailingContent: { EmptyView() }
         )
     }
 

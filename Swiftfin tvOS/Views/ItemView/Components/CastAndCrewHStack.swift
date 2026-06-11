@@ -32,15 +32,12 @@ extension ItemView {
                     person.type?.isSupported ?? false
                 }
             ) { person in
-                router.route(to: .item(item: .init(person: person)))
-            } label: { person in
-                CastAndCrewLabel(person: person, isFocused: false)
-            } posterButton: { person, action, _ in
                 CastAndCrewButton(
                     person: person,
-                    action: action
+                    action: {
+                        router.route(to: .item(item: .init(person: person)))
+                    }
                 )
-                .eraseToAnyView()
             }
             .itemContentAspectRatio(castAndCrewRowAspectRatio)
         }

@@ -184,11 +184,14 @@ struct SearchView: View {
             title: title,
             type: posterType,
             items: items,
-            action: select
+            posterButton: { item in
+                MyPosterButton(item: item, type: posterType) {
+                    select(item)
+                } overlay: {
+                    UnifiedSearchResultPosterOverlay(item: item)
+                }
+            }
         )
-        .posterOverlay(for: UnifiedSearchResult.self) { item in
-            UnifiedSearchResultPosterOverlay(item: item)
-        }
     }
 
     var body: some View {
