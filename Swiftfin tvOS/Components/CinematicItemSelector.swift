@@ -18,8 +18,8 @@ struct CinematicItemSelector<Item: Poster>: View {
     @FocusState
     private var isSectionFocused
 
-    @FocusedValue(\.focusedPoster)
-    private var focusedPoster
+    @FocusState
+    private var focusedItemID: Int?
 
     @StateObject
     private var viewModel: CinematicBackgroundView.Proxy = .init()
@@ -32,9 +32,9 @@ struct CinematicItemSelector<Item: Poster>: View {
     let items: [Item]
 
     private var currentFocusedItem: Item? {
-        guard isSectionFocused else { return nil }
+        guard isSectionFocused, let focusedItemID else { return nil }
 
-        return focusedPoster?._poster as? Item
+        return items.first { $0.unwrappedIDHashOrZero == focusedItemID }
     }
 
     private var selectedItem: Item? {
@@ -56,7 +56,17 @@ struct CinematicItemSelector<Item: Poster>: View {
             PosterHStack(
                 type: .landscape,
                 items: items,
-                action: action
+                posterButton: { item in
+                    MyPosterButton(
+                        item: item,
+                        type: .landscape,
+                        overlayOptions: .default,
+                        unplayedIndicatorType: .none
+                    ) {
+                        action(item)
+                    }
+                    .focused($focusedItemID, equals: item.unwrappedIDHashOrZero)
+                }
             )
         }
         .frame(height: UIScreen.main.bounds.height - 75, alignment: .bottomLeading)
@@ -72,9 +82,14 @@ struct CinematicItemSelector<Item: Poster>: View {
                 (location: 1, opacity: 0)
             }
         }
-        .onChange(of: focusedPoster) {
-            guard let focusedPoster, isSectionFocused else { return }
-            viewModel.select(item: focusedPoster._poster)
+        .onChange(of: focusedItemID) { _, newValue in
+            guard let newValue,
+                  let item = items.first(where: { $0.unwrappedIDHashOrZero == newValue })
+            else {
+                return
+            }
+
+            viewModel.select(item: item)
         }
         .focusSection()
         .focused($isSectionFocused)
