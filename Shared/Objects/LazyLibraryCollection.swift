@@ -254,3 +254,13 @@ extension LazyLibraryCollection where Element == BaseItemDto {
         }
     }
 }
+
+extension LazyLibraryCollection where Element == BaseItemDto {
+    func firstIndexForLetter(letter: String) -> Int? {
+        if let index = elements.firstIndex(where: { $0.name?.hasPrefix(letter) ?? false }) {
+            index
+        } else {
+            nil
+        }
+    }
+}
