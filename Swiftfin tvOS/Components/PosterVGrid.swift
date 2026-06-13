@@ -11,15 +11,12 @@ import SwiftUI
 
 struct PosterVGrid<Element: Poster>: View {
 
-    @ObservedObject
-    private var data: LazyLibraryCollection<Element>
-
-    @State
-    private var error: Error?
+    private let data: [Element]
 
     private let layout: LibraryDisplayType
     private let columnCount: Int
     private let posterType: PosterDisplayType
+    private let onNeedsNextPage: (Element) -> Void
     private let onSelect: (Element) -> Void
 
     private var gridSpacing: CGFloat {
@@ -38,29 +35,33 @@ struct PosterVGrid<Element: Poster>: View {
     }
 
     init(
-        data: LazyLibraryCollection<Element>,
+        data: [Element],
         layout: LibraryDisplayType = .grid,
         posterType: PosterDisplayType = .portrait,
+        onNeedsNextPage: @escaping (Element) -> Void = { _ in },
         onSelect: @escaping (Element) -> Void
     ) {
         self.data = data
         self.layout = layout
         self.posterType = posterType
         self.columnCount = 1
+        self.onNeedsNextPage = onNeedsNextPage
         self.onSelect = onSelect
     }
 
     init(
-        data: LazyLibraryCollection<Element>,
+        data: [Element],
         layout: LibraryDisplayType = .grid,
         posterType: PosterDisplayType = .portrait,
         columnCount: Int,
+        onNeedsNextPage: @escaping (Element) -> Void = { _ in },
         onSelect: @escaping (Element) -> Void
     ) {
         self.data = data
         self.layout = layout
         self.posterType = posterType
         self.columnCount = columnCount
+        self.onNeedsNextPage = onNeedsNextPage
         self.onSelect = onSelect
     }
 
@@ -114,59 +115,12 @@ struct PosterVGrid<Element: Poster>: View {
                 ForEach(data, id: \.unwrappedIDHashOrZero) { item in
                     cell(for: item)
                         .onAppear {
-                            scheduleLoadMoreIfNeeded(currentItem: item)
+                            onNeedsNextPage(item)
                         }
                 }
             }
             .padding(80)
             .padding(.top, 120)
-
-            if data.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .padding(.vertical)
-            }
-
-            if let error {
-                Text(error.localizedDescription)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-            }
-        }
-        .task {
-            await loadInitialPage()
-        }
-    }
-
-    private func scheduleLoadMoreIfNeeded(currentItem: Element) {
-        Task {
-            await loadMoreIfNeeded(currentItem: currentItem)
-        }
-    }
-
-    private func loadInitialPage() async {
-        guard data.isEmpty else { return }
-
-        do {
-            try await data.loadInitialPages()
-        } catch {
-            self.error = error
-        }
-    }
-
-    private func loadMoreIfNeeded(currentItem: Element) async {
-        do {
-            try await data.loadNextPageIfNeeded(
-                currentItem: currentItem,
-                prefetchItemCount: data.pageSize,
-                matches: { item, currentItem in
-                    item.unwrappedIDHashOrZero == currentItem.unwrappedIDHashOrZero
-                }
-            )
-        } catch {
-            self.error = error
         }
     }
 }

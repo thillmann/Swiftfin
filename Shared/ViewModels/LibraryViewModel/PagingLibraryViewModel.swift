@@ -9,10 +9,8 @@
 import Combine
 import Defaults
 import Foundation
-import Get
 import IdentifiedCollections
 import JellyfinAPI
-import OrderedCollections
 import UIKit
 
 /// Magic number for page sizes
@@ -95,20 +93,22 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
     @Published
     var backgroundStates: Set<BackgroundState> = []
-    /// - Keys: the `hashValue` of the `Element.ID`
     @Published
-    var elements: IdentifiedArray<Int, Element> {
-        didSet {
-            itemSnapshot = elements.elements
-        }
-    }
+    var pagingError: ErrorMessage?
+    @Published
+    private(set) var items: [Element]
 
     @Published
     var state: State = .initial
 
-    private(set) var itemSnapshot: [Element]
-
-    private(set) var lazyCollection: LazyLibraryCollection<Element>!
+    /// - Keys: the `hashValue` of the `Element.ID`
+    var elements: IdentifiedArray<Int, Element> {
+        IdentifiedArray(
+            items,
+            id: \.unwrappedIDHashOrZero,
+            uniquingIDsWith: { x, _ in x }
+        )
+    }
 
     final let filterViewModel: FilterViewModel?
     final let parent: (any LibraryParent)?
@@ -120,15 +120,18 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     }
 
     let pageSize: Int
-    private(set) var currentPage = 0
+    private(set) var currentPage = -1
     private(set) var hasNextPage = true
+    private(set) var isLoading = false
 
     private let eventSubject: PassthroughSubject<Event, Never> = .init()
     private let isStatic: Bool
+    private var shouldLoadNextPageAfterCurrentLoad = false
 
     // tasks
 
     private var pagingTask: AnyCancellable?
+    private var nextPageTask: AnyCancellable?
     private var randomItemTask: AnyCancellable?
 
     // MARK: init
@@ -138,15 +141,8 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
         _ data: some Collection<Element>,
         parent: (any LibraryParent)? = nil
     ) {
-        let elements: IdentifiedArray<Int, Element> = IdentifiedArray(
-            data,
-            id: \.unwrappedIDHashOrZero,
-            uniquingIDsWith: { x, _ in x }
-        )
-
         self.filterViewModel = nil
-        self.elements = elements
-        self.itemSnapshot = elements.elements
+        self.items = Array(data)
         self.isStatic = true
         self.hasNextPage = false
         self.pageSize = DefaultPageSize
@@ -154,15 +150,11 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
         super.init()
 
-        self.lazyCollection = LazyLibraryCollection(data)
-        observeLazyCollection()
-
         Notifications[.didDeleteItem]
             .publisher
             .receive(on: RunLoop.main)
             .sink { id in
-                self.lazyCollection.removeAll { $0.unwrappedIDHashOrZero == id.hashValue }
-                self.elements.remove(id: id.hashValue)
+                self.items.removeAll { $0.unwrappedIDHashOrZero == id.hashValue }
             }
             .store(in: &cancellables)
     }
@@ -187,14 +179,7 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
         filters: ItemFilterCollection? = nil,
         pageSize: Int = DefaultPageSize
     ) {
-        let elements: IdentifiedArray<Int, Element> = IdentifiedArray(
-            [],
-            id: \.unwrappedIDHashOrZero,
-            uniquingIDsWith: { x, _ in x }
-        )
-
-        self.elements = elements
-        self.itemSnapshot = elements.elements
+        self.items = []
         self.isStatic = false
         self.pageSize = pageSize
         self.parent = parent
@@ -220,18 +205,10 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
 
         super.init()
 
-        self.lazyCollection = LazyLibraryCollection(pageSize: pageSize) { [weak self] page, _, _ in
-            guard let self else { return [] }
-
-            return try await self.get(page: page)
-        }
-        observeLazyCollection()
-
         Notifications[.didDeleteItem]
             .publisher
             .sink { id in
-                self.lazyCollection.removeAll { $0.unwrappedIDHashOrZero == id.hashValue }
-                self.elements.remove(id: id.hashValue)
+                self.items.removeAll { $0.unwrappedIDHashOrZero == id.hashValue }
             }
             .store(in: &cancellables)
 
@@ -280,16 +257,20 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
         case let .error(error):
 
             Task { @MainActor in
-                elements.removeAll()
+                items.removeAll()
+                pagingError = nil
             }
 
             return .error(error)
         case .refresh:
 
             pagingTask?.cancel()
+            nextPageTask?.cancel()
+            nextPageTask = nil
             randomItemTask?.cancel()
 
             filterViewModel?.getQueryFilters()
+            pagingError = nil
 
             pagingTask = Task { [weak self] in
                 guard let self else { return }
@@ -364,9 +345,12 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     // MARK: refresh
 
     final func refresh() async throws {
+        items.removeAll()
+        currentPage = -1
+        hasNextPage = !isStatic
+        shouldLoadNextPageAfterCurrentLoad = false
 
-        try await lazyCollection.refresh()
-        syncElementsFromLazyCollection()
+        try await getNextPage()
     }
 
     /// Gets the next page of items or immediately returns if
@@ -377,8 +361,84 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     final func getNextPage() async throws {
         guard hasNextPage else { return }
 
-        try await lazyCollection.loadNextPage()
-        syncElementsFromLazyCollection()
+        if isLoading {
+            shouldLoadNextPageAfterCurrentLoad = true
+            return
+        }
+
+        isLoading = true
+
+        let nextPage = currentPage + 1
+
+        do {
+            let pageItems = try await get(page: nextPage)
+
+            currentPage = nextPage
+            hasNextPage = pageItems.count >= pageSize
+            appendUnique(pageItems)
+            isLoading = false
+
+            if shouldLoadNextPageAfterCurrentLoad {
+                shouldLoadNextPageAfterCurrentLoad = false
+                try await getNextPage()
+            }
+        } catch {
+            isLoading = false
+            shouldLoadNextPageAfterCurrentLoad = false
+            throw error
+        }
+    }
+
+    final func loadNextPageIfNeeded(currentItem: Element) {
+        guard hasNextPage, nextPageTask == nil, !isLoading else { return }
+        guard let currentIndex = items.firstIndex(where: { item in
+            item.unwrappedIDHashOrZero == currentItem.unwrappedIDHashOrZero
+        }) else { return }
+
+        let threshold = Swift.max(items.count - pageSize, 0)
+        guard currentIndex >= threshold else { return }
+
+        nextPageTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.nextPageTask = nil }
+
+            do {
+                try await self.getNextPage()
+
+                guard !Task.isCancelled else { return }
+
+                self.pagingError = nil
+            } catch {
+                guard !Task.isCancelled else { return }
+
+                self.pagingError = .init(error.localizedDescription)
+            }
+        }
+        .asAnyCancellable()
+    }
+
+    final func retryNextPage() {
+        guard hasNextPage, nextPageTask == nil, !isLoading else { return }
+
+        pagingError = nil
+
+        nextPageTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.nextPageTask = nil }
+
+            do {
+                try await self.getNextPage()
+
+                guard !Task.isCancelled else { return }
+
+                self.pagingError = nil
+            } catch {
+                guard !Task.isCancelled else { return }
+
+                self.pagingError = .init(error.localizedDescription)
+            }
+        }
+        .asAnyCancellable()
     }
 
     /// Gets the items at the given page. If the number of items
@@ -392,29 +452,14 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     /// Gets a random item from `elements`. Override if item should
     /// come from another source instead.
     func getRandomItem() async throws -> Element? {
-        elements.randomElement()
+        items.randomElement()
     }
 
-    private func syncElementsFromLazyCollection() {
-        currentPage = lazyCollection.currentPage
-        hasNextPage = lazyCollection.hasNextPage
-        elements = IdentifiedArray(
-            lazyCollection,
-            id: \.unwrappedIDHashOrZero,
-            uniquingIDsWith: { x, _ in x }
-        )
-    }
+    private func appendUnique(_ newItems: [Element]) {
+        var seenIDs = Set(items.map(\.unwrappedIDHashOrZero))
 
-    private func observeLazyCollection() {
-        lazyCollection.objectWillChange
-            .sink { [weak self] _ in
-                guard let self else { return }
-
-                Task { @MainActor in
-                    await Task.yield()
-                    self.syncElementsFromLazyCollection()
-                }
-            }
-            .store(in: &cancellables)
+        for item in newItems where seenIDs.insert(item.unwrappedIDHashOrZero).inserted {
+            items.append(item)
+        }
     }
 }

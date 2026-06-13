@@ -99,32 +99,34 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
     // MARK: Grid View
 
     @ViewBuilder
-    private var gridView: some View {
+    private var contentView: some View {
         PosterVGrid(
-            data: viewModel.lazyCollection,
+            data: viewModel.items,
             layout: activeDisplayType,
             posterType: activePosterType,
-            columnCount: activeColumnCount
+            columnCount: activeColumnCount,
+            onNeedsNextPage: { item in
+                viewModel.loadNextPageIfNeeded(currentItem: item)
+            }
         ) { item in
             action(item)
         }
     }
 
-    // MARK: Content View
-
     @ViewBuilder
-    private var contentView: some View {
-        switch viewModel.state {
-        case .content:
-            if viewModel.itemSnapshot.isEmpty {
-                ContentUnavailableView(L10n.noItems.localizedCapitalized, systemImage: "rectangle.on.rectangle.slash")
-            } else {
-                gridView
+    private var pagingErrorView: some View {
+        if let pagingError = viewModel.pagingError {
+            VStack(spacing: 16) {
+                Text(pagingError.localizedDescription)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button(L10n.retry, systemImage: "arrow.clockwise") {
+                    viewModel.retryNextPage()
+                }
             }
-        case .initial, .refreshing:
-            ProgressView()
-        default:
-            AssertionFailureView("Expected view for unexpected state")
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 30)
         }
     }
 
@@ -136,10 +138,24 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
                 .ignoresSafeArea()
 
             switch viewModel.state {
-            case .content, .initial, .refreshing:
-                contentView
+            case .content:
+                if viewModel.items.isEmpty {
+                    ContentUnavailableView(L10n.noItems.localizedCapitalized, systemImage: "rectangle.on.rectangle.slash")
+                } else {
+                    contentView
+                }
+            case .initial, .refreshing:
+                ProgressView()
             case let .error(error):
                 ErrorView(error: error)
+            }
+
+            if viewModel.state == .content {
+                VStack {
+                    Spacer()
+
+                    pagingErrorView
+                }
             }
         }
         .frame(maxWidth: .infinity)
