@@ -14,29 +14,26 @@ import SwiftUI
 private let landscapeMaxWidth: CGFloat = 300
 private let portraitMaxWidth: CGFloat = 200
 
-struct PosterImage<Item: Poster>: View {
+struct PosterImage<Item: Poster, Fallback: View>: View {
 
     private let contentMode: ContentMode
     private let imageMaxWidth: CGFloat
     private let item: Item
-    private let prefersBlurHashPlaceholder: Bool
-    private let showsTitleInPlaceholder: Bool
     private let type: PosterDisplayType
+    private let fallback: () -> Fallback
 
     init(
         item: Item,
         type: PosterDisplayType,
         contentMode: ContentMode = .fill,
         maxWidth: CGFloat? = nil,
-        prefersBlurHashPlaceholder: Bool = true,
-        showsTitleInPlaceholder: Bool = true
+        @ViewBuilder fallback: @escaping () -> Fallback
     ) {
         self.contentMode = contentMode
         self.imageMaxWidth = maxWidth ?? (type == .landscape ? landscapeMaxWidth : portraitMaxWidth)
         self.item = item
-        self.prefersBlurHashPlaceholder = prefersBlurHashPlaceholder
-        self.showsTitleInPlaceholder = showsTitleInPlaceholder
         self.type = type
+        self.fallback = fallback
     }
 
     private var imageSources: [ImageSource] {
@@ -53,28 +50,21 @@ struct PosterImage<Item: Poster>: View {
     @ViewBuilder
     private var placeholderContent: some View {
         PosterFallbackContentView(
-            title: showsTitleInPlaceholder && item.showTitle ? item.displayTitle : nil,
+            title: nil,
             systemName: item.systemImage
         )
     }
 
     @ViewBuilder
     private var fallbackContent: some View {
-        PosterFallbackContentView(
-            title: item.showTitle ? item.displayTitle : nil,
-            systemName: item.systemImage
-        )
+        fallback()
     }
 
     var body: some View {
         ImageView(imageSources)
             .image(item.transform)
-            .placeholder { imageSource in
-                if prefersBlurHashPlaceholder, let blurHash = imageSource.blurHash {
-                    BlurHashView(blurHash: blurHash)
-                } else {
-                    placeholderContent
-                }
+            .placeholder { _ in
+                placeholderContent
             }
             .failure {
                 fallbackContent
@@ -86,7 +76,29 @@ struct PosterImage<Item: Poster>: View {
     }
 }
 
-private struct PosterFallbackContentView: View {
+extension PosterImage where Fallback == PosterFallbackContentView {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        contentMode: ContentMode = .fill,
+        maxWidth: CGFloat? = nil
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            contentMode: contentMode,
+            maxWidth: maxWidth
+        ) {
+            PosterFallbackContentView(
+                title: item.showTitle ? item.displayTitle : nil,
+                systemName: item.systemImage
+            )
+        }
+    }
+}
+
+struct PosterFallbackContentView: View {
 
     let title: String?
     let systemName: String?

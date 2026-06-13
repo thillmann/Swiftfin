@@ -106,7 +106,7 @@ struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: 
     }
 }
 
-extension PosterHStack where PosterButtonView == MyPosterButton<Element, MyPosterButtonDefaultOverlay<Element>> {
+extension PosterHStack where PosterButtonView == MyPosterButton<Element, MyPosterButtonDefaultOverlay<Element>, PosterFallbackContentView> {
 
     init(
         title: String? = nil,

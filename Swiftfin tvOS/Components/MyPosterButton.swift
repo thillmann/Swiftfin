@@ -9,13 +9,14 @@
 import JellyfinAPI
 import SwiftUI
 
-struct MyPosterButton<Item: Poster, Overlay: View>: View {
+struct MyPosterButton<Item: Poster, Overlay: View, Fallback: View>: View {
     let item: Item
     let posterType: PosterDisplayType
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
 
     private let action: () -> Void
+    private let fallback: () -> Fallback
     private let overlay: () -> Overlay
 
     init(
@@ -24,6 +25,7 @@ struct MyPosterButton<Item: Poster, Overlay: View>: View {
         overlayOptions: MyPosterButtonOverlayOptions = .default,
         unplayedIndicatorType: UnplayedIndicatorType = .none,
         action: @escaping () -> Void,
+        @ViewBuilder fallback: @escaping () -> Fallback,
         @ViewBuilder overlay: @escaping () -> Overlay
     ) {
         self.item = item
@@ -31,6 +33,7 @@ struct MyPosterButton<Item: Poster, Overlay: View>: View {
         self.overlayOptions = overlayOptions
         self.unplayedIndicatorType = unplayedIndicatorType
         self.action = action
+        self.fallback = fallback
         self.overlay = overlay
     }
 
@@ -43,6 +46,7 @@ struct MyPosterButton<Item: Poster, Overlay: View>: View {
                 posterType: posterType,
                 overlayOptions: overlayOptions,
                 unplayedIndicatorType: unplayedIndicatorType,
+                fallback: fallback,
                 overlay: overlay
             )
         }
@@ -52,7 +56,61 @@ struct MyPosterButton<Item: Poster, Overlay: View>: View {
     }
 }
 
+extension MyPosterButton where Fallback == PosterFallbackContentView {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        overlayOptions: MyPosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        action: @escaping () -> Void,
+        @ViewBuilder overlay: @escaping () -> Overlay
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
+            action: action
+        ) {
+            PosterFallbackContentView(
+                title: item.showTitle ? item.displayTitle : nil,
+                systemName: item.systemImage
+            )
+        } overlay: {
+            overlay()
+        }
+    }
+}
+
 extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item> {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        overlayOptions: MyPosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        action: @escaping () -> Void,
+        @ViewBuilder fallback: @escaping () -> Fallback
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
+            action: action,
+            fallback: fallback
+        ) {
+            MyPosterButtonDefaultOverlay(
+                item: item,
+                overlayOptions: overlayOptions,
+                unplayedIndicatorType: unplayedIndicatorType
+            )
+        }
+    }
+}
+
+extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item>, Fallback == PosterFallbackContentView {
 
     init(
         item: Item,
@@ -68,6 +126,11 @@ extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item> {
             unplayedIndicatorType: unplayedIndicatorType,
             action: action
         ) {
+            PosterFallbackContentView(
+                title: item.showTitle ? item.displayTitle : nil,
+                systemName: item.systemImage
+            )
+        } overlay: {
             MyPosterButtonDefaultOverlay(
                 item: item,
                 overlayOptions: overlayOptions,
@@ -93,7 +156,7 @@ struct MyPosterButtonOverlayOptions: OptionSet {
     ]
 }
 
-struct PosterButtonContent<Item: Poster, Overlay: View>: View {
+struct PosterButtonContent<Item: Poster, Overlay: View, Fallback: View>: View {
     @Environment(\.isFocused)
     private var isFocused
 
@@ -101,15 +164,17 @@ struct PosterButtonContent<Item: Poster, Overlay: View>: View {
     let posterType: PosterDisplayType
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
+    let fallback: () -> Fallback
     let overlay: () -> Overlay
 
     var body: some View {
         ZStack {
             PosterImage(
                 item: item,
-                type: posterType,
-                prefersBlurHashPlaceholder: false
-            )
+                type: posterType
+            ) {
+                fallback()
+            }
 
             overlay().posterOverlayFocus(isFocused)
         }

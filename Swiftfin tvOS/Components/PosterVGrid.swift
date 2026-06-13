@@ -81,9 +81,7 @@ struct PosterVGrid<Element: Poster>: View {
             HStack(spacing: 20) {
                 PosterImage(
                     item: item,
-                    type: .landscape,
-                    prefersBlurHashPlaceholder: false,
-                    showsTitleInPlaceholder: false
+                    type: .landscape
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .frame(maxWidth: 160)
