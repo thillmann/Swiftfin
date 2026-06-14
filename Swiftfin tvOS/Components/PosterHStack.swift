@@ -70,6 +70,25 @@ struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: 
         Array(data.prefix(20))
     }
 
+    private var visibleItems: [PosterHStackItem<Element>] {
+        let idCounts = Dictionary(
+            grouping: visibleData.map(\.unwrappedIDHashOrZero).filter { $0 != 0 },
+            by: { $0 }
+        )
+        .mapValues(\.count)
+
+        return visibleData.enumerated().map { offset, item in
+            let itemID = item.unwrappedIDHashOrZero
+            let id: PosterHStackItemID = if itemID != 0, idCounts[itemID] == 1 {
+                .item(itemID)
+            } else {
+                .offset(offset)
+            }
+
+            return PosterHStackItem(id: id, item: item)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
 
@@ -87,8 +106,8 @@ struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: 
 
             ScrollView(.horizontal) {
                 LazyHStack(spacing: itemSpacing) {
-                    ForEach(visibleData, id: \.unwrappedIDHashOrZero) { item in
-                        posterButton(item)
+                    ForEach(visibleItems, id: \.id) { visibleItem in
+                        posterButton(visibleItem.item)
                             .frame(width: itemWidth, height: itemHeight)
                     }
                 }
@@ -104,6 +123,16 @@ struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: 
         .trackingSize($contentSize)
         .focusSection()
     }
+}
+
+private enum PosterHStackItemID: Hashable {
+    case item(Int)
+    case offset(Int)
+}
+
+private struct PosterHStackItem<Element> {
+    let id: PosterHStackItemID
+    let item: Element
 }
 
 extension PosterHStack where PosterButtonView == MyPosterButton<Element, MyPosterButtonDefaultOverlay<Element>, PosterFallbackContentView> {
