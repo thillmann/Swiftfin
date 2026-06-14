@@ -107,11 +107,9 @@ struct SearchView: View {
                 }
 
                 if let channels = viewModel.items[.tvChannel], channels.isNotEmpty {
-                    itemsSection(
+                    circleItemsSection(
                         title: L10n.channels,
-                        type: .tvChannel,
-                        items: channels,
-                        posterType: .square
+                        items: channels
                     )
                 }
 
@@ -125,11 +123,9 @@ struct SearchView: View {
                 }
 
                 if let people = viewModel.unifiedItems[.person], people.isNotEmpty {
-                    unifiedItemsSection(
+                    circleUnifiedItemsSection(
                         title: L10n.people,
-                        type: .person,
-                        items: people,
-                        posterType: .portrait
+                        items: people
                     )
                 }
             }
@@ -174,6 +170,27 @@ struct SearchView: View {
     }
 
     @ViewBuilder
+    private func circleItemsSection(
+        title: String,
+        items: [BaseItemDto]
+    ) -> some View {
+        PosterHStack(
+            title: title,
+            type: .square,
+            items: items
+        ) { item in
+            CirclePosterButton(
+                item: item,
+                subtitle: item.number,
+                action: {
+                    select(item)
+                }
+            )
+        }
+        .itemContentAspectRatio(CirclePosterButtonDefaults.rowAspectRatio)
+    }
+
+    @ViewBuilder
     private func unifiedItemsSection(
         title: String,
         type: BaseItemKind,
@@ -192,6 +209,25 @@ struct SearchView: View {
                 }
             }
         )
+    }
+
+    @ViewBuilder
+    private func circleUnifiedItemsSection(
+        title: String,
+        items: [UnifiedSearchResult]
+    ) -> some View {
+        PosterHStack(
+            title: title,
+            type: .square,
+            items: items
+        ) { item in
+            CirclePosterButton(
+                item: item
+            ) {
+                select(item)
+            }
+        }
+        .itemContentAspectRatio(CirclePosterButtonDefaults.rowAspectRatio)
     }
 
     var body: some View {
