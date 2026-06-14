@@ -10,6 +10,7 @@ import JellyfinAPI
 import SwiftUI
 
 enum CirclePosterButtonDefaults {
+    static let focusedScale: CGFloat = 1.2
     static let labelSpacing: CGFloat = 10
     static let rowAspectRatio: CGFloat = 0.75
     static let focusAnimation = Animation.easeInOut(duration: 0.18)
@@ -40,6 +41,12 @@ struct CirclePosterButton<Item: CirclePosterRepresentable>: View {
         self.action = action
     }
 
+    private func effectiveLabelSpacing(posterLength: CGFloat) -> CGFloat {
+        let focusedBottomGrowth = posterLength * (CirclePosterButtonDefaults.focusedScale - 1) / 2
+
+        return CirclePosterButtonDefaults.labelSpacing + (isFocused ? focusedBottomGrowth : 0)
+    }
+
     private func posterButton(length: CGFloat) -> some View {
         Button(action: action) {
             PosterImage(
@@ -57,7 +64,7 @@ struct CirclePosterButton<Item: CirclePosterRepresentable>: View {
 
     var body: some View {
         GeometryReader { proxy in
-            VStack(spacing: CirclePosterButtonDefaults.labelSpacing) {
+            VStack(spacing: effectiveLabelSpacing(posterLength: proxy.size.width)) {
                 posterButton(length: proxy.size.width)
                     .focused($isFocused)
                     .accessibilityLabel(title)
@@ -242,6 +249,6 @@ private struct CircleSearchResultPoster: Poster {
     func transform(image: Image) -> some View {
         image
             .resizable()
-            .aspectRatio(contentMode: .fit)
+            .aspectRatio(contentMode: .fill)
     }
 }
