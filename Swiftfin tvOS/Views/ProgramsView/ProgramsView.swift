@@ -29,6 +29,9 @@ struct ProgramsView: View {
     private var contentView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
+                if programsViewModel.channels.isNotEmpty {
+                    channelsSection
+                }
 
                 if programsViewModel.recommended.isNotEmpty {
                     programsSection(title: L10n.onNow, keyPath: \.recommended)
@@ -57,6 +60,24 @@ struct ProgramsView: View {
         }
     }
 
+    private var channelsSection: some View {
+        PosterHStack(
+            title: L10n.channels,
+            type: .square,
+            items: programsViewModel.channels
+        ) { channel in
+            CirclePosterButton(
+                item: channel,
+                subtitle: nil,
+                action: {
+                    let provider = channel.getPlaybackItemProvider(userSession: programsViewModel.userSession)
+                    router.route(to: .videoPlayer(provider: provider))
+                }
+            )
+        }
+        .itemContentAspectRatio(CirclePosterButtonDefaults.rowAspectRatio)
+    }
+
     @ViewBuilder
     private func programsSection(
         title: String,
@@ -67,14 +88,18 @@ struct ProgramsView: View {
             type: .landscape,
             items: programsViewModel[keyPath: keyPath],
             posterButton: { item in
+                let channel = programsViewModel.channel(for: item)
+
                 MyPosterButton(item: item, type: .landscape) {
-//            guard let mediaSource = channelProgram.channel.mediaSources?.first else { return }
-//            router.route(
-//                to: \.liveVideoPlayer,
-//                LiveVideoPlayerManager(item: channelProgram.channel, mediaSource: mediaSource)
-//            )
+                    let provider = item.getPlaybackItemProvider(userSession: programsViewModel.userSession)
+                    router.route(to: .videoPlayer(provider: provider))
+                } fallback: {
+                    ProgramFallback()
                 } overlay: {
-                    ProgramProgressOverlay(program: item)
+                    ProgramOverlay(
+                        program: item,
+                        channel: channel
+                    )
                 }
             }
         )

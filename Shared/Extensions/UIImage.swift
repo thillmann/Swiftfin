@@ -10,6 +10,49 @@ import UIKit
 
 extension UIImage {
 
+    func opaquePixelRatio(
+        sampleSize: CGSize = CGSize(width: 32, height: 32),
+        alphaThreshold: UInt8 = 230
+    ) -> CGFloat {
+        let width = max(1, Int(sampleSize.width.rounded()))
+        let height = max(1, Int(sampleSize.height.rounded()))
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        let totalPixels = width * height
+        var pixels = [UInt8](repeating: 0, count: totalPixels * bytesPerPixel)
+
+        guard let cgImage,
+              let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: &pixels,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 8,
+                  bytesPerRow: bytesPerRow,
+                  space: colorSpace,
+                  bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else {
+            return 0
+        }
+
+        context.interpolationQuality = .low
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        var opaquePixels = 0
+        var alphaIndex = 3
+
+        while alphaIndex < pixels.count {
+            if pixels[alphaIndex] >= alphaThreshold {
+                opaquePixels += 1
+            }
+
+            alphaIndex += bytesPerPixel
+        }
+
+        return CGFloat(opaquePixels) / CGFloat(totalPixels)
+    }
+
     func data(maxSize: Int? = 30_000_000) throws -> (data: Data, contentType: String) {
         let hasAlpha = cgImage.map {
             [.alphaOnly, .first, .last, .premultipliedFirst, .premultipliedLast].contains($0.alphaInfo)

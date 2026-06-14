@@ -49,6 +49,10 @@ final class ProgramsViewModel: ViewModel, Stateful {
     private(set) var series: [BaseItemDto] = []
     @Published
     private(set) var sports: [BaseItemDto] = []
+    @Published
+    private(set) var channels: [BaseItemDto] = []
+    @Published
+    private(set) var channelsByID: [String: BaseItemDto] = [:]
 
     @Published
     var state: State = .initial
@@ -63,6 +67,7 @@ final class ProgramsViewModel: ViewModel, Stateful {
             recommended,
             series,
             sports,
+            channels,
         ].allSatisfy(\.isEmpty)
     }
 
@@ -78,6 +83,24 @@ final class ProgramsViewModel: ViewModel, Stateful {
 
                 do {
                     let sections = try await getItemSections()
+                    let channels: [BaseItemDto]
+                    do {
+                        channels = try await getChannels()
+                    } catch {
+                        logger.warning("Unable to load Live TV channels: \(error.localizedDescription)")
+                        channels = []
+                    }
+
+                    let channelsByID: [String: BaseItemDto]
+                    do {
+                        channelsByID = try await getChannelsByID(
+                            for: sections.values.flatMap(\.self),
+                            merging: channels
+                        )
+                    } catch {
+                        logger.warning("Unable to load Live TV channels for programs: \(error.localizedDescription)")
+                        channelsByID = Self.channelsByID(from: channels)
+                    }
 
                     guard !Task.isCancelled else { return }
 
@@ -88,6 +111,8 @@ final class ProgramsViewModel: ViewModel, Stateful {
                         self.recommended = sections[.recommended] ?? []
                         self.series = sections[.series] ?? []
                         self.sports = sections[.sports] ?? []
+                        self.channels = channels
+                        self.channelsByID = channelsByID
 
                         self.state = .content
                     }
@@ -103,6 +128,11 @@ final class ProgramsViewModel: ViewModel, Stateful {
 
             return .refreshing
         }
+    }
+
+    func channel(for program: BaseItemDto) -> BaseItemDto? {
+        guard let channelID = program.channelID else { return nil }
+        return channelsByID[channelID]
     }
 
     private func getItemSections() async throws -> [ProgramSection: [BaseItemDto]] {
@@ -167,5 +197,76 @@ final class ProgramsViewModel: ViewModel, Stateful {
         let response = try await send(request)
 
         return response.value.items ?? []
+    }
+
+    private func getChannels() async throws -> [BaseItemDto] {
+
+        var parameters = Paths.GetLiveTvChannelsParameters()
+        parameters.fields = .MinimumFields
+        parameters.enableFavoriteSorting = true
+        parameters.enableUserData = true
+        parameters.isAddCurrentProgram = true
+        parameters.limit = 100
+        parameters.sortBy = [ItemSortBy.name]
+        parameters.sortOrder = .ascending
+
+        let request = Paths.getLiveTvChannels(parameters: parameters)
+        let response = try await userSession.client.send(request)
+
+        return Self.sortChannels(response.value.items ?? [])
+    }
+
+    private func getChannelsByID(
+        for programs: [BaseItemDto],
+        merging channels: [BaseItemDto]
+    ) async throws -> [String: BaseItemDto] {
+
+        let channelIDs = Array(Set(programs.compactMap(\.channelID)))
+        var channelsByID = Self.channelsByID(from: channels)
+
+        guard channelIDs.isNotEmpty else { return channelsByID }
+
+        var parameters = Paths.GetItemsParameters()
+        parameters.fields = .MinimumFields
+        parameters.ids = channelIDs
+
+        let request = Paths.getItems(parameters: parameters)
+        let response = try await userSession.client.send(request)
+
+        for channel in response.value.items ?? [] {
+            guard let id = channel.id else { continue }
+            channelsByID[id] = channel
+        }
+
+        return channelsByID
+    }
+
+    private static func channelsByID(from channels: [BaseItemDto]) -> [String: BaseItemDto] {
+        channels.reduce(into: [:]) { partialResult, channel in
+            guard let id = channel.id else { return }
+            partialResult[id] = channel
+        }
+    }
+
+    private static func sortChannels(_ channels: [BaseItemDto]) -> [BaseItemDto] {
+        channels.sorted { lhs, rhs in
+            let lhsIsFavorite = lhs.userData?.isFavorite == true
+            let rhsIsFavorite = rhs.userData?.isFavorite == true
+
+            if lhsIsFavorite != rhsIsFavorite {
+                return lhsIsFavorite
+            }
+
+            switch (lhs.userData?.lastPlayedDate, rhs.userData?.lastPlayedDate) {
+            case let (lhsLastPlayed?, rhsLastPlayed?) where lhsLastPlayed != rhsLastPlayed:
+                return lhsLastPlayed > rhsLastPlayed
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            default:
+                return lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
+            }
+        }
     }
 }
