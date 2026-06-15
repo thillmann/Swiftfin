@@ -18,6 +18,7 @@ struct PosterImage<Item: Poster, Fallback: View>: View {
 
     private let contentMode: ContentMode
     private let imageMaxWidth: CGFloat
+    private let imageSourcesOverride: [ImageSource]?
     private let item: Item
     private let type: PosterDisplayType
     private let fallback: () -> Fallback
@@ -27,17 +28,23 @@ struct PosterImage<Item: Poster, Fallback: View>: View {
         type: PosterDisplayType,
         contentMode: ContentMode = .fill,
         maxWidth: CGFloat? = nil,
+        imageSources: [ImageSource]? = nil,
         @ViewBuilder fallback: @escaping () -> Fallback
     ) {
         self.contentMode = contentMode
         self.imageMaxWidth = maxWidth ?? (type == .landscape ? landscapeMaxWidth : portraitMaxWidth)
+        self.imageSourcesOverride = imageSources
         self.item = item
         self.type = type
         self.fallback = fallback
     }
 
     private var imageSources: [ImageSource] {
-        switch type {
+        if let imageSourcesOverride {
+            return imageSourcesOverride
+        }
+
+        return switch type {
         case .landscape:
             item.landscapeImageSources(maxWidth: imageMaxWidth, quality: 90)
         case .portrait:
@@ -82,13 +89,15 @@ extension PosterImage where Fallback == PosterFallbackContentView {
         item: Item,
         type: PosterDisplayType,
         contentMode: ContentMode = .fill,
-        maxWidth: CGFloat? = nil
+        maxWidth: CGFloat? = nil,
+        imageSources: [ImageSource]? = nil
     ) {
         self.init(
             item: item,
             type: type,
             contentMode: contentMode,
-            maxWidth: maxWidth
+            maxWidth: maxWidth,
+            imageSources: imageSources
         ) {
             PosterFallbackContentView(
                 title: item.showTitle ? item.displayTitle : nil,

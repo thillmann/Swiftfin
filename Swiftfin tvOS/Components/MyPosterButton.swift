@@ -15,6 +15,9 @@ struct MyPosterButton<Item: Poster, Overlay: View, Fallback: View>: View {
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
 
+    private let imageSources: [ImageSource]?
+    private let usesContextMenu: Bool
+    private let usesDelayedOverlayFocus: Bool
     private let action: () -> Void
     private let fallback: () -> Fallback
     private let overlay: () -> Overlay
@@ -24,6 +27,9 @@ struct MyPosterButton<Item: Poster, Overlay: View, Fallback: View>: View {
         type: PosterDisplayType,
         overlayOptions: MyPosterButtonOverlayOptions = .default,
         unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
         action: @escaping () -> Void,
         @ViewBuilder fallback: @escaping () -> Fallback,
         @ViewBuilder overlay: @escaping () -> Overlay
@@ -32,12 +38,15 @@ struct MyPosterButton<Item: Poster, Overlay: View, Fallback: View>: View {
         self.posterType = type
         self.overlayOptions = overlayOptions
         self.unplayedIndicatorType = unplayedIndicatorType
+        self.imageSources = imageSources
+        self.usesContextMenu = usesContextMenu
+        self.usesDelayedOverlayFocus = usesDelayedOverlayFocus
         self.action = action
         self.fallback = fallback
         self.overlay = overlay
     }
 
-    var body: some View {
+    private var button: some View {
         Button {
             action()
         } label: {
@@ -46,13 +55,23 @@ struct MyPosterButton<Item: Poster, Overlay: View, Fallback: View>: View {
                 posterType: posterType,
                 overlayOptions: overlayOptions,
                 unplayedIndicatorType: unplayedIndicatorType,
+                imageSources: imageSources,
+                usesDelayedOverlayFocus: usesDelayedOverlayFocus,
                 fallback: fallback,
                 overlay: overlay
             )
         }
         .buttonStyle(.card)
         .accessibilityLabel(item.displayTitle)
-        .matchedContextMenu(for: item)
+    }
+
+    var body: some View {
+        if usesContextMenu {
+            button
+                .matchedContextMenu(for: item)
+        } else {
+            button
+        }
     }
 }
 
@@ -63,6 +82,9 @@ extension MyPosterButton where Fallback == PosterFallbackContentView {
         type: PosterDisplayType,
         overlayOptions: MyPosterButtonOverlayOptions = .default,
         unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
         action: @escaping () -> Void,
         @ViewBuilder overlay: @escaping () -> Overlay
     ) {
@@ -71,6 +93,9 @@ extension MyPosterButton where Fallback == PosterFallbackContentView {
             type: type,
             overlayOptions: overlayOptions,
             unplayedIndicatorType: unplayedIndicatorType,
+            imageSources: imageSources,
+            usesContextMenu: usesContextMenu,
+            usesDelayedOverlayFocus: usesDelayedOverlayFocus,
             action: action
         ) {
             PosterFallbackContentView(
@@ -90,6 +115,9 @@ extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item> {
         type: PosterDisplayType,
         overlayOptions: MyPosterButtonOverlayOptions = .default,
         unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
         action: @escaping () -> Void,
         @ViewBuilder fallback: @escaping () -> Fallback
     ) {
@@ -98,6 +126,9 @@ extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item> {
             type: type,
             overlayOptions: overlayOptions,
             unplayedIndicatorType: unplayedIndicatorType,
+            imageSources: imageSources,
+            usesContextMenu: usesContextMenu,
+            usesDelayedOverlayFocus: usesDelayedOverlayFocus,
             action: action,
             fallback: fallback
         ) {
@@ -117,6 +148,9 @@ extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item>, Fa
         type: PosterDisplayType,
         overlayOptions: MyPosterButtonOverlayOptions = .default,
         unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
         action: @escaping () -> Void
     ) {
         self.init(
@@ -124,6 +158,9 @@ extension MyPosterButton where Overlay == MyPosterButtonDefaultOverlay<Item>, Fa
             type: type,
             overlayOptions: overlayOptions,
             unplayedIndicatorType: unplayedIndicatorType,
+            imageSources: imageSources,
+            usesContextMenu: usesContextMenu,
+            usesDelayedOverlayFocus: usesDelayedOverlayFocus,
             action: action
         ) {
             PosterFallbackContentView(
@@ -147,12 +184,16 @@ struct MyPosterButtonOverlayOptions: OptionSet {
     static let favorite = Self(rawValue: 1 << 1)
     static let progress = Self(rawValue: 1 << 2)
     static let unwatched = Self(rawValue: 1 << 3)
+    static let seasonEpisodeLabel = Self(rawValue: 1 << 4)
+    static let durationLeft = Self(rawValue: 1 << 5)
 
     static let `default`: Self = [
         .watched,
         .unwatched,
         .favorite,
         .progress,
+        .seasonEpisodeLabel,
+        .durationLeft,
     ]
 }
 
@@ -164,6 +205,8 @@ struct PosterButtonContent<Item: Poster, Overlay: View, Fallback: View>: View {
     let posterType: PosterDisplayType
     let overlayOptions: MyPosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
+    let imageSources: [ImageSource]?
+    let usesDelayedOverlayFocus: Bool
     let fallback: () -> Fallback
     let overlay: () -> Overlay
 
@@ -171,12 +214,17 @@ struct PosterButtonContent<Item: Poster, Overlay: View, Fallback: View>: View {
         ZStack {
             PosterImage(
                 item: item,
-                type: posterType
+                type: posterType,
+                imageSources: imageSources
             ) {
                 fallback()
             }
 
-            overlay().posterOverlayFocus(isFocused)
+            if usesDelayedOverlayFocus {
+                overlay().posterOverlayFocus(isFocused)
+            } else {
+                overlay()
+            }
         }
     }
 }
@@ -320,18 +368,22 @@ struct MyPosterButtonDefaultOverlay<Item: Poster>: View {
     private var metadataOverlay: some View {
         if baseItem?.type == .episode {
             DotHStack {
-                Text(seasonEpisodeLabel)
-                    .font(.caption2)
-                    .foregroundStyle(.white)
-                    .opacity(isFocused ? 1 : 0.4)
-                    .animation(.easeInOut(duration: 0.18), value: isFocused)
+                if shouldShowSeasonEpisodeLabel, let seasonEpisodeLabel {
+                    Text(seasonEpisodeLabel)
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .opacity(isFocused ? 1 : 0.4)
+                        .animation(.easeInOut(duration: 0.18), value: isFocused)
+                }
 
-                durationLeftOverlay
+                if shouldShowDurationLeft {
+                    durationLeftOverlay
+                }
             }.foregroundStyle(.white).opacity(isFocused ? 1 : 0.4)
                 .animation(.easeInOut(duration: 0.18), value: isFocused)
         }
 
-        if baseItem?.type == .movie {
+        if baseItem?.type == .movie, shouldShowDurationLeft {
             durationLeftOverlay
         }
     }
@@ -355,10 +407,35 @@ struct MyPosterButtonDefaultOverlay<Item: Poster>: View {
             overlayOptions.contains(.unwatched)
     }
 
-    private var shouldShowBottomOverlay: Bool {
+    private var shouldShowSeasonEpisodeLabel: Bool {
+        overlayOptions.contains(.seasonEpisodeLabel) &&
+            seasonEpisodeLabel != nil
+    }
+
+    private var shouldShowDurationLeft: Bool {
+        overlayOptions.contains(.durationLeft) &&
+            durationLeftLabel != nil
+    }
+
+    private var shouldShowMetadataOverlay: Bool {
+        switch baseItem?.type {
+        case .episode:
+            shouldShowSeasonEpisodeLabel || shouldShowDurationLeft
+        case .movie:
+            shouldShowDurationLeft
+        default:
+            false
+        }
+    }
+
+    private var shouldShowStatusOverlay: Bool {
         shouldShowWatchedOverlay ||
             shouldShowProgressOverlay ||
             shouldShowUnwatchedOverlay
+    }
+
+    private var shouldShowBottomOverlay: Bool {
+        shouldShowStatusOverlay || shouldShowMetadataOverlay
     }
 
     @ViewBuilder
@@ -423,7 +500,9 @@ struct MyPosterButtonDefaultOverlay<Item: Poster>: View {
 
         if shouldShowBottomOverlay {
             bottomContent {
-                playOverlay
+                if shouldShowStatusOverlay {
+                    playOverlay
+                }
 
                 if shouldShowProgressOverlay {
                     progressOverlay
