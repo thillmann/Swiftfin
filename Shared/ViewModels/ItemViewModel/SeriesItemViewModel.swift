@@ -8,14 +8,10 @@
 
 import Combine
 import Defaults
-import Factory
 import Foundation
 import IdentifiedCollections
 import JellyfinAPI
 
-// TODO: care for one long episodes list?
-//       - after SeasonItemViewModel is bidirectional
-//       - would have to see if server returns right amount of episodes/season
 final class SeriesItemViewModel: ItemViewModel {
 
     @Published
@@ -25,10 +21,6 @@ final class SeriesItemViewModel: ItemViewModel {
     @Published
     private(set) var upcomingEpisodePillLabel: String?
 
-    // MARK: - Task
-
-    private var seriesItemTask: AnyCancellable?
-
     // MARK: - Override Response
 
     override func respond(to action: ItemViewModel.Action) -> ItemViewModel.State {
@@ -36,8 +28,6 @@ final class SeriesItemViewModel: ItemViewModel {
         switch action {
         case .backgroundRefresh, .refresh:
             let parentState = super.respond(to: action)
-
-            seriesItemTask?.cancel()
 
             Task { [weak self] in
                 guard let self else { return }
@@ -67,10 +57,6 @@ final class SeriesItemViewModel: ItemViewModel {
                     let resumeItem = try await resume
                     let firstAvailableItem = try await firstAvailable
                     let newUpcomingEpisodePillLabel = await upcomingEpisodePillLabel
-
-                    logger.debug(
-                        "Upcoming episode pill resolved for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil") label='\(newUpcomingEpisodePillLabel ?? "nil")'"
-                    )
 
                     if let playButtonItem = [nextUpItem, resumeItem, firstAvailableItem].compacted().first {
                         await MainActor.run {
@@ -179,15 +165,8 @@ final class SeriesItemViewModel: ItemViewModel {
     private func getUpcomingEpisodePillLabel() async -> String? {
         if let jellyfinUpcomingEpisode = await getJellyfinUpcomingEpisode() {
             if let label = jellyfinUpcomingEpisode.upcomingEpisodePillLabel {
-                logger.debug(
-                    "Using Jellyfin upcoming episode pill for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil") itemID=\(jellyfinUpcomingEpisode.id ?? "nil") label='\(label)'"
-                )
                 return label
             }
-
-            logger.debug(
-                "Jellyfin upcoming episode had no premiereDate label for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil") itemID=\(jellyfinUpcomingEpisode.id ?? "nil")"
-            )
         }
 
         return await getSeerrUpcomingEpisodePillLabel()
@@ -213,65 +192,34 @@ final class SeriesItemViewModel: ItemViewModel {
             }
         }
 
-        logger.debug(
-            "All upcoming episode attempts returned no results for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil")"
-        )
-
         return nil
     }
 
     private func getSeerrUpcomingEpisodePillLabel() async -> String? {
         guard SeerrIntegration.isAvailable else {
-            logger.debug(
-                "Skipping Seerr upcoming episode lookup; Seerr is unavailable for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil")"
-            )
             return nil
         }
 
         let providerItem = await itemWithProviderIDs()
 
         guard let tmdbID = providerItem.tmdbProviderID else {
-            logger.debug(
-                "Skipping Seerr upcoming episode lookup; no TMDB provider id for series='\(providerItem.displayTitle)' seriesID=\(providerItem.id ?? "nil") providerIDs=\(providerItem.providerIDs ?? [:])"
-            )
             return nil
         }
-
-        logger.debug(
-            "Fetching Seerr TV details for upcoming episode series='\(providerItem.displayTitle)' seriesID=\(providerItem.id ?? "nil") tmdbID=\(tmdbID)"
-        )
 
         let result = await SeerrClient.tvDetails(id: tmdbID)
 
         switch result {
         case let .success(details):
             guard let nextEpisode = details.nextEpisodeToAir else {
-                logger.debug(
-                    "Seerr TV details returned no nextEpisodeToAir for series='\(providerItem.displayTitle)' tmdbID=\(tmdbID)"
-                )
                 return nil
             }
-
-            logger.debug(
-                "Seerr next episode candidate series='\(providerItem.displayTitle)' tmdbID=\(tmdbID) name='\(nextEpisode.name ?? "nil")' season=\(nextEpisode.seasonNumber?.description ?? "nil") episode=\(nextEpisode.episodeNumber?.description ?? "nil") airDate=\(nextEpisode.airDate ?? "nil")"
-            )
 
             guard let label = nextEpisode.upcomingEpisodePillLabel else {
-                logger.debug(
-                    "Seerr next episode had no usable airDate for series='\(providerItem.displayTitle)' tmdbID=\(tmdbID)"
-                )
                 return nil
             }
-
-            logger.debug(
-                "Using Seerr upcoming episode pill for series='\(providerItem.displayTitle)' tmdbID=\(tmdbID) label='\(label)'"
-            )
 
             return label
         case let .failure(error):
-            logger.error(
-                "Seerr upcoming episode lookup failed for series='\(providerItem.displayTitle)' tmdbID=\(tmdbID): \(error.localizedDescription)"
-            )
             return nil
         }
     }
@@ -282,17 +230,8 @@ final class SeriesItemViewModel: ItemViewModel {
         }
 
         do {
-            let fullItem = try await item.getFullItem(userSession: userSession)
-
-            logger.debug(
-                "Fetched full item provider IDs for Seerr lookup series='\(fullItem.displayTitle)' seriesID=\(fullItem.id ?? "nil") providerIDs=\(fullItem.providerIDs ?? [:])"
-            )
-
-            return fullItem
+            return try await item.getFullItem(userSession: userSession)
         } catch {
-            logger.error(
-                "Unable to fetch full item for Seerr provider IDs series='\(item.displayTitle)' seriesID=\(item.id ?? "nil"): \(error.localizedDescription)"
-            )
             return item
         }
     }
@@ -317,36 +256,18 @@ final class SeriesItemViewModel: ItemViewModel {
         parameters.sortBy = [.premiereDate]
         parameters.sortOrder = [.ascending]
 
-        logger.debug(
-            "Fetching upcoming episode attempt='\(attempt)' for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil") minPremiereDate=\(parameters.minPremiereDate?.description ?? "nil") isMissing=\(parameters.isMissing?.description ?? "nil") isUnaired=\(parameters.isUnaired?.description ?? "nil")"
-        )
-
         let request = Paths.getItems(parameters: parameters)
 
         do {
             let response = try await userSession.client.send(request)
             let items = response.value.items ?? []
 
-            logger.debug(
-                "Upcoming episode response attempt='\(attempt)' for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil") count=\(items.count) totalRecordCount=\(response.value.totalRecordCount?.description ?? "nil")"
-            )
-
             guard let firstItem = items.first else {
-                logger.debug(
-                    "No upcoming episode returned attempt='\(attempt)' for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil")"
-                )
                 return nil
             }
 
-            logger.debug(
-                "Upcoming episode candidate attempt='\(attempt)' series='\(item.displayTitle)' itemID=\(firstItem.id ?? "nil") title='\(firstItem.displayTitle)' locationType=\(firstItem.locationType?.rawValue ?? "nil") premiereDate=\(firstItem.premiereDate?.description ?? "nil") isMissing=\(firstItem.isMissing.description) isUnaired=\(firstItem.isUnaired.description)"
-            )
-
             return firstItem
         } catch {
-            logger.error(
-                "Upcoming episode request failed attempt='\(attempt)' for series='\(item.displayTitle)' seriesID=\(item.id ?? "nil"): \(error.localizedDescription)"
-            )
             return nil
         }
     }
