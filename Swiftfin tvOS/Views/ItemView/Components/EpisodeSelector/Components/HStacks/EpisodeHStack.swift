@@ -6,249 +6,439 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CollectionHStack
-import Foundation
+import Combine
 import JellyfinAPI
 import SwiftUI
 
 extension SeriesEpisodeSelector {
 
+    struct LoadingEpisodeHStack: View {
+
+        var body: some View {
+            EpisodeRow(scrollDisabled: true) {
+                ForEach(0 ..< 4, id: \.self) { _ in
+                    SeriesEpisodeSelector.LoadingCard()
+                        .disabled(true)
+                        .focusable(false)
+                        .episodeHStackItemFrame()
+                }
+            }
+            .padding(.bottom, 45)
+            .allowsHitTesting(false)
+            .transition(.opacity.animation(.linear(duration: 0.1)))
+        }
+    }
+
     struct EpisodeHStack: View {
 
         @Environment(\.cinematicFocusRegionChanged)
         private var focusRegionChanged
-
-        @FocusState
-        private var focusedEpisodeID: String?
+        @Environment(\.cinematicScrollTargetRequested)
+        private var scrollTargetRequested
 
         @ObservedObject
-        var viewModel: SeasonItemViewModel
+        var viewModel: SeriesItemViewModel
 
         @Binding
-        var activeEpisodeID: String?
+        var activeSeasonID: SeasonItemViewModel.ID
+
         @Binding
         var focusedRegion: SeriesEpisodeSelector.FocusRegion?
 
+        @Binding
+        var seasonScrollRequest: SeasonScrollRequest?
+
         @State
-        private var didScrollToPlayButtonItem = false
+        private var snapshot = EpisodeSelectorSnapshot()
+
+        @State
+        private var requestedSeasonObjectIDs: Set<ObjectIdentifier> = []
+
+        @State
+        private var snapshotUpdateTask: Task<Void, Never>?
 
         @StateObject
-        private var proxy = CollectionHStackProxy()
+        private var seasonObserver = SeasonChangeObserver()
 
-        let playButtonItem: BaseItemDto?
-
-        private var preferredEpisodeFocusID: String? {
-            switch viewModel.state {
-            case .content:
-                if viewModel.elements.isEmpty {
-                    return "emptyCard"
+        private var isWaitingForEpisodeRows: Bool {
+            snapshot.rows.isEmpty && viewModel.seasons.contains { seasonViewModel in
+                switch seasonViewModel.state {
+                case .initial, .refreshing:
+                    true
+                case .content, .error:
+                    false
                 }
-
-                if let activeEpisodeID,
-                   viewModel.elements.contains(where: { $0.id == activeEpisodeID })
-                {
-                    return activeEpisodeID
-                }
-
-                if let playButtonItem,
-                   viewModel.elements.contains(where: { $0.id == playButtonItem.id })
-                {
-                    return playButtonItem.id
-                }
-
-                return viewModel.elements.first?.id
-            case .error:
-                return "errorCard"
-            case .initial, .refreshing:
-                return "loadingCard"
             }
-        }
-
-        private func scrollToPreferredEpisode(animated: Bool = false) {
-            guard let preferredEpisodeFocusID,
-                  let episode = viewModel.elements.first(where: { $0.id == preferredEpisodeFocusID })
-            else { return }
-
-            proxy.scrollTo(id: episode.unwrappedIDHashOrZero, animated: animated)
-        }
-
-        private func updateActiveEpisodeForCurrentSeason() {
-            guard viewModel.state == .content,
-                  activeEpisodeID == nil || !viewModel.elements.contains(where: { $0.id == activeEpisodeID })
-            else { return }
-
-            activeEpisodeID = preferredEpisodeFocusID
         }
 
         // MARK: - Content View
 
-        private func contentView(viewModel: SeasonItemViewModel) -> some View {
-            CollectionHStack(
-                uniqueElements: viewModel.elements,
-                id: \.unwrappedIDHashOrZero,
-                columns: 3.5
-            ) { episode in
-                SeriesEpisodeSelector.EpisodeCard(
-                    episode: episode,
-                    isEntryFocused: focusedEpisodeID == episode.id
-                ) { isFocused in
-                    if isFocused {
-                        focusedEpisodeID = episode.id
+        private func contentView(proxy: ScrollViewProxy) -> some View {
+            EpisodeRow {
+                ForEach(snapshot.rows) { row in
+                    switch row {
+                    case let .episode(entry):
+                        SeriesEpisodeSelector.EpisodeCard(entry: entry) {
+                            entryFocused(
+                                episodeID: entry.id,
+                                seasonID: entry.seasonID
+                            )
+                        }
+                        .episodeHStackItemFrame()
+                        .id(EpisodeScrollTarget.episode(entry.id))
+                    case let .seasonError(entry):
+                        SeriesEpisodeSelector.ErrorCard(error: entry.error) {
+                            entry.viewModel.send(.refresh)
+                        } onEntryFocused: {
+                            entryFocused(seasonID: entry.seasonID)
+                        }
+                        .episodeHStackItemFrame()
+                        .id(EpisodeScrollTarget.season(entry.seasonID))
                     }
                 }
-                .padding(.horizontal, 4)
             }
-            .scrollBehavior(.continuousLeadingEdge)
-            .insets(horizontal: EdgeInsets.edgePadding)
-            .itemSpacing(EdgeInsets.edgePadding / 2)
-            .proxy(proxy)
-            .onFirstAppear {
-                guard !didScrollToPlayButtonItem else { return }
-                didScrollToPlayButtonItem = true
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    updateActiveEpisodeForCurrentSeason()
-                    scrollToPreferredEpisode()
+            .onChange(of: seasonScrollRequest?.id) { _, _ in
+                scrollToSeasonRequest(proxy: proxy, animated: true)
+            }
+            .onChange(of: snapshot.identity) { _, _ in
+                DispatchQueue.main.async {
+                    scrollToSeasonRequest(proxy: proxy)
                 }
+            }
+        }
+
+        private func loadAllInitialSeasons() {
+            let currentSeasonObjectIDs = Set(viewModel.seasons.map { ObjectIdentifier($0) })
+            requestedSeasonObjectIDs.formIntersection(currentSeasonObjectIDs)
+
+            for seasonViewModel in viewModel.seasons {
+                let objectID = ObjectIdentifier(seasonViewModel)
+
+                guard seasonViewModel.state == .initial,
+                      !requestedSeasonObjectIDs.contains(objectID)
+                else { continue }
+
+                requestedSeasonObjectIDs.insert(objectID)
+                seasonViewModel.send(.refresh)
+            }
+        }
+
+        private func rebuildSnapshot() {
+            snapshot = makeSnapshot()
+        }
+
+        private func makeSnapshot() -> EpisodeSelectorSnapshot {
+            var next = EpisodeSelectorSnapshot()
+
+            for seasonViewModel in viewModel.seasons {
+                switch seasonViewModel.state {
+                case .content:
+                    appendEpisodes(from: seasonViewModel, to: &next)
+                case let .error(error):
+                    appendError(error, from: seasonViewModel, to: &next)
+                case .initial, .refreshing:
+                    continue
+                }
+            }
+
+            return next
+        }
+
+        private func appendEpisodes(
+            from seasonViewModel: SeasonItemViewModel,
+            to snapshot: inout EpisodeSelectorSnapshot
+        ) {
+            let episodes = seasonViewModel.elements.compactMap { episode -> LoadedEpisode? in
+                LoadedEpisode(
+                    episode: episode,
+                    seasonID: seasonViewModel.id
+                )
+            }
+
+            guard let firstEpisodeID = episodes.first?.id,
+                  let lastEpisodeID = episodes.last?.id
+            else { return }
+
+            snapshot.rows.append(contentsOf: episodes.map(EpisodeSelectorRowEntry.episode))
+            snapshot.seasonTargets[seasonViewModel.id] = SeasonTargets(
+                firstEpisodeID: firstEpisodeID,
+                lastEpisodeID: lastEpisodeID
+            )
+
+            for episode in episodes {
+                snapshot.episodeToSeason[episode.id] = episode.seasonID
+            }
+        }
+
+        private func appendError(
+            _ error: ErrorMessage,
+            from seasonViewModel: SeasonItemViewModel,
+            to snapshot: inout EpisodeSelectorSnapshot
+        ) {
+            let id = seasonViewModel.id ?? "error-\(ObjectIdentifier(seasonViewModel))"
+
+            let loadedError = LoadedSeasonError(
+                id: id,
+                seasonID: seasonViewModel.id,
+                viewModel: seasonViewModel,
+                error: error
+            )
+
+            snapshot.rows.append(.seasonError(loadedError))
+            snapshot.errorSeasonIDs.insert(seasonViewModel.id)
+        }
+
+        private func scheduleSnapshotUpdate() {
+            snapshotUpdateTask?.cancel()
+            snapshotUpdateTask = Task {
+                do {
+                    try await Task.sleep(nanoseconds: 50_000_000)
+                } catch {
+                    return
+                }
+
+                await MainActor.run {
+                    rebuildSnapshot()
+                }
+            }
+        }
+
+        private func entryFocused(
+            episodeID: LoadedEpisode.ID? = nil,
+            seasonID providedSeasonID: SeasonItemViewModel.ID
+        ) {
+            scrollTargetRequested(.episodeSelector)
+
+            if focusedRegion != .episodes {
+                focusedRegion = .episodes
+                focusRegionChanged(.belowHeader)
+            }
+
+            let seasonID = episodeID.flatMap { snapshot.episodeToSeason[$0] } ?? providedSeasonID
+
+            if activeSeasonID != seasonID {
+                activeSeasonID = seasonID
+            }
+        }
+
+        private func scrollToSeasonRequest(
+            proxy: ScrollViewProxy,
+            animated: Bool = false
+        ) {
+            guard let seasonScrollRequest,
+                  let target = scrollTarget(for: seasonScrollRequest)
+            else { return }
+
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(target, anchor: seasonScrollRequest.reason.anchor)
+                }
+            } else {
+                proxy.scrollTo(target, anchor: seasonScrollRequest.reason.anchor)
+            }
+
+            self.seasonScrollRequest = nil
+        }
+
+        private func scrollTarget(for request: SeasonScrollRequest) -> EpisodeScrollTarget? {
+            guard let targets = snapshot.seasonTargets[request.seasonID] else {
+                if snapshot.errorSeasonIDs.contains(request.seasonID) {
+                    return .season(request.seasonID)
+                }
+
+                return nil
+            }
+
+            switch request.reason {
+            case .focusedFromNextSeason:
+                return .episode(targets.lastEpisodeID)
+            case let .initialPlayButtonItem(episodeID):
+                if let episodeID,
+                   snapshot.episodeToSeason[episodeID] == request.seasonID
+                {
+                    return .episode(episodeID)
+                }
+
+                return .episode(targets.firstEpisodeID)
+            case .focusedFromPreviousSeason, .selected:
+                return .episode(targets.firstEpisodeID)
             }
         }
 
         // MARK: - Body
 
         var body: some View {
-            ZStack {
-                PlaceholderHStack()
+            Group {
+                if isWaitingForEpisodeRows {
+                    LoadingEpisodeHStack()
+                } else {
+                    ZStack(alignment: .topLeading) {
+                        PlaceholderHStack()
 
-                Group {
-                    switch viewModel.state {
-                    case .content:
-                        if viewModel.elements.isEmpty {
-                            EmptyHStack(focusedEpisodeID: $focusedEpisodeID)
-                        } else {
-                            contentView(viewModel: viewModel)
+                        ScrollViewReader { proxy in
+                            contentView(proxy: proxy)
                         }
-                    case let .error(error):
-                        ErrorHStack(viewModel: viewModel, error: error, focusedEpisodeID: $focusedEpisodeID)
-                    case .initial, .refreshing:
-                        LoadingHStack(focusedEpisodeID: $focusedEpisodeID)
+                        .frame(maxHeight: .infinity, alignment: .top)
                     }
-                }.transition(.opacity.animation(.linear(duration: 0.1)))
-            }
-            .padding(.bottom, 45)
-            .focusSection()
-            .onChange(of: viewModel.id) {
-                updateActiveEpisodeForCurrentSeason()
-
-                DispatchQueue.main.async {
-                    scrollToPreferredEpisode()
+                    .transition(.opacity.animation(.linear(duration: 0.1)))
+                    .padding(.bottom, 45)
+                    .focusSection()
                 }
             }
-            .onChange(of: activeEpisodeID) { _, _ in
-                DispatchQueue.main.async {
-                    scrollToPreferredEpisode()
-                }
+            .onFirstAppear {
+                seasonObserver.observe(Array(viewModel.seasons))
+                loadAllInitialSeasons()
+                rebuildSnapshot()
             }
-            .onChange(of: focusedEpisodeID) { _, newValue in
-                guard let newValue else { return }
-
-                activeEpisodeID = newValue
-                focusedRegion = .episodes
-                focusRegionChanged(.episodes)
+            .onChange(of: viewModel.seasons.map(\.id)) { _, _ in
+                seasonObserver.observe(Array(viewModel.seasons))
+                loadAllInitialSeasons()
+                rebuildSnapshot()
             }
-            .onChange(of: viewModel.state) { _, newValue in
-                if newValue == .content {
-                    updateActiveEpisodeForCurrentSeason()
-                }
+            .onReceive(seasonObserver.changes) { _ in
+                loadAllInitialSeasons()
+                scheduleSnapshotUpdate()
+            }
+            .onDisappear {
+                snapshotUpdateTask?.cancel()
             }
         }
     }
+}
 
-    // MARK: - Empty HStack
+@MainActor
+private final class SeasonChangeObserver: ObservableObject {
 
-    struct EmptyHStack: View {
+    let changes = PassthroughSubject<Void, Never>()
 
-        let focusedEpisodeID: FocusState<String?>.Binding
+    private var observedSeasonObjectIDs: [ObjectIdentifier] = []
+    private var cancellable: AnyCancellable?
 
-        var body: some View {
-            CollectionHStack(
-                count: 1,
-                columns: 3.5
-            ) { _ in
-                SeriesEpisodeSelector.EmptyCard()
-                    .focused(focusedEpisodeID, equals: "emptyCard")
-                    .padding(.horizontal, 4)
-            }
-            .insets(horizontal: EdgeInsets.edgePadding)
-            .itemSpacing(EdgeInsets.edgePadding / 2)
-            .scrollDisabled(true)
+    func observe(_ seasons: [SeasonItemViewModel]) {
+        let seasonObjectIDs = seasons.map { ObjectIdentifier($0) }
+
+        guard seasonObjectIDs != observedSeasonObjectIDs else { return }
+
+        observedSeasonObjectIDs = seasonObjectIDs
+
+        guard seasons.isNotEmpty else {
+            cancellable = nil
+            return
+        }
+
+        cancellable = Publishers.MergeMany(seasons.map { season in
+            season.objectWillChange.map { _ in () }.eraseToAnyPublisher()
+        })
+        .sink { [changes] _ in
+            changes.send()
         }
     }
+}
 
-    // MARK: - Error HStack
+private enum EpisodeScrollTarget: Hashable {
+    case episode(SeriesEpisodeSelector.LoadedEpisode.ID)
+    case season(SeasonItemViewModel.ID)
+}
 
-    struct ErrorHStack: View {
+private struct PlaceholderHStack: View {
 
-        @ObservedObject
-        var viewModel: SeasonItemViewModel
+    var body: some View {
+        EpisodeRow(scrollDisabled: true) {
+            VStack(alignment: .leading, spacing: 6) {
+                Color.clear
+                    .posterStyle(.landscape)
 
-        let error: ErrorMessage
-        let focusedEpisodeID: FocusState<String?>.Binding
-
-        var body: some View {
-            CollectionHStack(
-                count: 1,
-                columns: 3.5
-            ) { _ in
-                SeriesEpisodeSelector.ErrorCard(error: error) {
-                    viewModel.send(.refresh)
-                }
-                .focused(focusedEpisodeID, equals: "errorCard")
-                .padding(.horizontal, 4)
+                Color.clear
+                    .frame(height: 110)
             }
-            .insets(horizontal: EdgeInsets.edgePadding)
-            .itemSpacing(EdgeInsets.edgePadding / 2)
-            .scrollDisabled(true)
+            .episodeHStackItemFrame()
         }
+        .opacity(0)
+        .allowsHitTesting(false)
+        .focusable(false)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct EpisodeRow<Content: View>: View {
+
+    private let columnCount: CGFloat = 4
+    private let horizontalPadding = EdgeInsets.edgePadding
+    private let itemSpacing: CGFloat = 40
+
+    var scrollDisabled = false
+    let content: () -> Content
+
+    @State
+    private var contentSize: CGSize = .zero
+
+    private var itemWidth: CGFloat {
+        let availableWidth = contentSize.width > 0 ? contentSize.width : UIScreen.main.bounds.width
+        let width = (
+            availableWidth - horizontalPadding * 2 - itemSpacing * (columnCount - 1)
+        ) / columnCount
+
+        return max(width, 1)
     }
 
-    // MARK: - Loading HStack
-
-    struct LoadingHStack: View {
-
-        let focusedEpisodeID: FocusState<String?>.Binding
-
-        var body: some View {
-            CollectionHStack(
-                count: 1,
-                columns: 3.5
-            ) { _ in
-                SeriesEpisodeSelector.LoadingCard()
-                    .focused(focusedEpisodeID, equals: "loadingCard")
-                    .padding(.horizontal, 4)
-            }
-            .insets(horizontal: EdgeInsets.edgePadding)
-            .itemSpacing(EdgeInsets.edgePadding / 2)
-            .scrollDisabled(true)
-        }
+    init(
+        scrollDisabled: Bool = false,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.scrollDisabled = scrollDisabled
+        self.content = content
     }
 
-    // MARK: - Placeholder HStack
-
-    struct PlaceholderHStack: View {
-
-        var body: some View {
-            CollectionHStack(
-                count: 1,
-                columns: 3.5
-            ) { _ in
-                SeriesEpisodeSelector.EmptyCard()
-                    .padding(.horizontal, 4)
+    var body: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: itemSpacing) {
+                content()
             }
-            .insets(horizontal: EdgeInsets.edgePadding)
-            .itemSpacing(EdgeInsets.edgePadding / 2)
-            .opacity(0)
-            .allowsHitTesting(false)
-            .scrollDisabled(true)
+            .scrollTargetLayout()
+            .padding(.horizontal, horizontalPadding)
+            .environment(\.episodeRowItemWidth, itemWidth)
         }
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+        .scrollTargetBehavior(.viewAligned)
+        .scrollDisabled(scrollDisabled)
+        .trackingSize($contentSize)
     }
+}
+
+private extension SeriesEpisodeSelector.EpisodeSelectorSnapshot {
+
+    var identity: Identity {
+        Identity(
+            rowIDs: rows.map(\.id)
+        )
+    }
+
+    struct Identity: Equatable {
+
+        let rowIDs: [String]
+    }
+}
+
+private extension View {
+
+    func episodeHStackItemFrame() -> some View {
+        modifier(EpisodeHStackItemFrame())
+    }
+}
+
+private struct EpisodeHStackItemFrame: ViewModifier {
+
+    @Environment(\.episodeRowItemWidth)
+    private var itemWidth
+
+    func body(content: Content) -> some View {
+        content.frame(width: itemWidth)
+    }
+}
+
+private extension EnvironmentValues {
+
+    @Entry
+    var episodeRowItemWidth: CGFloat = 380
 }

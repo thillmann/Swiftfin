@@ -17,8 +17,17 @@ extension ItemView {
         case episodes
     }
 
+    enum CinematicScrollTarget: Hashable {
+        case header
+        case episodeSelector
+    }
+
     struct CinematicFocusRegionActionKey: EnvironmentKey {
         static let defaultValue: (CinematicFocusRegion) -> Void = { _ in }
+    }
+
+    struct CinematicScrollTargetActionKey: EnvironmentKey {
+        static let defaultValue: (CinematicScrollTarget) -> Void = { _ in }
     }
 }
 
@@ -26,6 +35,11 @@ extension EnvironmentValues {
     var cinematicFocusRegionChanged: (ItemView.CinematicFocusRegion) -> Void {
         get { self[ItemView.CinematicFocusRegionActionKey.self] }
         set { self[ItemView.CinematicFocusRegionActionKey.self] = newValue }
+    }
+
+    var cinematicScrollTargetRequested: (ItemView.CinematicScrollTarget) -> Void {
+        get { self[ItemView.CinematicScrollTargetActionKey.self] }
+        set { self[ItemView.CinematicScrollTargetActionKey.self] = newValue }
     }
 }
 
@@ -40,6 +54,8 @@ extension ItemView {
         private var collapsesSeriesHero = false
         @State
         private var hasEstablishedSeriesHeaderFocus = false
+        @State
+        private var lastRequestedScrollTarget: CinematicScrollTarget?
 
         private let content: Content
 
@@ -91,41 +107,48 @@ extension ItemView {
                         ImageView(imageSource)
                     }
 
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            CinematicHeaderView(viewModel: viewModel)
-                                .frame(height: expandedHeaderHeight, alignment: .top)
-                                .offset(y: -expandedHeaderHeight * collapseProgress)
-                                .frame(height: visibleHeaderHeight, alignment: .top)
-                                .padding(.bottom, visibleBottomPadding)
-                                .clipped()
-                                .animation(.easeOut(duration: 0.25), value: collapsesSeriesHero)
+                    ScrollViewReader { scrollProxy in
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(spacing: 0) {
+                                CinematicHeaderView(viewModel: viewModel)
+                                    .id(CinematicScrollTarget.header)
+                                    .frame(height: expandedHeaderHeight, alignment: .top)
+                                    .offset(y: -expandedHeaderHeight * collapseProgress)
+                                    .frame(height: visibleHeaderHeight, alignment: .top)
+                                    .padding(.bottom, visibleBottomPadding)
+                                    .clipped()
+                                    .animation(.easeOut(duration: 0.25), value: collapsesSeriesHero)
 
-                            content
-                        }
-                        .background {
-                            BlurView(style: .dark)
-                                .mask {
-                                    VStack(spacing: 0) {
-                                        LinearGradient(gradient: Gradient(stops: [
-                                            .init(color: .white, location: 0),
-                                            .init(color: .white.opacity(0.7), location: 0.4),
-                                            .init(color: .white.opacity(0), location: 1),
-                                        ]), startPoint: .bottom, endPoint: .top)
-                                            .frame(height: proxy.size.height - 150)
+                                content
+                            }
+                            .background {
+                                BlurView(style: .dark)
+                                    .mask {
+                                        VStack(spacing: 0) {
+                                            LinearGradient(gradient: Gradient(stops: [
+                                                .init(color: .white, location: 0),
+                                                .init(color: .white.opacity(0.7), location: 0.4),
+                                                .init(color: .white.opacity(0), location: 1),
+                                            ]), startPoint: .bottom, endPoint: .top)
+                                                .frame(height: proxy.size.height - 150)
 
-                                        Color.white
+                                            Color.white
+                                        }
                                     }
-                                }
-                        }
-                        .environment(\.cinematicFocusRegionChanged) { region in
-                            updateSeriesHeroCollapse(for: region)
+                            }
+                            .environment(\.cinematicFocusRegionChanged) { region in
+                                updateSeriesHeroCollapse(for: region)
+                            }
+                            .environment(\.cinematicScrollTargetRequested) { target in
+                                scrollToTarget(target, proxy: scrollProxy)
+                            }
                         }
                     }
                 }
                 .onAppear {
                     hasEstablishedSeriesHeaderFocus = false
                     collapsesSeriesHero = false
+                    lastRequestedScrollTarget = nil
                 }
             }
             .ignoresSafeArea()
@@ -135,17 +158,51 @@ extension ItemView {
             guard viewModel.item.type == .series else {
                 collapsesSeriesHero = false
                 hasEstablishedSeriesHeaderFocus = false
+                lastRequestedScrollTarget = nil
                 return
             }
 
             if focusedRegion == .header {
                 hasEstablishedSeriesHeaderFocus = true
                 collapsesSeriesHero = false
+                lastRequestedScrollTarget = nil
                 return
             }
 
             let shouldCollapse = focusedRegion == .episodes
             collapsesSeriesHero = hasEstablishedSeriesHeaderFocus && shouldCollapse
+        }
+
+        private func scrollToTarget(_ target: CinematicScrollTarget, proxy: ScrollViewProxy) {
+            guard canScroll(to: target),
+                  target != lastRequestedScrollTarget
+            else { return }
+
+            lastRequestedScrollTarget = target
+
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    proxy.scrollTo(target, anchor: anchor(for: target))
+                }
+            }
+        }
+
+        private func canScroll(to target: CinematicScrollTarget) -> Bool {
+            switch target {
+            case .header:
+                true
+            case .episodeSelector:
+                viewModel.item.type == .series
+            }
+        }
+
+        private func anchor(for target: CinematicScrollTarget) -> UnitPoint {
+            switch target {
+            case .header:
+                .top
+            case .episodeSelector:
+                UnitPoint(x: 0.5, y: 0.15)
+            }
         }
     }
 }
@@ -167,8 +224,14 @@ extension ItemView {
         var viewModel: ItemViewModel
         @Environment(\.cinematicFocusRegionChanged)
         private var focusRegionChanged
+        @Environment(\.cinematicScrollTargetRequested)
+        private var scrollTargetRequested
         @FocusState
         private var focusedLayer: CinematicHeaderFocusLayer?
+        @State
+        private var allowsInitialHeaderFocusRepair = true
+        @State
+        private var didApplyInitialHeaderFocus = false
 
         private var heroTitleFallback: some View {
             Text(viewModel.item.displayTitle)
@@ -195,6 +258,29 @@ extension ItemView {
             }
 
             return seriesViewModel.upcomingEpisodePillLabel
+        }
+
+        private var preferredHeaderFocusLayer: CinematicHeaderFocusLayer? {
+            guard viewModel.item.type != .person else { return nil }
+
+            if viewModel.item.presentPlayButton {
+                return .playButton
+            }
+
+            return .actionButtons
+        }
+
+        private var isPreferredHeaderFocusReady: Bool {
+            switch preferredHeaderFocusLayer {
+            case .playButton:
+                viewModel.playButtonItem != nil && viewModel.selectedMediaSource != nil
+            case .actionButtons:
+                true
+            case nil:
+                false
+            case .top:
+                false
+            }
         }
 
         @ViewBuilder
@@ -224,6 +310,23 @@ extension ItemView {
                 focusedLayer = .playButton
             } else {
                 focusedLayer = .actionButtons
+            }
+        }
+
+        private func focusPreferredHeaderControlIfNeeded(forceIfUnclaimed: Bool = false) {
+            guard allowsInitialHeaderFocusRepair,
+                  isPreferredHeaderFocusReady,
+                  let preferredHeaderFocusLayer,
+                  focusedLayer == nil || focusedLayer == preferredHeaderFocusLayer || (!didApplyInitialHeaderFocus && forceIfUnclaimed)
+            else { return }
+
+            DispatchQueue.main.async {
+                guard allowsInitialHeaderFocusRepair,
+                      isPreferredHeaderFocusReady,
+                      focusedLayer == nil || focusedLayer == preferredHeaderFocusLayer || (!didApplyInitialHeaderFocus && forceIfUnclaimed)
+                else { return }
+
+                focusedLayer = preferredHeaderFocusLayer
             }
         }
 
@@ -308,15 +411,43 @@ extension ItemView {
             }
             .padding(.leading, 80)
             .padding(.trailing, 50)
+            .defaultFocus(
+                $focusedLayer,
+                preferredHeaderFocusLayer,
+                priority: .userInitiated
+            )
+            .onAppear {
+                focusPreferredHeaderControlIfNeeded(forceIfUnclaimed: true)
+            }
+            .onReceive(viewModel.playButtonItem.publisher) { _ in
+                focusPreferredHeaderControlIfNeeded(forceIfUnclaimed: true)
+            }
+            .onReceive(viewModel.objectWillChange) { _ in
+                DispatchQueue.main.async {
+                    focusPreferredHeaderControlIfNeeded(forceIfUnclaimed: true)
+                }
+            }
             .onChange(of: focusedLayer) { _, layer in
                 if layer == .top {
                     focusPrimaryHeaderControl()
                     return
                 }
 
-                if layer != nil {
-                    focusRegionChanged(.header)
+                guard let layer else {
+                    if didApplyInitialHeaderFocus {
+                        allowsInitialHeaderFocusRepair = false
+                    }
+                    return
                 }
+
+                if layer == preferredHeaderFocusLayer {
+                    didApplyInitialHeaderFocus = true
+                } else if didApplyInitialHeaderFocus {
+                    allowsInitialHeaderFocusRepair = false
+                }
+
+                focusRegionChanged(.header)
+                scrollTargetRequested(.header)
             }
         }
     }

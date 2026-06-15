@@ -34,8 +34,7 @@ final class SeasonItemViewModel: PagingLibraryViewModel<BaseItemDto>, Identifiab
         parameters.isMissing = try authenticatedUser.data.configuration?.isDisplayMissingEpisodes == true
         parameters.seasonID = parentID
 
-//        parameters.startIndex = page * pageSize
-//        parameters.limit = pageSize
+        // Episode selectors expect each season to load as a complete contiguous group.
 
         let request = Paths.getEpisodes(
             seriesID: parentID,

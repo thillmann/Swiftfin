@@ -36,9 +36,7 @@ extension ItemView {
 
         var body: some View {
             VStack(spacing: sectionSpacing) {
-                if viewModel.seasons.isNotEmpty {
-                    SeriesEpisodeSelector(viewModel: viewModel)
-                }
+                SeriesEpisodeSelector(viewModel: viewModel)
 
                 if let castAndCrew = viewModel.item.people, castAndCrew.isNotEmpty {
                     VStack(spacing: castAndCrewSectionSpacing) {

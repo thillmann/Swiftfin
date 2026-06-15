@@ -12,21 +12,17 @@ extension SeriesEpisodeSelector {
 
     struct LoadingCard: View {
 
-        let action: () -> Void
-
         var body: some View {
             VStack(alignment: .leading) {
-                Button {
-                    action()
-                } label: {
-                    Color.secondarySystemFill
-                        .opacity(0.75)
-                        .posterStyle(.landscape)
-                        .overlay {
-                            ProgressView()
-                        }
+                Button {} label: {
+                    PosterFallbackContentView(
+                        title: nil,
+                        systemName: "film"
+                    )
+                    .posterStyle(.landscape)
                 }
                 .buttonStyle(.card)
+                .disabled(true)
                 .posterShadow()
 
                 SeriesEpisodeSelector.EpisodeContent(
@@ -36,10 +32,6 @@ extension SeriesEpisodeSelector {
                 )
                 .redacted(reason: .placeholder)
             }
-        }
-
-        init(_ action: @escaping () -> Void = {}) {
-            self.action = action
         }
     }
 }

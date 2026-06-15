@@ -14,6 +14,10 @@ extension SeriesEpisodeSelector {
 
         let error: ErrorMessage
         let action: () -> Void
+        let onEntryFocused: () -> Void
+
+        @FocusState
+        private var isPosterFocused: Bool
 
         var body: some View {
             VStack(alignment: .leading) {
@@ -30,18 +34,35 @@ extension SeriesEpisodeSelector {
                 }
                 .buttonStyle(.card)
                 .posterShadow()
+                .focused($isPosterFocused)
+                .onChange(of: isPosterFocused) { _, newValue in
+                    if newValue {
+                        onEntryFocused()
+                    }
+                }
 
                 SeriesEpisodeSelector.EpisodeContent(
                     subHeader: .emptyDash,
                     header: L10n.error,
-                    content: error.localizedDescription
+                    content: error.localizedDescription,
+                    isPosterFocused: isPosterFocused,
+                    onFocusChange: { isFocused in
+                        if isFocused {
+                            onEntryFocused()
+                        }
+                    }
                 )
             }
         }
 
-        init(error: ErrorMessage, action: @escaping () -> Void = {}) {
+        init(
+            error: ErrorMessage,
+            action: @escaping () -> Void = {},
+            onEntryFocused: @escaping () -> Void = {}
+        ) {
             self.error = error
             self.action = action
+            self.onEntryFocused = onEntryFocused
         }
     }
 }

@@ -10,12 +10,37 @@ import SwiftUI
 
 extension SeriesEpisodeSelector {
 
+    struct LoadingSeasonsHStack: View {
+
+        var body: some View {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 20) {
+                    Button("Season 1") {}
+                        .buttonStyle(
+                            SeasonButtonStyle(
+                                isFocused: false,
+                                isSelected: true
+                            )
+                        )
+                        .disabled(true)
+                        .focusable(false)
+                        .padding(.vertical)
+                }
+                .padding(.horizontal, EdgeInsets.edgePadding)
+            }
+            .padding(.bottom, 24)
+            .scrollClipDisabled()
+        }
+    }
+
     struct SeasonsHStack: View {
 
         // MARK: - Environment & Observed Objects
 
         @Environment(\.cinematicFocusRegionChanged)
         private var focusRegionChanged
+        @Environment(\.cinematicScrollTargetRequested)
+        private var scrollTargetRequested
 
         @ObservedObject
         var viewModel: SeriesItemViewModel
@@ -23,9 +48,11 @@ extension SeriesEpisodeSelector {
         // MARK: - Active Season Binding
 
         @Binding
-        var activeSeasonID: SeasonItemViewModel.ID?
+        var activeSeasonID: SeasonItemViewModel.ID
         @Binding
         var focusedRegion: SeriesEpisodeSelector.FocusRegion?
+        let onSeasonFocused: (SeasonItemViewModel.ID, SeasonScrollReason) -> Void
+        let onSeasonSelected: (SeasonItemViewModel.ID, SeasonScrollReason) -> Void
 
         // MARK: - Focus Variables
 
@@ -46,7 +73,7 @@ extension SeriesEpisodeSelector {
         var body: some View {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 20) {
                         ForEach(viewModel.seasons) { season in
                             seasonButton(season: season)
                                 .id(season.id)
@@ -62,38 +89,23 @@ extension SeriesEpisodeSelector {
                     activeSeasonID,
                     priority: .userInitiated
                 )
-                .mask {
-                    VStack(spacing: 0) {
-                        Color.white
-
-                        LinearGradient(
-                            stops: [
-                                .init(color: .white, location: 0),
-                                .init(color: .clear, location: 1),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 20)
-                    }
-                }
                 .onChange(of: focusedSeason) { oldValue, newValue in
                     guard let newValue else { return }
 
-                    if oldValue == nil || focusedRegion != .seasons,
-                       let activeSeasonID,
-                       newValue != activeSeasonID
-                    {
-                        DispatchQueue.main.async {
-                            proxy.scrollTo(activeSeasonID)
-                            focusedSeason = activeSeasonID
-                        }
-                        return
+                    let oldSeasonID = oldValue.flatMap(\.self)
+
+                    let enteredSeasonRow = oldValue == nil || focusedRegion != .seasons
+
+                    if enteredSeasonRow {
+                        focusedRegion = .seasons
+                        focusRegionChanged(.belowHeader)
+                        scrollTargetRequested(.episodeSelector)
                     }
 
-                    debounceActiveSeasonSelection(newValue)
-                    focusedRegion = .seasons
-                    focusRegionChanged(.belowHeader)
+                    debounceActiveSeasonSelection(
+                        newValue,
+                        reason: focusReason(from: oldSeasonID, to: newValue)
+                    )
                 }
                 .onChange(of: activeSeasonID) { _, newValue in
                     guard let newValue else { return }
@@ -126,39 +138,36 @@ extension SeriesEpisodeSelector {
 
         // MARK: - Season Button
 
-        @ViewBuilder
         private func seasonButton(season: SeasonItemViewModel) -> some View {
-            let isFocused = focusedSeason == season.id
+            let isFocused = focusedRegion == .seasons && focusedSeason == season.id
             let isSelected = activeSeasonID == season.id
 
-            Button {
-                seasonSelectionTask?.cancel()
-                pendingSeasonSelectionID = nil
-                activeSeasonID = season.id
-            } label: {
-                Marquee(season.season.displayTitle, animateWhenFocused: true)
-                    .frame(maxWidth: 300)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(isFocused ? .black : .white.opacity(isSelected ? 1 : 0.72))
-                    .padding(.horizontal, 32)
-                    .frame(height: FeatureButtonTokens.baseHeight)
-                    .background {
-                        Capsule(style: .continuous)
-                            .fill(.white.opacity(isFocused ? 1 : isSelected ? 0.3 : 0))
-                    }
+            return Button(season.season.displayTitle) {
+                selectSeason(season.id)
             }
             .focused($focusedSeason, equals: season.id)
-            .buttonStyle(.borderless)
+            .buttonStyle(
+                SeasonButtonStyle(
+                    isFocused: isFocused,
+                    isSelected: isSelected
+                )
+            )
             .focusEffectDisabled()
-            .scaleEffect(isFocused ? 1.06 : 1)
-            .animation(.easeOut(duration: 0.15), value: isFocused)
-            .animation(.easeOut(duration: 0.15), value: isSelected)
             .padding(.vertical)
+        }
+
+        private func selectSeason(_ seasonID: SeasonItemViewModel.ID) {
+            seasonSelectionTask?.cancel()
+            pendingSeasonSelectionID = nil
+            onSeasonSelected(seasonID, .selected)
         }
 
         // MARK: - Active Season Selection
 
-        private func debounceActiveSeasonSelection(_ seasonID: SeasonItemViewModel.ID) {
+        private func debounceActiveSeasonSelection(
+            _ seasonID: SeasonItemViewModel.ID,
+            reason: SeasonScrollReason
+        ) {
             guard seasonID != activeSeasonID else { return }
 
             seasonSelectionTask?.cancel()
@@ -174,9 +183,49 @@ extension SeriesEpisodeSelector {
                     guard pendingSeasonSelectionID == seasonID else { return }
 
                     pendingSeasonSelectionID = nil
-                    activeSeasonID = seasonID
+                    onSeasonFocused(seasonID, reason)
                 }
             }
         }
+
+        private func focusReason(
+            from oldSeasonID: SeasonItemViewModel.ID,
+            to newSeasonID: SeasonItemViewModel.ID
+        ) -> SeasonScrollReason {
+            guard let newIndex = viewModel.seasons.firstIndex(where: { $0.id == newSeasonID }) else {
+                return .focusedFromPreviousSeason
+            }
+
+            guard let oldSeasonID,
+                  let oldIndex = viewModel.seasons.firstIndex(where: { $0.id == oldSeasonID }),
+                  newIndex < oldIndex
+            else {
+                return .focusedFromPreviousSeason
+            }
+
+            return .focusedFromNextSeason
+        }
+    }
+}
+
+private struct SeasonButtonStyle: ButtonStyle {
+
+    let isFocused: Bool
+    let isSelected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .fontWeight(.semibold)
+            .foregroundStyle(isFocused ? .black : .white.opacity(isSelected ? 1 : 0.72))
+            .padding(.horizontal, 32)
+            .frame(height: FeatureButtonTokens.baseHeight)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(.white.opacity(isFocused ? 1 : isSelected ? 0.3 : 0))
+            }
+            .scaleEffect(isFocused ? 1.06 : 1)
+            .animation(.easeOut(duration: 0.15), value: isFocused)
+            .animation(.easeOut(duration: 0.15), value: isSelected)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
