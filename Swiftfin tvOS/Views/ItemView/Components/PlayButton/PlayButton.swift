@@ -16,8 +16,8 @@ extension ItemView {
 
         private static let playAgainTitle = "Play Again"
 
-        @Environment(\.isFocused)
-        private var isFocused
+        @FocusState
+        private var isPlayButtonFocused: Bool
 
         @Router
         private var router
@@ -31,7 +31,7 @@ extension ItemView {
 
         init(
             viewModel: ItemViewModel,
-            showsProgressBar: Bool = false
+            showsProgressBar: Bool = true
         ) {
             self.viewModel = viewModel
             self.showsProgressBar = showsProgressBar
@@ -69,13 +69,25 @@ extension ItemView {
             playbackPositionTicks > 0 && !isPlayed
         }
 
+        private var usesProgressBar: Bool {
+            showsProgressBar && isPartiallyWatched && remainingDuration != nil
+        }
+
+        private var progressTrackColor: Color {
+            isPlayButtonFocused ? .black.opacity(0.2) : .white.opacity(0.2)
+        }
+
+        private var progressFillColor: Color {
+            isPlayButtonFocused ? .black : .white
+        }
+
         private var seasonEpisodeLabel: String? {
             guard let playButtonItem = viewModel.playButtonItem else { return nil }
 
             if let seasonNumber = playButtonItem.parentIndexNumber,
                let episodeNumber = playButtonItem.indexNumber
             {
-                return "S\(seasonNumber), E\(episodeNumber)"
+                return L10n.seasonAndEpisode(String(seasonNumber), String(episodeNumber))
             }
 
             return playButtonItem.seasonEpisodeLabel
@@ -92,6 +104,10 @@ extension ItemView {
 
             if isPlayed {
                 return Self.playAgainTitle
+            }
+
+            if isPartiallyWatched, remainingDuration == nil {
+                return L10n.resume
             }
 
             let actionLabel = isPartiallyWatched ? L10n.resume : L10n.play
@@ -125,12 +141,15 @@ extension ItemView {
         private var remainingDuration: String? {
             guard let playButtonItem = viewModel.playButtonItem else { return nil }
 
-            guard let runTimeTicks = playButtonItem.runTimeTicks else {
-                return playButtonItem.runTimeLabel
+            let duration: String?
+            if let runTimeTicks = playButtonItem.runTimeTicks {
+                let remainingTicks = max(0, runTimeTicks - playbackPositionTicks)
+                duration = Duration.ticks(remainingTicks).formatted(.hourMinuteAbbreviated)
+            } else {
+                duration = playButtonItem.runTimeLabel
             }
 
-            let remainingTicks = max(0, runTimeTicks - playbackPositionTicks)
-            return Duration.ticks(remainingTicks).formatted(.hourMinuteAbbreviated)
+            return duration?.trimmingCharacters(in: CharacterSet(charactersIn: "."))
         }
 
         // MARK: - Body
@@ -153,26 +172,22 @@ extension ItemView {
             Button {
                 play()
             } label: {
-                if showsProgressBar {
-                    HStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    if usesProgressBar {
                         Image(systemName: "play.fill")
-                            .font(.system(size: 20, weight: .semibold))
 
                         ProgressView(value: progress)
                             .progressViewStyle(
                                 FeatureInlineProgressStyle(
-                                    trackColor: isFocused ? .black.opacity(0.2) : .white.opacity(0.2),
-                                    fillColor: isFocused ? .black : .white
+                                    trackColor: progressTrackColor,
+                                    fillColor: progressFillColor
                                 )
                             )
-                            .frame(width: 90)
+                            .frame(width: 40)
 
                         Text(remainingDuration ?? .emptyDash)
                             .lineLimit(1)
-                    }
-                    .padding(.horizontal, 40)
-                } else {
-                    HStack(spacing: 12) {
+                    } else {
                         Image(systemName: "play.fill")
 
                         VStack {
@@ -185,8 +200,8 @@ extension ItemView {
                             }
                         }
                     }
-                    .padding(.horizontal, 40)
                 }
+                .padding(.horizontal, 40)
             }
             .buttonStyle(
                 .featureButton
@@ -200,6 +215,7 @@ extension ItemView {
             }
             .isSelected(true)
             .enabled(isEnabled)
+            .focused($isPlayButtonFocused)
         }
 
         // MARK: - Play Content

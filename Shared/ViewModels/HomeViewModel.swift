@@ -23,6 +23,7 @@ final class HomeViewModel: ViewModel, Stateful {
         case error(ErrorMessage)
         case setIsPlayed(Bool, BaseItemDto)
         case refresh
+        case toggleIsFavorite(BaseItemDto)
     }
 
     // MARK: BackgroundState
@@ -152,6 +153,28 @@ final class HomeViewModel: ViewModel, Stateful {
             .asAnyCancellable()
 
             return .refreshing
+        case let .toggleIsFavorite(item):
+
+            Task {
+                let beforeIsFavorite = item.userData?.isFavorite ?? false
+
+                await MainActor.run {
+                    guard let index = resumeItems.elements.firstIndex(where: { $0.id == item.id }) else { return }
+                    resumeItems.elements[index].userData?.isFavorite = !beforeIsFavorite
+                }
+
+                do {
+                    try await setIsFavorite(!beforeIsFavorite, for: item)
+                } catch {
+                    await MainActor.run {
+                        guard let index = resumeItems.elements.firstIndex(where: { $0.id == item.id }) else { return }
+                        resumeItems.elements[index].userData?.isFavorite = beforeIsFavorite
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
+            return state
         }
     }
 
@@ -232,5 +255,24 @@ final class HomeViewModel: ViewModel, Stateful {
         }
 
         _ = try await send(request)
+    }
+
+    private func setIsFavorite(_ isFavorite: Bool, for item: BaseItemDto) async throws {
+        guard let itemID = item.id else { return }
+
+        let request: Request<UserItemDataDto> = if isFavorite {
+            Paths.markFavoriteItem(
+                itemID: itemID,
+                userID: userSession.user.id
+            )
+        } else {
+            Paths.unmarkFavoriteItem(
+                itemID: itemID,
+                userID: userSession.user.id
+            )
+        }
+
+        _ = try await userSession.client.send(request)
+        Notifications[.itemShouldRefreshMetadata].post(itemID)
     }
 }
