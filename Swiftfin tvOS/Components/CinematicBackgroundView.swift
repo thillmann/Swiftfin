@@ -26,10 +26,16 @@ struct CinematicBackgroundView: View {
                 bottomBlur
             }
             .onAppear {
-                updateBackground(for: viewModel.currentItem?._poster ?? initialItem)
+                updateBackground(
+                    for: viewModel.currentSelection?.item?._poster ?? initialItem,
+                    transition: .fade
+                )
             }
-            .onChange(of: viewModel.currentItem) { _, newItem in
-                updateBackground(for: newItem?._poster)
+            .onChange(of: viewModel.currentSelection) { _, newSelection in
+                updateBackground(
+                    for: newSelection?.item?._poster,
+                    transition: newSelection?.transition ?? .fade
+                )
             }
     }
 
@@ -52,7 +58,10 @@ struct CinematicBackgroundView: View {
         .allowsHitTesting(false)
     }
 
-    private func updateBackground(for item: (any Poster)?) {
+    private func updateBackground(
+        for item: (any Poster)?,
+        transition: RotateContentView.Transition
+    ) {
         let imageSources = (
             homeImageSources(for: item) +
                 (item?.cinematicImageSources(maxWidth: nil) ?? []) +
@@ -61,13 +70,13 @@ struct CinematicBackgroundView: View {
         .filter { $0.url != nil }
 
         guard imageSources.isNotEmpty else {
-            proxy.update {
+            proxy.update(transition: transition) {
                 Color.clear
             }
             return
         }
 
-        proxy.update {
+        proxy.update(transition: transition) {
             ImageView(imageSources)
                 .placeholder { _ in
                     Color.clear
@@ -98,24 +107,41 @@ struct CinematicBackgroundView: View {
 
     class Proxy: ObservableObject {
 
+        struct Selection: Equatable {
+            let item: AnyPoster?
+            let transition: RotateContentView.Transition
+        }
+
         @Published
-        var currentItem: AnyPoster?
+        var currentSelection: Selection?
+
+        var currentItem: AnyPoster? {
+            currentSelection?.item
+        }
 
         private var cancellables = Set<AnyCancellable>()
-        private var currentItemSubject = CurrentValueSubject<AnyPoster?, Never>(nil)
+        private var currentItemSubject = CurrentValueSubject<Selection?, Never>(nil)
 
         init() {
             currentItemSubject
                 .debounce(for: 0.5, scheduler: DispatchQueue.main)
                 .removeDuplicates()
-                .sink { newItem in
-                    self.currentItem = newItem
+                .sink { newSelection in
+                    self.currentSelection = newSelection
                 }
                 .store(in: &cancellables)
         }
 
-        func select(item: any Poster) {
-            currentItemSubject.send(AnyPoster(item))
+        func select(
+            item: any Poster,
+            transition: RotateContentView.Transition = .fade
+        ) {
+            currentItemSubject.send(
+                Selection(
+                    item: AnyPoster(item),
+                    transition: transition
+                )
+            )
         }
     }
 }

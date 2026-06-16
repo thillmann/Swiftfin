@@ -10,6 +10,12 @@ import SwiftUI
 
 struct RotateContentView: UIViewRepresentable {
 
+    enum Transition: Equatable {
+        case fade
+        case slideFromLeading
+        case slideFromTrailing
+    }
+
     @ObservedObject
     var proxy: Proxy
 
@@ -23,13 +29,19 @@ struct RotateContentView: UIViewRepresentable {
 
         weak var rotateContentView: UIRotateContentView?
 
-        func update(_ content: () -> any View) {
+        func update(
+            transition: Transition = .fade,
+            _ content: () -> any View
+        ) {
 
             let newHostingController = UIHostingController(rootView: AnyView(content()), ignoreSafeArea: true)
             newHostingController.view.translatesAutoresizingMaskIntoConstraints = false
             newHostingController.view.backgroundColor = .clear
 
-            rotateContentView?.update(with: newHostingController.view)
+            rotateContentView?.update(
+                with: newHostingController.view,
+                transition: transition
+            )
         }
     }
 }
@@ -67,7 +79,10 @@ class UIRotateContentView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(with newView: UIView?) {
+    func update(
+        with newView: UIView?,
+        transition: RotateContentView.Transition = .fade
+    ) {
 
         guard let newView else {
             UIView.animate(withDuration: 0.3) {
@@ -90,9 +105,53 @@ class UIRotateContentView: UIView {
             newView.rightAnchor.constraint(equalTo: rightAnchor),
         ])
 
+        guard currentView != nil else {
+            UIView.animate(withDuration: 0.3) {
+                newView.alpha = 1
+            } completion: { _ in
+                self.currentView = newView
+            }
+            return
+        }
+
+        switch transition {
+        case .fade:
+            updateWithFade(newView)
+        case .slideFromLeading:
+            updateWithSlide(newView, direction: -1)
+        case .slideFromTrailing:
+            updateWithSlide(newView, direction: 1)
+        }
+    }
+
+    private func updateWithFade(_ newView: UIView) {
         UIView.animate(withDuration: 0.3) {
             newView.alpha = 1
             self.currentView?.alpha = 0
+        } completion: { _ in
+            self.currentView?.removeFromSuperview()
+            self.currentView = newView
+        }
+    }
+
+    private func updateWithSlide(_ newView: UIView, direction: CGFloat) {
+        let incomingOffset = max(bounds.width * 0.12, 120) * direction
+        let outgoingOffset = max(bounds.width * 0.05, 60) * -direction
+
+        newView.alpha = 1
+        newView.transform = CGAffineTransform(translationX: incomingOffset, y: 0)
+            .scaledBy(x: 1.04, y: 1.04)
+
+        UIView.animate(
+            withDuration: 0.55,
+            delay: 0,
+            usingSpringWithDamping: 0.92,
+            initialSpringVelocity: 0.22,
+            options: [.curveEaseOut, .beginFromCurrentState]
+        ) {
+            newView.transform = .identity
+            self.currentView?.transform = CGAffineTransform(translationX: outgoingOffset, y: 0)
+                .scaledBy(x: 1.02, y: 1.02)
         } completion: { _ in
             self.currentView?.removeFromSuperview()
             self.currentView = newView
