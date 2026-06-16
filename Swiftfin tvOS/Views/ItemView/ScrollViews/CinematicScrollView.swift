@@ -217,9 +217,6 @@ extension ItemView {
             case actionButtons
         }
 
-        @StoredValue(.User.itemViewAttributes)
-        private var attributes
-
         @ObservedObject
         var viewModel: ItemViewModel
         @Environment(\.cinematicFocusRegionChanged)
@@ -233,31 +230,22 @@ extension ItemView {
         @State
         private var didApplyInitialHeaderFocus = false
 
-        private var heroTitleFallback: some View {
-            Text(viewModel.item.displayTitle)
-                .font(.system(size: 64, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: 800, alignment: .leading)
-        }
-
-        private var heroOverviewItem: BaseItemDto {
-            if let seriesViewModel = viewModel as? SeriesItemViewModel,
-               let episodeOverviewItem = seriesViewModel.episodeOverviewItem,
-               let overview = episodeOverviewItem.overview,
-               !overview.isEmpty
-            {
-                return episodeOverviewItem
-            }
-
-            return viewModel.item
-        }
-
         private var upcomingEpisodePillLabel: String? {
             guard let seriesViewModel = viewModel as? SeriesItemViewModel else {
                 return nil
             }
 
             return seriesViewModel.upcomingEpisodePillLabel
+        }
+
+        private var heroItem: BaseItemDto {
+            guard let seriesViewModel = viewModel as? SeriesItemViewModel,
+                  let episodeOverviewItem = seriesViewModel.episodeOverviewItem
+            else {
+                return viewModel.item
+            }
+
+            return episodeOverviewItem
         }
 
         private var preferredHeaderFocusLayer: CinematicHeaderFocusLayer? {
@@ -280,24 +268,6 @@ extension ItemView {
                 false
             case .top:
                 false
-            }
-        }
-
-        @ViewBuilder
-        private var heroLogoOrTitle: some View {
-            if viewModel.item.imageURL(.logo, maxHeight: 200) != nil {
-                ImageView(viewModel.item.imageSource(.logo, maxHeight: 200))
-                    .placeholder { _ in
-                        EmptyView()
-                    }
-                    .failure {
-                        heroTitleFallback
-                    }
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 400, height: 200, alignment: .leading)
-            } else {
-                heroTitleFallback
-                    .frame(width: 800, height: 200, alignment: .leading)
             }
         }
 
@@ -338,57 +308,22 @@ extension ItemView {
                     .focused($focusedLayer, equals: .top)
 
                 HStack(alignment: .bottom, spacing: 80) {
-                    VStack(alignment: .leading, spacing: 24) {
+                    CinematicItemHeroView(
+                        item: heroItem,
+                        itemViewModel: viewModel
+                    ) { itemViewModel in
+                        if viewModel.item.type != .person {
+                            if viewModel.item.presentPlayButton {
+                                ItemView.PlayButton(viewModel: itemViewModel)
+                                    .focused($focusedLayer, equals: .playButton)
+                            }
+
+                            ItemView.ActionButtonHStack(viewModel: itemViewModel)
+                                .focused($focusedLayer, equals: .actionButtons)
+                        }
+                    } accessory: {
                         if let upcomingEpisodePillLabel {
                             UpcomingEpisodePill(label: upcomingEpisodePillLabel)
-                        }
-
-                        heroLogoOrTitle
-
-                        DotHStack {
-                            if viewModel.item.type == .series {
-                                Text(L10n.series)
-                            } else if viewModel.item.type == .episode {
-                                Text(L10n.episode)
-                            }
-
-                            ForEach(viewModel.item.genres ?? [], id: \.self) { value in
-                                Text(value)
-                            }
-                        }
-                        .font(.body)
-                        .foregroundStyle(.white.opacity(0.9))
-
-                        OverviewView(item: heroOverviewItem)
-                            .taglineLineLimit(1)
-                            .overviewLineLimit(3)
-                            .frame(maxWidth: 800, alignment: .leading)
-
-                        if viewModel.item.type != .person {
-                            HStack(spacing: 20) {
-                                DotHStack {
-                                    Text(viewModel.item.premiereDateYear)
-                                    Text(viewModel.playButtonItem?.runTimeLabel)
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.9))
-
-                                ItemView.AttributesHStack(
-                                    attributes: attributes,
-                                    viewModel: viewModel
-                                )
-                            }
-
-                            HStack(spacing: 20) {
-                                if viewModel.item.presentPlayButton {
-                                    ItemView.PlayButton(viewModel: viewModel)
-                                        .focused($focusedLayer, equals: .playButton)
-                                }
-
-                                ItemView.ActionButtonHStack(viewModel: viewModel)
-                                    .focused($focusedLayer, equals: .actionButtons)
-                            }
-                            .frame(width: 800, alignment: .leading)
                         }
                     }
 

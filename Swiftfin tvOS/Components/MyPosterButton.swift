@@ -262,7 +262,7 @@ struct MyPosterButtonDefaultOverlay<Item: Poster>: View {
         if let seasonNumber = baseItem.parentIndexNumber,
            let episodeNumber = baseItem.indexNumber
         {
-            return "S\(seasonNumber), E\(episodeNumber)"
+            return L10n.seasonAndEpisode(String(seasonNumber), String(episodeNumber))
         }
 
         return baseItem.seasonEpisodeLabel

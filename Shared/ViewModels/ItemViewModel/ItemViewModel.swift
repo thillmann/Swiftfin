@@ -102,6 +102,10 @@ class ItemViewModel: ViewModel, Stateful {
     @MainActor
     init(item: BaseItemDto) {
         self.item = item
+        if item.isPlayable {
+            self.playButtonItem = item
+            self.selectedMediaSource = item.mediaSources?.first
+        }
         super.init()
 
         Notifications[.itemShouldRefreshMetadata]

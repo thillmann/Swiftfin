@@ -1428,9 +1428,9 @@ internal enum L10n {
   internal static let searchForMissingMetadata = L10n.tr("Localizable", "searchForMissingMetadata", fallback: "Search for missing metadata")
   /// Season
   internal static let season = L10n.tr("Localizable", "season", fallback: "Season")
-  /// S%1$@:E%2$@
+  /// S%1$@, E%2$@
   internal static func seasonAndEpisode(_ p1: Any, _ p2: Any) -> String {
-    return L10n.tr("Localizable", "seasonAndEpisode", String(describing: p1), String(describing: p2), fallback: "S%1$@:E%2$@")
+    return L10n.tr("Localizable", "seasonAndEpisode", String(describing: p1), String(describing: p2), fallback: "S%1$@, E%2$@")
   }
   /// Seasons
   internal static let seasons = L10n.tr("Localizable", "seasons", fallback: "Seasons")
@@ -1704,6 +1704,8 @@ internal enum L10n {
   internal static let tvProgram = L10n.tr("Localizable", "tvProgram", fallback: "TV program")
   /// TV programs
   internal static let tvPrograms = L10n.tr("Localizable", "tvPrograms", fallback: "TV programs")
+  /// TV Show
+  internal static let tvShow = L10n.tr("Localizable", "tvShow", fallback: "TV Show")
   /// TV shows
   internal static let tvShows = L10n.tr("Localizable", "tvShows", fallback: "TV shows")
   /// TV Shows

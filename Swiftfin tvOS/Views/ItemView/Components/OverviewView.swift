@@ -50,17 +50,44 @@ extension ItemView {
                         .fontWeight(.bold)
                         .multilineTextAlignment(.leading)
                         .lineLimit(taglineLineLimit)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if let itemOverview = item.overview {
-                    Text(itemOverview)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.6))
-                        .lineLimit(overviewLineLimit)
+                    if item.type == .episode {
+                        episodeOverviewText(itemOverview)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(overviewLineLimit)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text(itemOverview)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(overviewLineLimit)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             .font(.footnote)
             .labeledContentStyle(.itemAttribute)
+        }
+
+        private func episodeOverviewText(_ overview: String) -> Text {
+            let titleText = Text("\(item.displayTitle): ")
+                .fontWeight(.semibold)
+            let overviewText = Text(overview)
+
+            guard let seasonEpisodeLabel = item.seasonEpisodeLabel else {
+                return titleText + overviewText
+            }
+
+            return Text("\(seasonEpisodeLabel) • ")
+                .fontWeight(.semibold) +
+                titleText +
+                overviewText
         }
     }
 }
