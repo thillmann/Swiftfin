@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import BlurHashKit
 import SwiftUI
 
 /// Retrieving images by exact pixel dimensions is a bit
@@ -114,6 +113,8 @@ struct PosterFallbackContentView: View {
 
     var body: some View {
         ZStack {
+            Color(.darkGray)
+
             SystemImageContentView(systemName: systemName)
 
             if let title {
