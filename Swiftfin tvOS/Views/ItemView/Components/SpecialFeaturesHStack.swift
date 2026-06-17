@@ -22,14 +22,14 @@ extension ItemView {
             PosterHStack(
                 title: L10n.specialFeatures,
                 type: .landscape,
-                items: items
+                items: items,
+                overlayOptions: []
             ) { item in
                 guard let mediaSource = item.mediaSources?.first else { return }
 //                router.route(
 //                    to: .videoPlayer(manager: OnlineVideoPlayerManager(item: item, mediaSource: mediaSource))
 //                )
             }
-            .posterOverlayComponents([])
         }
     }
 }

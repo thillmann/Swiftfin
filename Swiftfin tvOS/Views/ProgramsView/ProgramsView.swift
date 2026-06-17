@@ -90,7 +90,7 @@ struct ProgramsView: View {
             posterButton: { item in
                 let channel = programsViewModel.channel(for: item)
 
-                MyPosterButton(item: item, type: .landscape) {
+                PosterButton(item: item, type: .landscape) {
                     let provider = item.getPlaybackItemProvider(userSession: programsViewModel.userSession)
                     router.route(to: .videoPlayer(provider: provider))
                 } fallback: {

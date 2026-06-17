@@ -6,48 +6,10 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import JellyfinAPI
 import SwiftUI
 
-private let landscapeMaxWidth: CGFloat = 500
-private let portraitMaxWidth: CGFloat = 500
-
-struct PosterOverlayComponents: OptionSet {
-
-    let rawValue: Int
-
-    static let playIcon = PosterOverlayComponents(rawValue: 1 << 0)
-    static let progressBar = PosterOverlayComponents(rawValue: 1 << 1)
-    static let seasonEpisodeLabel = PosterOverlayComponents(rawValue: 1 << 2)
-    static let durationLeft = PosterOverlayComponents(rawValue: 1 << 3)
-    static let favoriteIcon = PosterOverlayComponents(rawValue: 1 << 4)
-
-    static let `default`: PosterOverlayComponents = [
-        .progressBar,
-        .favoriteIcon,
-    ]
-
-    static let resume: PosterOverlayComponents = [
-        .playIcon,
-        .progressBar,
-        .seasonEpisodeLabel,
-        .durationLeft,
-        .favoriteIcon,
-    ]
-}
-
-extension EnvironmentValues {
-
-    @Entry
-    var posterOverlayComponents: PosterOverlayComponents = .default
-}
-
 extension View {
-
-    func posterOverlayComponents(_ components: PosterOverlayComponents) -> some View {
-        environment(\.posterOverlayComponents, components)
-    }
 
     func posterOverlayFocus(_ isFocused: Bool) -> some View {
         modifier(PosterOverlayFocusModifier(isFocused: isFocused))
@@ -107,278 +69,513 @@ private struct PosterOverlayFocusModifier: ViewModifier {
     }
 }
 
-struct PosterButton<Item: Poster>: View {
+struct PosterButton<Item: Poster, Overlay: View, Fallback: View>: View {
+    let item: Item
+    let posterType: PosterDisplayType
+    let overlayOptions: PosterButtonOverlayOptions
+    let unplayedIndicatorType: UnplayedIndicatorType
 
-    @EnvironmentTypeValue<Item>(\.posterOverlayRegistry)
-    private var posterOverlayRegistry
-
-    @FocusState
-    private var isFocused: Bool
-
-    private let item: Item
-    private let type: PosterDisplayType
+    private let imageSources: [ImageSource]?
+    private let usesContextMenu: Bool
+    private let usesDelayedOverlayFocus: Bool
     private let action: () -> Void
+    private let fallback: () -> Fallback
+    private let overlay: () -> Overlay
 
     init(
         item: Item,
         type: PosterDisplayType,
-        action: @escaping () -> Void
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
+        action: @escaping () -> Void,
+        @ViewBuilder fallback: @escaping () -> Fallback,
+        @ViewBuilder overlay: @escaping () -> Overlay
     ) {
         self.item = item
-        self.type = type
+        self.posterType = type
+        self.overlayOptions = overlayOptions
+        self.unplayedIndicatorType = unplayedIndicatorType
+        self.imageSources = imageSources
+        self.usesContextMenu = usesContextMenu
+        self.usesDelayedOverlayFocus = usesDelayedOverlayFocus
         self.action = action
+        self.fallback = fallback
+        self.overlay = overlay
     }
 
-    var body: some View {
-        let overlay = posterOverlayRegistry?(item) ??
-            PosterButton.DefaultOverlay(item: item)
-            .eraseToAnyView()
-
+    private var button: some View {
         Button {
             action()
         } label: {
-            PosterImage(
+            PosterButtonContent(
                 item: item,
-                type: type
+                posterType: posterType,
+                overlayOptions: overlayOptions,
+                unplayedIndicatorType: unplayedIndicatorType,
+                imageSources: imageSources,
+                usesDelayedOverlayFocus: usesDelayedOverlayFocus,
+                fallback: fallback,
+                overlay: overlay
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay {
-                overlay
-                    .posterOverlayFocus(isFocused)
-            }
-            .posterStyle(type)
         }
         .buttonStyle(.card)
-        .focused($isFocused)
-        .focusedValue(\.focusedPoster, AnyPoster(item))
         .accessibilityLabel(item.displayTitle)
-        .matchedContextMenu(for: item)
+    }
+
+    var body: some View {
+        if usesContextMenu {
+            button
+                .matchedContextMenu(for: item)
+        } else {
+            button
+        }
     }
 }
 
-extension PosterButton {
+extension PosterButton where Fallback == PosterFallbackContentView {
 
-    struct DefaultOverlay: View {
-
-        @Default(.Customization.Indicators.showUnplayed)
-        private var showUnplayed
-
-        @Default(.Customization.Indicators.showFavorited)
-        private var showFavorited
-        @Default(.Customization.Indicators.showProgress)
-        private var showProgress
-
-        @Environment(\.isPosterFocused)
-        private var isPosterFocused
-
-        @Environment(\.posterOverlayComponents)
-        private var components
-
-        let item: Item
-
-        private let gradientHeight: CGFloat = 68
-
-        private var baseItem: BaseItemDto? {
-            item as? BaseItemDto
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
+        action: @escaping () -> Void,
+        @ViewBuilder overlay: @escaping () -> Overlay
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
+            imageSources: imageSources,
+            usesContextMenu: usesContextMenu,
+            usesDelayedOverlayFocus: usesDelayedOverlayFocus,
+            action: action
+        ) {
+            PosterFallbackContentView(
+                title: item.showTitle ? item.displayTitle : nil,
+                systemName: item.systemImage
+            )
+        } overlay: {
+            overlay()
         }
+    }
+}
 
-        private var overlayOpacity: Double {
-            isPosterFocused ? 1 : 0.35
+extension PosterButton where Overlay == PosterButtonDefaultOverlay<Item> {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
+        action: @escaping () -> Void,
+        @ViewBuilder fallback: @escaping () -> Fallback
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
+            imageSources: imageSources,
+            usesContextMenu: usesContextMenu,
+            usesDelayedOverlayFocus: usesDelayedOverlayFocus,
+            action: action,
+            fallback: fallback
+        ) {
+            PosterButtonDefaultOverlay(
+                item: item,
+                overlayOptions: overlayOptions,
+                unplayedIndicatorType: unplayedIndicatorType
+            )
         }
+    }
+}
 
-        private var favoriteOpacity: Double {
-            isPosterFocused ? 1 : 0.65
+extension PosterButton where Overlay == PosterButtonDefaultOverlay<Item>, Fallback == PosterFallbackContentView {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        imageSources: [ImageSource]? = nil,
+        usesContextMenu: Bool = true,
+        usesDelayedOverlayFocus: Bool = true,
+        action: @escaping () -> Void
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
+            imageSources: imageSources,
+            usesContextMenu: usesContextMenu,
+            usesDelayedOverlayFocus: usesDelayedOverlayFocus,
+            action: action
+        ) {
+            PosterFallbackContentView(
+                title: item.showTitle ? item.displayTitle : nil,
+                systemName: item.systemImage
+            )
+        } overlay: {
+            PosterButtonDefaultOverlay(
+                item: item,
+                overlayOptions: overlayOptions,
+                unplayedIndicatorType: unplayedIndicatorType
+            )
         }
+    }
+}
 
-        private var isPlayed: Bool {
-            baseItem?.userData?.isPlayed == true ||
-                (baseItem?.userData?.playedPercentage ?? 0) >= 100
-        }
+struct PosterButtonOverlayOptions: OptionSet {
+    let rawValue: Int
 
-        private var playedPercentage: Double {
-            (baseItem?.userData?.playedPercentage ?? 0) / 100
-        }
+    static let watched = Self(rawValue: 1 << 0)
+    static let favorite = Self(rawValue: 1 << 1)
+    static let progress = Self(rawValue: 1 << 2)
+    static let unwatched = Self(rawValue: 1 << 3)
+    static let seasonEpisodeLabel = Self(rawValue: 1 << 4)
+    static let durationLeft = Self(rawValue: 1 << 5)
 
-        private var hasPlaybackProgress: Bool {
-            (baseItem?.userData?.playbackPositionTicks ?? 0) > 0
-        }
+    static let `default`: Self = [
+        .watched,
+        .unwatched,
+        .favorite,
+        .progress,
+        .seasonEpisodeLabel,
+        .durationLeft,
+    ]
+}
 
-        private var shouldShowPlayIcon: Bool {
-            guard components.contains(.playIcon),
-                  let baseItem,
-                  baseItem.canBePlayed,
-                  !baseItem.isLiveStream
-            else {
-                return false
+struct PosterButtonContent<Item: Poster, Overlay: View, Fallback: View>: View {
+    @Environment(\.isFocused)
+    private var isFocused
+
+    let item: Item
+    let posterType: PosterDisplayType
+    let overlayOptions: PosterButtonOverlayOptions
+    let unplayedIndicatorType: UnplayedIndicatorType
+    let imageSources: [ImageSource]?
+    let usesDelayedOverlayFocus: Bool
+    let fallback: () -> Fallback
+    let overlay: () -> Overlay
+
+    var body: some View {
+        ZStack {
+            PosterImage(
+                item: item,
+                type: posterType,
+                imageSources: imageSources
+            ) {
+                fallback()
             }
 
-            return isPlayed || showUnplayed != .none || components.contains(.durationLeft)
-        }
-
-        private var playIconSystemName: String {
-            isPlayed ? "arrow.counterclockwise" : "play.fill"
-        }
-
-        private var shouldShowProgressBar: Bool {
-            components.contains(.progressBar) &&
-                showProgress &&
-                hasPlaybackProgress &&
-                !isPlayed
-        }
-
-        private var seasonEpisodeLabel: String? {
-            guard components.contains(.seasonEpisodeLabel),
-                  let baseItem
-            else {
-                return nil
-            }
-
-            if let seasonNumber = baseItem.parentIndexNumber,
-               let episodeNumber = baseItem.indexNumber
-            {
-                return L10n.seasonAndEpisode(String(seasonNumber), String(episodeNumber))
-            }
-
-            return baseItem.seasonEpisodeLabel
-        }
-
-        private var durationLeftLabel: String? {
-            guard components.contains(.durationLeft) else {
-                return nil
-            }
-
-            if hasPlaybackProgress, !isPlayed, let progressLabel = baseItem?.progressLabel {
-                return progressLabel
-            }
-
-            return baseItem?.runTimeLabel
-        }
-
-        private var shouldShowFavoriteIcon: Bool {
-            components.contains(.favoriteIcon) &&
-                showFavorited &&
-                baseItem?.userData?.isFavorite == true
-        }
-
-        private var hasBottomContent: Bool {
-            shouldShowPlayIcon ||
-                shouldShowProgressBar ||
-                seasonEpisodeLabel != nil ||
-                durationLeftLabel != nil
-        }
-
-        @ViewBuilder
-        private var bottomBackdrop: some View {
-            if hasBottomContent {
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        .black.opacity(0.34 * overlayOpacity),
-                        .black.opacity(0.5 * overlayOpacity),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: gradientHeight)
-                .background {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                        .mask(
-                            LinearGradient(
-                                colors: [
-                                    .clear,
-                                    .black.opacity(0.85),
-                                    .black,
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .opacity(overlayOpacity)
-                }
+            if usesDelayedOverlayFocus {
+                overlay().posterOverlayFocus(isFocused)
+            } else {
+                overlay()
             }
         }
+    }
+}
 
-        @ViewBuilder
-        private var favoriteIcon: some View {
-            if shouldShowFavoriteIcon {
+struct PosterButtonDefaultOverlay<Item: Poster>: View {
+    @Environment(\.isFocused)
+    private var isFocused
+
+    let item: Item
+    let overlayOptions: PosterButtonOverlayOptions
+    let unplayedIndicatorType: UnplayedIndicatorType
+
+    private var baseItem: BaseItemDto? {
+        item as? BaseItemDto
+    }
+
+    private var isPlayed: Bool {
+        baseItem?.userData?.isPlayed == true ||
+            (baseItem?.userData?.playedPercentage ?? 0) >= 100
+    }
+
+    private var playbackProgress: Double {
+        baseItem?.userData?.playedPercentage ?? 0.0
+    }
+
+    private var hasPlaybackProgress: Bool {
+        (baseItem?.userData?.playbackPositionTicks ?? 0) > 0
+    }
+
+    private var seasonEpisodeLabel: String? {
+        guard let baseItem else {
+            return nil
+        }
+
+        if let seasonNumber = baseItem.parentIndexNumber,
+           let episodeNumber = baseItem.indexNumber
+        {
+            return L10n.seasonAndEpisode(String(seasonNumber), String(episodeNumber))
+        }
+
+        return baseItem.seasonEpisodeLabel
+    }
+
+    private var durationLeftLabel: String? {
+        if hasPlaybackProgress, !isPlayed, let progressLabel = baseItem?.progressLabel {
+            return progressLabel
+        }
+
+        return baseItem?.runTimeLabel
+    }
+
+    private var canShowStatusIndicator: Bool {
+        baseItem?.canBePlayed == true && baseItem?.isLiveStream != true
+    }
+
+    private var isWatchedBranch: Bool {
+        canShowStatusIndicator && isPlayed
+    }
+
+    private var isProgressBranch: Bool {
+        !isWatchedBranch && hasPlaybackProgress
+    }
+
+    private var isUnwatchedBranch: Bool {
+        canShowStatusIndicator &&
+            !isWatchedBranch &&
+            !isProgressBranch
+    }
+
+    @ViewBuilder
+    private var playOverlay: some View {
+        Image(systemName: isPlayed ? "arrow.counterclockwise" : "play.fill")
+            .font(.caption2)
+            .foregroundStyle(.white)
+            .opacity(isFocused ? 1 : 0.4)
+            .animation(.easeInOut(duration: 0.18), value: isFocused)
+    }
+
+    @ViewBuilder
+    private var favoritedOverlay: some View {
+        VStack {
+            HStack {
+                Spacer(minLength: 0)
                 Image(systemName: "heart.fill")
                     .font(.caption2)
                     .foregroundStyle(.white)
                     .padding(7)
                     .background(.black.opacity(0.55), in: Circle())
                     .padding(12)
-                    .opacity(favoriteOpacity)
+                    .opacity(isFocused ? 1 : 0.4)
+                    .animation(.easeInOut(duration: 0.18), value: isFocused)
             }
+            Spacer(minLength: 0)
         }
+    }
 
-        @ViewBuilder
-        private var metadataLabels: some View {
-            if seasonEpisodeLabel != nil || durationLeftLabel != nil {
-                DotHStack {
-                    if let seasonEpisodeLabel {
-                        Text(seasonEpisodeLabel)
-                    }
+    @ViewBuilder
+    private var progressOverlay: some View {
+        ProgressView(value: playbackProgress / 100)
+            .progressViewStyle(
+                FeatureInlineProgressStyle(
+                    trackColor: .white.opacity(0.2),
+                    fillColor: .white.opacity(1)
+                )
+            )
+            .frame(width: 40)
+            .opacity(isFocused ? 1 : 0.4)
+            .animation(.easeInOut(duration: 0.18), value: isFocused)
+    }
 
-                    if let durationLeftLabel {
-                        Text(durationLeftLabel)
-                    }
-                }
+    @ViewBuilder
+    private var unwatchedCountOverlay: some View {
+        if unplayedIndicatorType == .count,
+           let count = baseItem?.userData?.unplayedItemCount,
+           count > 0
+        {
+            Text(count.description)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 7)
+                .frame(height: 21)
+                .frame(minWidth: 21)
+                .background(.black.opacity(0.55), in: Capsule())
+                .opacity(isFocused ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isFocused)
+        }
+    }
+
+    @ViewBuilder
+    private var durationLeftOverlay: some View {
+        if let durationLeftLabel {
+            Text(durationLeftLabel)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(overlayOpacity))
-                .lineLimit(1)
-            }
+                .foregroundStyle(.white)
+                .opacity(isFocused ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isFocused)
         }
+    }
 
-        @ViewBuilder
-        private var bottomContent: some View {
-            if hasBottomContent {
-                HStack(spacing: 12) {
-                    if shouldShowPlayIcon {
-                        Image(systemName: playIconSystemName)
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(overlayOpacity))
-                    }
-
-                    if shouldShowProgressBar {
-                        ProgressView(value: playedPercentage)
-                            .progressViewStyle(
-                                FeatureInlineProgressStyle(
-                                    trackColor: .white.opacity(0.2 * overlayOpacity),
-                                    fillColor: .white.opacity(overlayOpacity)
-                                )
-                            )
-                            .frame(width: 40)
-                    }
-
-                    metadataLabels
-
-                    Spacer(minLength: 0)
+    @ViewBuilder
+    private var metadataOverlay: some View {
+        if baseItem?.type == .episode {
+            DotHStack {
+                if shouldShowSeasonEpisodeLabel, let seasonEpisodeLabel {
+                    Text(seasonEpisodeLabel)
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .opacity(isFocused ? 1 : 0.4)
+                        .animation(.easeInOut(duration: 0.18), value: isFocused)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
-            }
+
+                if shouldShowDurationLeft {
+                    durationLeftOverlay
+                }
+            }.foregroundStyle(.white).opacity(isFocused ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isFocused)
         }
 
-        var body: some View {
+        if baseItem?.type == .movie, shouldShowDurationLeft {
+            durationLeftOverlay
+        }
+    }
+
+    private var shouldShowWatchedOverlay: Bool {
+        isWatchedBranch &&
+            overlayOptions.contains(.watched)
+    }
+
+    private var shouldShowFavorite: Bool {
+        overlayOptions.contains(.favorite) && baseItem?.userData?.isFavorite == true
+    }
+
+    private var shouldShowProgressOverlay: Bool {
+        isProgressBranch &&
+            overlayOptions.contains(.progress)
+    }
+
+    private var shouldShowUnwatchedOverlay: Bool {
+        isUnwatchedBranch &&
+            overlayOptions.contains(.unwatched)
+    }
+
+    private var shouldShowSeasonEpisodeLabel: Bool {
+        overlayOptions.contains(.seasonEpisodeLabel) &&
+            seasonEpisodeLabel != nil
+    }
+
+    private var shouldShowDurationLeft: Bool {
+        overlayOptions.contains(.durationLeft) &&
+            durationLeftLabel != nil
+    }
+
+    private var shouldShowMetadataOverlay: Bool {
+        switch baseItem?.type {
+        case .episode:
+            shouldShowSeasonEpisodeLabel || shouldShowDurationLeft
+        case .movie:
+            shouldShowDurationLeft
+        default:
+            false
+        }
+    }
+
+    private var shouldShowStatusOverlay: Bool {
+        shouldShowWatchedOverlay ||
+            shouldShowProgressOverlay ||
+            shouldShowUnwatchedOverlay
+    }
+
+    private var shouldShowBottomOverlay: Bool {
+        shouldShowStatusOverlay || shouldShowMetadataOverlay
+    }
+
+    @ViewBuilder
+    private var bottomBackdrop: some View {
+        LinearGradient(
+            colors: [
+                .clear,
+                .black.opacity(0.34),
+                .black.opacity(0.5),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask(
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            .black.opacity(0.85),
+                            .black,
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+        }
+        .opacity(isFocused ? 1 : 0)
+        .animation(.easeInOut(duration: 0.18), value: isFocused)
+    }
+
+    @ViewBuilder
+    private func bottomContent(
+        @ViewBuilder content: () -> some View
+    ) -> some View {
+        VStack {
+            Spacer(minLength: 0)
+
             ZStack(alignment: .bottom) {
                 bottomBackdrop
 
-                bottomContent
+                HStack(alignment: .center, spacing: 12) {
+                    content()
 
-                VStack {
-                    HStack {
-                        Spacer()
-
-                        favoriteIcon
-                    }
-
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
+                .padding(16)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeInOut(duration: 0.18), value: isPosterFocused)
+            .frame(maxWidth: .infinity)
+            .frame(height: 64)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var defaultOverlay: some View {
+        if shouldShowFavorite {
+            favoritedOverlay
+        }
+
+        if shouldShowBottomOverlay {
+            bottomContent {
+                if shouldShowStatusOverlay {
+                    playOverlay
+                }
+
+                if shouldShowProgressOverlay {
+                    progressOverlay
+                } else if shouldShowUnwatchedOverlay {
+                    unwatchedCountOverlay
+                }
+
+                metadataOverlay
+            }
+        }
+    }
+
+    var body: some View {
+        defaultOverlay
     }
 }

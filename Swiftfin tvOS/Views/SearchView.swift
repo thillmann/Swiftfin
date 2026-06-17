@@ -202,7 +202,7 @@ struct SearchView: View {
             type: posterType,
             items: items,
             posterButton: { item in
-                MyPosterButton(item: item, type: posterType) {
+                PosterButton(item: item, type: posterType) {
                     select(item)
                 } overlay: {
                     UnifiedSearchResultPosterOverlay(item: item)

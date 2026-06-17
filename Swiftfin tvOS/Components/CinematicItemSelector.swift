@@ -57,7 +57,7 @@ struct CinematicItemSelector<Item: Poster>: View {
                 type: .landscape,
                 items: items,
                 posterButton: { item in
-                    MyPosterButton(
+                    PosterButton(
                         item: item,
                         type: .landscape,
                         overlayOptions: .default,

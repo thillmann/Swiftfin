@@ -135,12 +135,14 @@ private struct PosterHStackItem<Element> {
     let item: Element
 }
 
-extension PosterHStack where PosterButtonView == MyPosterButton<Element, MyPosterButtonDefaultOverlay<Element>, PosterFallbackContentView> {
+extension PosterHStack where PosterButtonView == PosterButton<Element, PosterButtonDefaultOverlay<Element>, PosterFallbackContentView> {
 
     init(
         title: String? = nil,
         type: PosterDisplayType,
         items: Data,
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
         action: @escaping (Element) -> Void
     ) {
         self.init(
@@ -149,11 +151,11 @@ extension PosterHStack where PosterButtonView == MyPosterButton<Element, MyPoste
             type: type,
             itemContentAspectRatio: nil,
             posterButton: { item in
-                MyPosterButton(
+                PosterButton(
                     item: item,
                     type: type,
-                    overlayOptions: .default,
-                    unplayedIndicatorType: .none
+                    overlayOptions: overlayOptions,
+                    unplayedIndicatorType: unplayedIndicatorType
                 ) {
                     action(item)
                 }

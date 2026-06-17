@@ -28,9 +28,9 @@ extension ItemView.AboutView {
             PosterButton(
                 item: viewModel.item,
                 type: .portrait,
+                overlayOptions: [],
                 action: action
             )
-            .posterOverlayComponents([])
             .frame(height: 405)
         }
 

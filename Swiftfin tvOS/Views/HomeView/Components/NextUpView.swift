@@ -31,7 +31,6 @@ extension HomeView {
                 ) { item in
                     router.route(to: .item(item: item))
                 }
-                .posterOverlayComponents(.resume)
             }
         }
     }

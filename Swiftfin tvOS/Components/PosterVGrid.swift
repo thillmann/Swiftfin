@@ -66,7 +66,7 @@ struct PosterVGrid<Element: Poster>: View {
     }
 
     private func gridCell(for item: Element) -> some View {
-        MyPosterButton(
+        PosterButton(
             item: item,
             type: posterType
         ) {

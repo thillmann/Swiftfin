@@ -30,7 +30,7 @@ extension SeriesEpisodeSelector {
 
         var body: some View {
             VStack(alignment: .leading, spacing: 6) {
-                MyPosterButton(
+                PosterButton(
                     item: entry.episode,
                     type: .landscape,
                     overlayOptions: [.watched, .progress, .unwatched, .durationLeft],
@@ -45,7 +45,6 @@ extension SeriesEpisodeSelector {
                         )
                     )
                 }
-                .posterShadow()
                 .focused($isFocused)
                 .focusedValue(\.focusedPoster, AnyPoster(entry.episode))
                 .offset(y: contentFocusPosterOffset)
