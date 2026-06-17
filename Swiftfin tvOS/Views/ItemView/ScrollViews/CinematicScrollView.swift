@@ -67,32 +67,15 @@ extension ItemView {
             self.content = content()
         }
 
-        private func withBackgroundImageSource(
-            @ViewBuilder content: @escaping (ImageSource) -> some View
-        ) -> some View {
-            let item: BaseItemDto = if viewModel.item.type == .person || viewModel.item.type == .musicArtist,
-                                       let typeViewModel = viewModel as? CollectionItemViewModel,
-                                       let randomItem = typeViewModel.randomItem()
+        private var backgroundItem: BaseItemDto {
+            if viewModel.item.type == .person || viewModel.item.type == .musicArtist,
+               let typeViewModel = viewModel as? CollectionItemViewModel,
+               let randomItem = typeViewModel.randomItem()
             {
-                randomItem
-            } else {
-                viewModel.item
+                return randomItem
             }
 
-            let imageType: ImageType = {
-                switch item.type {
-                case .episode, .musicVideo, .video:
-                    .primary
-                default:
-                    .backdrop
-                }
-            }()
-
-            let imageSource = item.imageSource(imageType, maxWidth: 1920)
-
-            return content(imageSource)
-                .id(imageSource.url?.hashValue)
-                .animation(.linear(duration: 0.1), value: imageSource.url?.hashValue)
+            return viewModel.item
         }
 
         var body: some View {
@@ -103,9 +86,7 @@ extension ItemView {
                 let visibleBottomPadding = 50 * (1 - collapseProgress)
 
                 ZStack {
-                    withBackgroundImageSource { imageSource in
-                        ImageView(imageSource)
-                    }
+                    CinematicBackgroundView(item: backgroundItem)
 
                     ScrollViewReader { scrollProxy in
                         ScrollView(.vertical, showsIndicators: false) {

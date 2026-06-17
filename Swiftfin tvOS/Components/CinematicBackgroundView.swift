@@ -12,83 +12,156 @@ import SwiftUI
 
 struct CinematicBackgroundView: View {
 
-    @ObservedObject
-    var viewModel: Proxy
-
-    @StateObject
-    private var proxy: RotateContentView.Proxy = .init()
-
-    var initialItem: (any Poster)?
-
-    var body: some View {
-        RotateContentView(proxy: proxy)
-            .overlay {
-                bottomBlur
-            }
-            .onAppear {
-                updateBackground(
-                    for: viewModel.currentSelection?.item?._poster ?? initialItem,
-                    transition: .fade
-                )
-            }
-            .onChange(of: viewModel.currentSelection) { _, newSelection in
-                updateBackground(
-                    for: newSelection?.item?._poster,
-                    transition: newSelection?.transition ?? .fade
-                )
-            }
+    private enum Source {
+        case item(AnyPoster?)
+        case selection(Proxy, initialItem: AnyPoster?)
     }
 
-    private var bottomBlur: some View {
-        GeometryReader { proxy in
-            BlurView(style: .dark)
-                .mask {
-                    VStack(spacing: 0) {
-                        LinearGradient(gradient: Gradient(stops: [
-                            .init(color: .white, location: 0),
-                            .init(color: .white.opacity(0.7), location: 0.4),
-                            .init(color: .white.opacity(0), location: 1),
-                        ]), startPoint: .bottom, endPoint: .top)
-                            .frame(height: max(proxy.size.height - 150, 0))
+    private let showsShadowGradient: Bool
+    private let showsBlur: Bool
+    private let source: Source
 
-                        Color.white
+    init(
+        item: (any Poster)?,
+        showsShadowGradient: Bool = false,
+        showsBlur: Bool = true
+    ) {
+        self.showsShadowGradient = showsShadowGradient
+        self.showsBlur = showsBlur
+        self.source = .item(item.map { AnyPoster($0) })
+    }
+
+    init(
+        viewModel: Proxy,
+        initialItem: (any Poster)?,
+        showsShadowGradient: Bool = false,
+        showsBlur: Bool = true
+    ) {
+        self.showsShadowGradient = showsShadowGradient
+        self.showsBlur = showsBlur
+        self.source = .selection(
+            viewModel,
+            initialItem: initialItem.map { AnyPoster($0) }
+        )
+    }
+
+    var body: some View {
+        Group {
+            switch source {
+            case let .item(item):
+                StaticBackgroundContent(
+                    item: item,
+                    showsShadowGradient: showsShadowGradient,
+                    showsBlur: showsBlur
+                )
+            case let .selection(viewModel, initialItem):
+                SelectionBackgroundContent(
+                    viewModel: viewModel,
+                    initialItem: initialItem,
+                    showsShadowGradient: showsShadowGradient,
+                    showsBlur: showsBlur
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+    }
+}
+
+private extension CinematicBackgroundView {
+
+    struct StaticBackgroundContent: View {
+
+        let item: AnyPoster?
+        let showsShadowGradient: Bool
+        let showsBlur: Bool
+
+        @StateObject
+        private var proxy: RotateContentView.Proxy = .init()
+
+        var body: some View {
+            RotateContentView(proxy: proxy)
+                .overlay {
+                    if showsBlur {
+                        cinematicBackgroundBlur
+                    }
+                }
+                .onAppear {
+                    updateCinematicBackground(
+                        for: item?._poster,
+                        transition: .fade,
+                        proxy: proxy
+                    )
+                }
+                .onChange(of: item) { _, newItem in
+                    updateCinematicBackground(
+                        for: newItem?._poster,
+                        transition: .fade,
+                        proxy: proxy
+                    )
+                }
+                .overlay {
+                    if showsShadowGradient {
+                        cinematicBackgroundShadowGradient
                     }
                 }
         }
-        .allowsHitTesting(false)
     }
 
-    private func updateBackground(
-        for item: (any Poster)?,
-        transition: RotateContentView.Transition
-    ) {
-        let imageSources = (
+    struct SelectionBackgroundContent: View {
+
+        @ObservedObject
+        var viewModel: Proxy
+
+        let initialItem: AnyPoster?
+        let showsShadowGradient: Bool
+        let showsBlur: Bool
+
+        @StateObject
+        private var proxy: RotateContentView.Proxy = .init()
+
+        var body: some View {
+            RotateContentView(proxy: proxy)
+                .overlay {
+                    if showsBlur {
+                        cinematicBackgroundBlur
+                    }
+                }
+                .onAppear {
+                    updateCinematicBackground(
+                        for: viewModel.currentSelection?.item?._poster ?? initialItem?._poster,
+                        transition: .fade,
+                        proxy: proxy
+                    )
+                }
+                .onChange(of: viewModel.currentSelection) { _, newSelection in
+                    updateCinematicBackground(
+                        for: newSelection?.item?._poster,
+                        transition: newSelection?.transition ?? .fade,
+                        proxy: proxy
+                    )
+                }
+                .overlay {
+                    if showsShadowGradient {
+                        cinematicBackgroundShadowGradient
+                    }
+                }
+        }
+    }
+}
+
+private enum CinematicBackgroundImageProvider {
+
+    static func imageSources(for item: (any Poster)?) -> [ImageSource] {
+        (
             homeImageSources(for: item) +
                 (item?.cinematicImageSources(maxWidth: nil) ?? []) +
                 (item?.landscapeImageSources(maxWidth: nil) ?? [])
         )
         .filter { $0.url != nil }
-
-        guard imageSources.isNotEmpty else {
-            proxy.update(transition: transition) {
-                Color.clear
-            }
-            return
-        }
-
-        proxy.update(transition: transition) {
-            ImageView(imageSources)
-                .placeholder { _ in
-                    Color.clear
-                }
-                .failure {
-                    Color.clear
-                }
-                .aspectRatio(contentMode: .fill)
-        }
     }
 
-    private func homeImageSources(for item: (any Poster)?) -> [ImageSource] {
+    private static func homeImageSources(for item: (any Poster)?) -> [ImageSource] {
         guard let item, let item = item as? BaseItemDto else {
             return []
         }
@@ -104,6 +177,83 @@ struct CinematicBackgroundView: View {
 
         return [item.imageSource(imageType, maxWidth: 1920)]
     }
+}
+
+private var cinematicBackgroundBlur: some View {
+    GeometryReader { proxy in
+        BlurView(style: .dark)
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(gradient: Gradient(stops: [
+                        .init(color: .white, location: 0),
+                        .init(color: .white.opacity(0.7), location: 0.4),
+                        .init(color: .white.opacity(0), location: 1),
+                    ]), startPoint: .bottom, endPoint: .top)
+                        .frame(height: max(proxy.size.height - 150, 0))
+
+                    Color.white
+                }
+            }
+    }
+    .allowsHitTesting(false)
+}
+
+private var cinematicBackgroundShadowGradient: some View {
+    LinearGradient(
+        stops: [
+            .init(color: .black.opacity(0.36), location: 0),
+            .init(color: .black.opacity(0.24), location: 0.28),
+            .init(color: .black.opacity(0.56), location: 0.62),
+            .init(color: .black.opacity(0.9), location: 1),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    .allowsHitTesting(false)
+}
+
+private func updateCinematicBackground(
+    for item: (any Poster)?,
+    transition: RotateContentView.Transition,
+    proxy: RotateContentView.Proxy
+) {
+    let imageSources = CinematicBackgroundImageProvider.imageSources(for: item)
+
+    guard imageSources.isNotEmpty else {
+        proxy.update(transition: transition) {
+            Color.clear
+        }
+        return
+    }
+
+    proxy.update(transition: transition) {
+        GeometryReader { geometry in
+            ImageView(imageSources)
+                .image { image in
+                    image
+                        .aspectRatio(contentMode: .fill)
+                        .frame(
+                            width: geometry.size.width,
+                            height: geometry.size.height
+                        )
+                        .clipped()
+                }
+                .placeholder { _ in
+                    Color.clear
+                }
+                .failure {
+                    Color.clear
+                }
+                .frame(
+                    width: geometry.size.width,
+                    height: geometry.size.height
+                )
+                .clipped()
+        }
+    }
+}
+
+extension CinematicBackgroundView {
 
     class Proxy: ObservableObject {
 
