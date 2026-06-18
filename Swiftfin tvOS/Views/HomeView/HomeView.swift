@@ -13,11 +13,26 @@ import SwiftUI
 
 struct HomeView: View {
 
+    private enum HomeFocusSection: Hashable {
+        case cinematicResume
+        case nextUp
+    }
+
+    private enum HomeScrollTarget: Hashable {
+        case nextUp
+    }
+
     private let bottomPadding: CGFloat = 80
     private let sectionSpacing: CGFloat = 40
 
     @Router
     private var router
+
+    @FocusState
+    private var focusedSection: HomeFocusSection?
+
+    @State
+    private var revealsNextSection = true
 
     @StateObject
     private var viewModel = HomeViewModel()
@@ -27,31 +42,44 @@ struct HomeView: View {
 
     @ViewBuilder
     private var contentView: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: sectionSpacing) {
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: sectionSpacing) {
 
-                if viewModel.resumeItems.isNotEmpty {
-                    CinematicResumeView(viewModel: viewModel)
+                    if viewModel.resumeItems.isNotEmpty {
+                        CinematicResumeView(
+                            viewModel: viewModel,
+                            revealsNextSection: revealsNextSection
+                        )
+                        .focused($focusedSection, equals: .cinematicResume)
 
-                    NextUpView(viewModel: viewModel.nextUpViewModel)
+                        NextUpView(
+                            viewModel: viewModel.nextUpViewModel,
+                            onFirstPosterFocused: {
+                                scrollToNextUp(with: scrollProxy)
+                            }
+                        )
+                        .id(HomeScrollTarget.nextUp)
+                        .focused($focusedSection, equals: .nextUp)
 
-                    if showRecentlyAdded {
-                        RecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+                        if showRecentlyAdded {
+                            RecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+                        }
+                    } else {
+                        if showRecentlyAdded {
+                            CinematicRecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+                        }
+
+                        NextUpView(viewModel: viewModel.nextUpViewModel)
+                            .safeAreaPadding(.top, 150)
                     }
-                } else {
-                    if showRecentlyAdded {
-                        CinematicRecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+
+                    ForEach(viewModel.libraries) { viewModel in
+                        LatestInLibraryView(viewModel: viewModel)
                     }
-
-                    NextUpView(viewModel: viewModel.nextUpViewModel)
-                        .safeAreaPadding(.top, 150)
                 }
-
-                ForEach(viewModel.libraries) { viewModel in
-                    LatestInLibraryView(viewModel: viewModel)
-                }
+                .padding(.bottom, bottomPadding)
             }
-            .padding(.bottom, bottomPadding)
         }
     }
 
@@ -69,6 +97,16 @@ struct HomeView: View {
             }
         }
         .animation(.linear(duration: 0.1), value: viewModel.state)
+        .onChange(of: focusedSection) { _, section in
+            switch section {
+            case .cinematicResume:
+                revealsNextSection = true
+            case .nextUp:
+                revealsNextSection = false
+            case nil:
+                break
+            }
+        }
         .refreshable {
             viewModel.send(.refresh)
         }
@@ -79,6 +117,12 @@ struct HomeView: View {
         .sinceLastDisappear { _ in
             viewModel.send(.backgroundRefresh)
             viewModel.notificationsReceived.remove(.itemMetadataDidChange)
+        }
+    }
+
+    private func scrollToNextUp(with proxy: ScrollViewProxy) {
+        withAnimation(.easeOut(duration: 0.35)) {
+            proxy.scrollTo(HomeScrollTarget.nextUp, anchor: .top)
         }
     }
 }

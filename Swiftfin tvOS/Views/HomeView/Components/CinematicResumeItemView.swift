@@ -20,6 +20,11 @@ extension HomeView {
             case next
         }
 
+        private struct PendingSelection {
+            let index: Int
+            let backgroundTransition: RotateContentView.Transition
+        }
+
         private let heroBottomPadding: CGFloat = 310
         private let indicatorsBottomPadding: CGFloat = 170
         private let nextSectionRevealHeight: CGFloat = 230
@@ -29,15 +34,22 @@ extension HomeView {
 
         @ObservedObject
         var viewModel: HomeViewModel
+        let revealsNextSection: Bool
 
         @StateObject
-        private var backgroundViewModel: CinematicBackgroundView.Proxy = .init()
+        private var backgroundViewModel: CinematicBackgroundView.Proxy = .init(
+            selectionDebounce: 0.05
+        )
         @State
         private var selectedIndex = 0
         @State
         private var backgroundTransition: RotateContentView.Transition = .fade
         @State
         private var headerOpacity: Double = 1
+        @State
+        private var heroTransitionTask: Task<Void, Never>?
+        @State
+        private var pendingSelection: PendingSelection?
         @State
         private var detailedSelectedItem: BaseItemDto?
         @FocusState
@@ -53,6 +65,10 @@ extension HomeView {
             return items[selectedIndex]
         }
 
+        private var indicatedIndex: Int {
+            pendingSelection?.index ?? selectedIndex
+        }
+
         private var heroItem: BaseItemDto? {
             guard let selectedItem else { return nil }
 
@@ -65,6 +81,10 @@ extension HomeView {
 
         private var iconFont: Font {
             .system(size: FeatureButtonTokens.baseHeight * 0.4, weight: .semibold)
+        }
+
+        private var contentOffset: CGFloat {
+            revealsNextSection ? 0 : -nextSectionRevealHeight
         }
 
         var body: some View {
@@ -101,11 +121,13 @@ extension HomeView {
                     )
             }
             .frame(height: UIScreen.main.bounds.height, alignment: .topLeading)
+            .offset(y: contentOffset)
             .frame(maxWidth: .infinity)
             .frame(
                 height: UIScreen.main.bounds.height - nextSectionRevealHeight,
                 alignment: .top
             )
+            .animation(.easeOut(duration: 0.35), value: revealsNextSection)
             .onAppear {
                 selectCurrentItem()
             }
@@ -113,13 +135,20 @@ extension HomeView {
                 await refreshDetailedSelectedItem()
             }
             .onChange(of: selectedIndex) { _, _ in
-                fadeHeaderIn()
                 selectCurrentItem()
             }
             .onChange(of: items.map(\.id)) { _, _ in
+                heroTransitionTask?.cancel()
+                pendingSelection = nil
+                headerOpacity = 1
                 backgroundTransition = .fade
                 selectedIndex = min(selectedIndex, max(items.count - 1, 0))
                 selectCurrentItem()
+            }
+            .onDisappear {
+                heroTransitionTask?.cancel()
+                pendingSelection = nil
+                headerOpacity = 1
             }
         }
 
@@ -140,7 +169,15 @@ extension HomeView {
                 infoButton(for: item)
                     .focused($focusedAction, equals: .info)
 
-                nextButton
+                if items.count > 1 {
+                    Button {
+                        focusedAction = .next
+                        selectNextItem()
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(iconFont)
+                    }
+                    .buttonStyle(.featureIconButton)
                     .focused($focusedAction, equals: .next)
                     .onMoveCommand { direction in
                         if direction == .right {
@@ -148,6 +185,7 @@ extension HomeView {
                             selectNextItem()
                         }
                     }
+                }
             }
             .focusSection()
             .defaultFocus(
@@ -186,24 +224,21 @@ extension HomeView {
             Button {
                 focusedAction = .next
                 selectNextItem()
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(iconFont)
-            }
-            .buttonStyle(.featureIconButton)
-            .accessibilityLabel(L10n.next)
-            .enabled(items.count > 1)
+            } label: {}
+                .buttonStyle(.borderless)
+                .accessibilityLabel(L10n.next)
+                .enabled(items.count > 1)
         }
 
         private var pageIndicators: some View {
             HStack(spacing: 12) {
                 ForEach(items.indices, id: \.self) { index in
                     Capsule(style: .continuous)
-                        .fill(index == selectedIndex ? .white : .white.opacity(0.35))
-                        .frame(width: index == selectedIndex ? 36 : 10, height: 10)
+                        .fill(index == indicatedIndex ? .white : .white.opacity(0.35))
+                        .frame(width: index == indicatedIndex ? 36 : 10, height: 10)
                         .animation(
                             .spring(response: 0.34, dampingFraction: 0.82),
-                            value: selectedIndex
+                            value: indicatedIndex
                         )
                 }
             }
@@ -214,7 +249,7 @@ extension HomeView {
                     .fill(.black.opacity(0.45))
             }
             .frame(maxWidth: .infinity, alignment: .center)
-            .animation(.easeOut(duration: 0.2), value: selectedIndex)
+            .animation(.easeOut(duration: 0.2), value: indicatedIndex)
         }
 
         private func detailItem(for item: BaseItemDto) -> BaseItemDto {
@@ -230,15 +265,77 @@ extension HomeView {
         private func selectPreviousItem() {
             guard items.isNotEmpty else { return }
 
-            backgroundTransition = .slideFromLeading
-            selectedIndex = (selectedIndex - 1 + items.count) % items.count
+            transitionToItem(
+                at: (indicatedIndex - 1 + items.count) % items.count,
+                backgroundTransition: .parallaxFromLeading
+            )
         }
 
         private func selectNextItem() {
             guard items.isNotEmpty else { return }
 
-            backgroundTransition = .slideFromTrailing
-            selectedIndex = (selectedIndex + 1) % items.count
+            transitionToItem(
+                at: (indicatedIndex + 1) % items.count,
+                backgroundTransition: .parallaxFromTrailing
+            )
+        }
+
+        private func transitionToItem(
+            at index: Int,
+            backgroundTransition: RotateContentView.Transition
+        ) {
+            pendingSelection = PendingSelection(
+                index: index,
+                backgroundTransition: backgroundTransition
+            )
+
+            guard heroTransitionTask == nil else { return }
+
+            heroTransitionTask = Task { @MainActor in
+                withAnimation(.easeOut(duration: 0.18)) {
+                    headerOpacity = 0
+                }
+
+                do {
+                    // Keep the current hero in place until it is fully invisible.
+                    try await Task.sleep(for: .milliseconds(180))
+
+                    while !Task.isCancelled, let selection = pendingSelection {
+                        pendingSelection = nil
+                        self.backgroundTransition = selection.backgroundTransition
+                        selectedIndex = selection.index
+
+                        // Wait until shortly before the reveal settles. If another
+                        // destination is pending, keep the hero hidden and reveal it next.
+                        try await Task.sleep(for: .milliseconds(700))
+
+                        if pendingSelection != nil {
+                            try await Task.sleep(for: .milliseconds(100))
+                            continue
+                        }
+
+                        withAnimation(.easeIn(duration: 0.2)) {
+                            headerOpacity = 1
+                        }
+
+                        try await Task.sleep(for: .milliseconds(200))
+
+                        guard pendingSelection != nil else { break }
+
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            headerOpacity = 0
+                        }
+
+                        try await Task.sleep(for: .milliseconds(180))
+                    }
+                } catch is CancellationError {
+                    // Cancellation is expected when this view disappears or reloads.
+                } catch {
+                    // Timing sleeps have no other expected failure mode.
+                }
+
+                heroTransitionTask = nil
+            }
         }
 
         private func selectCurrentItem() {
@@ -266,21 +363,6 @@ extension HomeView {
                 detailedSelectedItem = fullItem
             } catch {
                 // Keep the lightweight resume item if the full metadata request fails.
-            }
-        }
-
-        private func fadeHeaderIn() {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-
-            withTransaction(transaction) {
-                headerOpacity = 0.2
-            }
-
-            DispatchQueue.main.async {
-                withAnimation(.easeOut(duration: 0.28)) {
-                    headerOpacity = 1
-                }
             }
         }
     }

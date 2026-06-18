@@ -14,6 +14,8 @@ struct RotateContentView: UIViewRepresentable {
         case fade
         case slideFromLeading
         case slideFromTrailing
+        case parallaxFromLeading
+        case parallaxFromTrailing
     }
 
     @ObservedObject
@@ -49,6 +51,7 @@ struct RotateContentView: UIViewRepresentable {
 class UIRotateContentView: UIView {
 
     private(set) var currentView: UIView?
+    private var parallaxAnimator: UIViewPropertyAnimator?
     var proxy: RotateContentView.Proxy
 
     init(initialView: UIView?, proxy: RotateContentView.Proxy) {
@@ -121,6 +124,10 @@ class UIRotateContentView: UIView {
             updateWithSlide(newView, direction: -1)
         case .slideFromTrailing:
             updateWithSlide(newView, direction: 1)
+        case .parallaxFromLeading:
+            updateWithParallax(newView, direction: -1)
+        case .parallaxFromTrailing:
+            updateWithParallax(newView, direction: 1)
         }
     }
 
@@ -156,6 +163,61 @@ class UIRotateContentView: UIView {
             self.currentView?.removeFromSuperview()
             self.currentView = newView
         }
+    }
+
+    private func updateWithParallax(_ newView: UIView, direction: CGFloat) {
+        guard let outgoingView = currentView else { return }
+
+        layoutIfNeeded()
+
+        let imageTravel = bounds.width * 0.08
+        let incomingOffset = imageTravel * direction
+        let outgoingOffset = imageTravel * -direction
+        let revealMask = UIView(
+            frame: CGRect(
+                x: direction > 0 ? newView.bounds.width : 0,
+                y: 0,
+                width: 0,
+                height: newView.bounds.height
+            )
+        )
+
+        revealMask.backgroundColor = .black
+        newView.mask = revealMask
+        newView.alpha = 1
+        newView.transform = CGAffineTransform(translationX: incomingOffset, y: 0)
+
+        let timingParameters = UICubicTimingParameters(
+            controlPoint1: CGPoint(x: 0.8, y: 0),
+            controlPoint2: CGPoint(x: 0.2, y: 1)
+        )
+        let animator = UIViewPropertyAnimator(
+            duration: 0.75,
+            timingParameters: timingParameters
+        )
+
+        animator.addAnimations {
+            revealMask.frame = newView.bounds
+            newView.transform = .identity
+            outgoingView.transform = CGAffineTransform(
+                translationX: outgoingOffset,
+                y: 0
+            )
+        }
+        animator.addCompletion { [weak self, weak outgoingView] position in
+            guard let self else { return }
+
+            if position == .end {
+                outgoingView?.removeFromSuperview()
+                newView.mask = nil
+                self.currentView = newView
+            }
+
+            self.parallaxAnimator = nil
+        }
+
+        parallaxAnimator = animator
+        animator.startAnimation()
     }
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {

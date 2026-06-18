@@ -86,7 +86,7 @@ extension ItemView {
                 let visibleBottomPadding = 50 * (1 - collapseProgress)
 
                 ZStack {
-                    CinematicBackgroundView(item: backgroundItem)
+                    CinematicBackgroundView(item: backgroundItem, showsBlur: false)
 
                     ScrollViewReader { scrollProxy in
                         ScrollView(.vertical, showsIndicators: false) {

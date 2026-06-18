@@ -7,6 +7,7 @@
 //
 
 import Defaults
+import JellyfinAPI
 import SwiftUI
 
 extension HomeView {
@@ -22,6 +23,16 @@ extension HomeView {
         @ObservedObject
         var viewModel: NextUpLibraryViewModel
 
+        let onFirstPosterFocused: () -> Void
+
+        init(
+            viewModel: NextUpLibraryViewModel,
+            onFirstPosterFocused: @escaping () -> Void = {}
+        ) {
+            self.viewModel = viewModel
+            self.onFirstPosterFocused = onFirstPosterFocused
+        }
+
         var body: some View {
             if viewModel.elements.isNotEmpty {
                 PosterHStack(
@@ -29,7 +40,40 @@ extension HomeView {
                     type: nextUpPosterType,
                     items: viewModel.elements
                 ) { item in
-                    router.route(to: .item(item: item))
+                    FocusReportingPosterButton(
+                        item: item,
+                        type: nextUpPosterType,
+                        isFirstItem: item.id != nil && item.id == viewModel.elements.first?.id,
+                        onFirstPosterFocused: onFirstPosterFocused
+                    ) {
+                        router.route(to: .item(item: item))
+                    }
+                }
+            }
+        }
+    }
+
+    private struct FocusReportingPosterButton: View {
+
+        let item: BaseItemDto
+        let type: PosterDisplayType
+        let isFirstItem: Bool
+        let onFirstPosterFocused: () -> Void
+        let action: () -> Void
+
+        @FocusState
+        private var isFocused: Bool
+
+        var body: some View {
+            PosterButton(
+                item: item,
+                type: type,
+                action: action
+            )
+            .focused($isFocused)
+            .onChange(of: isFocused) { _, newValue in
+                if newValue, isFirstItem {
+                    onFirstPosterFocused()
                 }
             }
         }

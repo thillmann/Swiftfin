@@ -272,9 +272,9 @@ extension CinematicBackgroundView {
         private var cancellables = Set<AnyCancellable>()
         private var currentItemSubject = CurrentValueSubject<Selection?, Never>(nil)
 
-        init() {
+        init(selectionDebounce: TimeInterval = 0.5) {
             currentItemSubject
-                .debounce(for: 0.5, scheduler: DispatchQueue.main)
+                .debounce(for: .seconds(selectionDebounce), scheduler: DispatchQueue.main)
                 .removeDuplicates()
                 .sink { newSelection in
                     self.currentSelection = newSelection
