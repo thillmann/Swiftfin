@@ -95,6 +95,12 @@ enum TopShelfResumeCacheWriter {
     ) -> URL? {
         if item.type == .episode, let seriesID = item.seriesID {
             return itemImageURL(
+                itemID: item.id,
+                imageType: .primary,
+                tag: item.imageTags?[ImageType.primary.rawValue],
+                requireTag: true,
+                userSession: userSession
+            ) ?? itemImageURL(
                 itemID: seriesID,
                 imageType: .backdrop,
                 tag: nil,
@@ -105,12 +111,6 @@ enum TopShelfResumeCacheWriter {
                 imageType: .thumb,
                 tag: nil,
                 requireTag: false,
-                userSession: userSession
-            ) ?? itemImageURL(
-                itemID: item.id,
-                imageType: .primary,
-                tag: item.imageTags?[ImageType.primary.rawValue],
-                requireTag: true,
                 userSession: userSession
             )
         }
@@ -224,85 +224,11 @@ enum TopShelfResumeCacheWriter {
         format.scale = 2
 
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        let image = renderer.image { context in
+        let image = renderer.image { _ in
             backdrop.drawAspectFill(in: CGRect(origin: .zero, size: size))
 
-            let colors = [
-                UIColor.black.withAlphaComponent(0.7).cgColor,
-                UIColor.black.withAlphaComponent(0).cgColor,
-            ] as CFArray
-            let locations: [CGFloat] = [0, 0.62]
-
-            if let gradient = CGGradient(
-                colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                colors: colors,
-                locations: locations
-            ) {
-                context.cgContext.drawLinearGradient(
-                    gradient,
-                    start: CGPoint(x: 0, y: size.height / 2),
-                    end: CGPoint(x: size.width * 0.72, y: size.height / 2),
-                    options: []
-                )
-            }
-
-            let contextAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 30, weight: .semibold),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.82),
-                .shadow: NSShadow.topShelf,
-            ]
-            request.entry.contextTitle?.draw(
-                in: CGRect(x: 240, y: 230, width: 700, height: 42),
-                withAttributes: contextAttributes
-            )
-
             if let logo {
-                logo.drawAspectFit(in: CGRect(x: 240, y: 280, width: 520, height: 210))
-            } else {
-                let attributes: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.systemFont(ofSize: 68, weight: .bold),
-                    .foregroundColor: UIColor.white,
-                    .shadow: NSShadow.topShelf,
-                ]
-                request.entry.title.draw(
-                    with: CGRect(x: 240, y: 304, width: 700, height: 160),
-                    options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
-                    attributes: attributes,
-                    context: nil
-                )
-            }
-
-            let metadata = metadataLabel(for: request.entry)
-
-            if !metadata.isEmpty {
-                let metadataAttributes: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.systemFont(ofSize: 27, weight: .medium),
-                    .foregroundColor: UIColor.white.withAlphaComponent(0.9),
-                    .shadow: NSShadow.topShelf,
-                ]
-                metadata.draw(
-                    in: CGRect(x: 240, y: 520, width: 700, height: 38),
-                    withAttributes: metadataAttributes
-                )
-            }
-
-            if let summary = request.entry.summary, !summary.isEmpty {
-                let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.lineSpacing = 5
-                paragraphStyle.lineBreakMode = .byWordWrapping
-
-                let summaryAttributes: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.systemFont(ofSize: 30, weight: .regular),
-                    .foregroundColor: UIColor.white.withAlphaComponent(0.92),
-                    .paragraphStyle: paragraphStyle,
-                    .shadow: NSShadow.topShelf,
-                ]
-                summary.draw(
-                    with: CGRect(x: 240, y: 578, width: 700, height: 132),
-                    options: [.usesLineFragmentOrigin, .usesFontLeading],
-                    attributes: summaryAttributes,
-                    context: nil
-                )
+                logo.drawAspectFit(in: CGRect(x: 120, y: 100, width: 520, height: 200))
             }
         }
 
@@ -326,24 +252,6 @@ enum TopShelfResumeCacheWriter {
         }
 
         return UIImage(data: data)
-    }
-
-    private static func metadataLabel(for entry: TopShelfResumeCache.Entry) -> String {
-        var values: [String] = []
-
-        if let creationDate = entry.creationDate {
-            values.append(String(Calendar.current.component(.year, from: creationDate)))
-        }
-
-        if let genre = entry.genre, !genre.isEmpty {
-            values.append(genre)
-        }
-
-        if let duration = entry.duration, duration > 0 {
-            values.append("\(Int(duration / 60)) min")
-        }
-
-        return values.joined(separator: "  ·  ")
     }
 }
 
@@ -399,16 +307,5 @@ private extension UIImage {
             height: drawSize.height
         )
         draw(in: drawRect)
-    }
-}
-
-private extension NSShadow {
-
-    static var topShelf: NSShadow {
-        let shadow = NSShadow()
-        shadow.shadowColor = UIColor.black.withAlphaComponent(0.7)
-        shadow.shadowBlurRadius = 12
-        shadow.shadowOffset = CGSize(width: 0, height: 3)
-        return shadow
     }
 }

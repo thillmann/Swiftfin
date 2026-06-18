@@ -72,7 +72,7 @@ enum TopShelfResumeCache {
             .appendingPathComponent("Library", isDirectory: true)
             .appendingPathComponent("Caches", isDirectory: true)
             .appendingPathComponent("TopShelfArtwork", isDirectory: true)
-            .appendingPathComponent("\(safeIdentifier)-v5.jpg", isDirectory: false)
+            .appendingPathComponent("\(safeIdentifier)-v6.jpg", isDirectory: false)
     }
 
     private static var fileURL: URL? {
