@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CollectionHStack
 import JellyfinAPI
 import OrderedCollections
 import SwiftUI
@@ -26,34 +25,32 @@ extension ItemView {
         // MARK: - Episode Poster HStack
 
         private func episodeHStack(element: Element) -> some View {
-            VStack(alignment: .leading, spacing: 20) {
+            let entries = element.value.elements.compactMap { episode in
+                SeriesEpisodeSelector.LoadedEpisode(
+                    episode: episode,
+                    seasonID: episode.seasonID
+                )
+            }
+
+            return VStack(alignment: .leading, spacing: 20) {
 
                 HStack {
                     Text(L10n.episodes)
-                        .font(.title2)
+                        .font(.headline)
                         .fontWeight(.semibold)
                         .accessibility(addTraits: [.isHeader])
-                        .padding(.leading, 50)
+                        .padding(.leading, 80)
 
                     Spacer()
                 }
 
-                CollectionHStack(
-                    uniqueElements: element.value.elements,
-                    id: \.unwrappedIDHashOrZero,
-                    columns: 3.5
-                ) { episode in
-                    if let entry = SeriesEpisodeSelector.LoadedEpisode(
-                        episode: episode,
-                        seasonID: episode.seasonID
-                    ) {
+                SeriesEpisodeSelector.EpisodeRow {
+                    ForEach(entries) { entry in
                         SeriesEpisodeSelector.EpisodeCard(entry: entry)
-                            .padding(.horizontal, 4)
+                            .episodeHStackItemFrame()
                     }
                 }
-                .scrollBehavior(.continuousLeadingEdge)
-                .insets(horizontal: EdgeInsets.edgePadding)
-                .itemSpacing(EdgeInsets.edgePadding / 2)
+                .padding(.vertical, 30)
             }
             .focusSection()
         }

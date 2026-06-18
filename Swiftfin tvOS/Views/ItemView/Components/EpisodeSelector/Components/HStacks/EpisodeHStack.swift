@@ -343,7 +343,7 @@ private enum EpisodeScrollTarget: Hashable {
 private struct PlaceholderHStack: View {
 
     var body: some View {
-        EpisodeRow(scrollDisabled: true) {
+        SeriesEpisodeSelector.EpisodeRow(scrollDisabled: true) {
             VStack(alignment: .leading, spacing: 6) {
                 Color.clear
                     .posterStyle(.landscape)
@@ -360,49 +360,52 @@ private struct PlaceholderHStack: View {
     }
 }
 
-private struct EpisodeRow<Content: View>: View {
+extension SeriesEpisodeSelector {
 
-    private let columnCount: CGFloat = 4
-    private let horizontalPadding = EdgeInsets.edgePadding
-    private let itemSpacing: CGFloat = 40
+    struct EpisodeRow<Content: View>: View {
 
-    var scrollDisabled = false
-    let content: () -> Content
+        private let columnCount: CGFloat = 4
+        private let horizontalPadding = EdgeInsets.edgePadding
+        private let itemSpacing: CGFloat = 40
 
-    @State
-    private var contentSize: CGSize = .zero
+        var scrollDisabled = false
+        let content: () -> Content
 
-    private var itemWidth: CGFloat {
-        let availableWidth = contentSize.width > 0 ? contentSize.width : UIScreen.main.bounds.width
-        let width = (
-            availableWidth - horizontalPadding * 2 - itemSpacing * (columnCount - 1)
-        ) / columnCount
+        @State
+        private var contentSize: CGSize = .zero
 
-        return max(width, 1)
-    }
+        private var itemWidth: CGFloat {
+            let availableWidth = contentSize.width > 0 ? contentSize.width : UIScreen.main.bounds.width
+            let width = (
+                availableWidth - horizontalPadding * 2 - itemSpacing * (columnCount - 1)
+            ) / columnCount
 
-    init(
-        scrollDisabled: Bool = false,
-        @ViewBuilder content: @escaping () -> Content
-    ) {
-        self.scrollDisabled = scrollDisabled
-        self.content = content
-    }
-
-    var body: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: itemSpacing) {
-                content()
-            }
-            .scrollTargetLayout()
-            .padding(.horizontal, horizontalPadding)
-            .environment(\.episodeRowItemWidth, itemWidth)
+            return max(width, 1)
         }
-        .scrollIndicators(.hidden)
-        .scrollClipDisabled()
-        .scrollTargetBehavior(.viewAligned)
-        .scrollDisabled(scrollDisabled)
-        .trackingSize($contentSize)
+
+        init(
+            scrollDisabled: Bool = false,
+            @ViewBuilder content: @escaping () -> Content
+        ) {
+            self.scrollDisabled = scrollDisabled
+            self.content = content
+        }
+
+        var body: some View {
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: itemSpacing) {
+                    content()
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal, horizontalPadding)
+                .environment(\.episodeRowItemWidth, itemWidth)
+            }
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
+            .scrollTargetBehavior(.viewAligned)
+            .scrollDisabled(scrollDisabled)
+            .trackingSize($contentSize)
+        }
     }
 }
 
@@ -420,7 +423,7 @@ private extension SeriesEpisodeSelector.EpisodeSelectorSnapshot {
     }
 }
 
-private extension View {
+extension View {
 
     func episodeHStackItemFrame() -> some View {
         modifier(EpisodeHStackItemFrame())
