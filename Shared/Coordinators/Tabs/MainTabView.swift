@@ -7,6 +7,9 @@
 //
 
 import Factory
+#if os(tvOS)
+import JellyfinAPI
+#endif
 import SwiftUI
 
 // TODO: move popup to router
@@ -17,6 +20,11 @@ struct MainTabView: View {
 
     @InjectedObject(\.deepLinkHandler)
     private var deepLinkHandler
+
+    #if os(tvOS)
+    @ObservedObject
+    private var topShelfDeepLinkStore = TopShelfDeepLinkStore.shared
+    #endif
 
     #if os(iOS)
     @StateObject
@@ -87,5 +95,62 @@ struct MainTabView: View {
         .onReceive(deepLinkHandler.$pendingDeepLink.compactMap(\.self)) { _ in
             routePendingDeepLink()
         }
+        #if os(tvOS)
+        .task(id: topShelfDeepLinkStore.pendingURL) {
+            await processTopShelfDeepLink()
+        }
+        #endif
     }
+
+    #if os(tvOS)
+    @MainActor
+    private func processTopShelfDeepLink() async {
+        guard let url = topShelfDeepLinkStore.pendingURL,
+              let destination = topShelfDeepLinkStore.destination(for: url)
+        else {
+            return
+        }
+
+        defer {
+            topShelfDeepLinkStore.consume(url)
+        }
+
+        guard let userSession = Container.shared.currentUserSession(),
+              userSession.user.id == destination.userID
+        else {
+            return
+        }
+
+        let request = Paths.getItem(
+            itemID: destination.itemID,
+            userID: userSession.user.id
+        )
+
+        guard let response = try? await userSession.client.send(request),
+              let homeTab = tabCoordinator.tabs.first(where: { $0.item.id == TabItem.home.id })
+        else {
+            return
+        }
+
+        tabCoordinator.selectedTabID = homeTab.item.id
+
+        switch destination.action {
+        case .display:
+            homeTab.coordinator.push(.item(item: response.value))
+        case .play:
+            let item = response.value
+            let queue: (any MediaPlayerQueue)? = {
+                guard item.type == .episode else { return nil }
+                return EpisodeMediaPlayerQueue(episode: item)
+            }()
+
+            homeTab.coordinator.push(
+                .videoPlayer(
+                    item: item,
+                    queue: queue
+                )
+            )
+        }
+    }
+    #endif
 }

@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import SwiftUI
 
 @main
@@ -27,6 +26,9 @@ struct SwiftfinApp: App {
                 WithUserAuthentication {
                     RootView()
                 }
+            }
+            .onOpenURL { url in
+                TopShelfDeepLinkStore.shared.receive(url)
             }
         }
     }

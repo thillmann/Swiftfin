@@ -119,7 +119,21 @@
 		E1DC9814296DC06200982F06 /* PulseLogHandler in Frameworks */ = {isa = PBXBuildFile; productRef = E1DC9813296DC06200982F06 /* PulseLogHandler */; };
 		E1E2D7BF2E3FD936004E2E5F /* Transmission in Frameworks */ = {isa = PBXBuildFile; productRef = E1E2D7BE2E3FD936004E2E5F /* Transmission */; };
 		E1FADDF12E84B63600FB310E /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E1FADDF02E84B63600FB310E /* StatefulMacros */; };
+		E20000002FCF000000000001 /* TopShelfContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000002FCF000000000101 /* TopShelfContentProvider.swift */; };
+		E20000002FCF000000000002 /* TopShelfResumeCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000002FCF000000000102 /* TopShelfResumeCache.swift */; };
+		E20000002FCF000000000003 /* TVServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53ABFDDB267972BF00886593 /* TVServices.framework */; };
+		E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = E20000002FCF000000000100 /* Swiftfin tvOS Top Shelf.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E20000002FCF000000000005 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5377CBE9263B596A003A4E83 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E20000002FCF000000000011;
+			remoteInfo = "Swiftfin tvOS Top Shelf";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		62666DF927E5012C00EC0ECD /* Embed Frameworks */ = {
@@ -142,6 +156,17 @@
 				62666DFB27E5013700EC0ECD /* TVVLCKit.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E20000002FCF000000000007 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -200,6 +225,11 @@
 		628B95232670CABD0091AF3B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		637FCAF3287B5B2600C0A353 /* UDPBroadcast.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = UDPBroadcast.xcframework; path = Carthage/Build/UDPBroadcast.xcframework; sourceTree = "<group>"; };
 		E1B2AB9628808CDF0072B3B9 /* GoogleCast.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GoogleCast.xcframework; path = Carthage/Build/GoogleCast.xcframework; sourceTree = "<group>"; };
+		E20000002FCF000000000100 /* Swiftfin tvOS Top Shelf.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Swiftfin tvOS Top Shelf.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E20000002FCF000000000101 /* TopShelfContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopShelfContentProvider.swift; sourceTree = "<group>"; };
+		E20000002FCF000000000102 /* TopShelfResumeCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TopShelfResumeCache.swift; path = "Swiftfin tvOS/Services/TopShelfResumeCache.swift"; sourceTree = SOURCE_ROOT; };
+		E20000002FCF000000000103 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E20000002FCF000000000104 /* Swiftfin-tvOS-Top-Shelf.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Swiftfin-tvOS-Top-Shelf.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -404,6 +434,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E20000002FCF000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E20000002FCF000000000003 /* TVServices.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -412,6 +450,7 @@
 			children = (
 				E14560852DFCAE51008FF700 /* Swiftfin */,
 				E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */,
+				E20000002FCF000000000105 /* Swiftfin tvOS Top Shelf */,
 				E14563272DFCAE6E008FF700 /* Shared */,
 				E1456FC82DFCB323008FF700 /* Translations */,
 				5377CBF2263B596A003A4E83 /* Products */,
@@ -426,6 +465,7 @@
 			children = (
 				5377CBF1263B596A003A4E83 /* Swiftfin iOS.app */,
 				535870602669D21600D05A09 /* Swiftfin tvOS.app */,
+				E20000002FCF000000000100 /* Swiftfin tvOS Top Shelf.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -488,6 +528,25 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		E20000002FCF000000000105 /* Swiftfin tvOS Top Shelf */ = {
+			isa = PBXGroup;
+			children = (
+				E20000002FCF000000000101 /* TopShelfContentProvider.swift */,
+				E20000002FCF000000000102 /* TopShelfResumeCache.swift */,
+				E20000002FCF000000000106 /* Resources */,
+			);
+			path = "Swiftfin tvOS Top Shelf";
+			sourceTree = "<group>";
+		};
+		E20000002FCF000000000106 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E20000002FCF000000000103 /* Info.plist */,
+				E20000002FCF000000000104 /* Swiftfin-tvOS-Top-Shelf.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -503,10 +562,12 @@
 				5358705D2669D21600D05A09 /* Frameworks */,
 				5358705E2669D21600D05A09 /* Resources */,
 				62666DFC27E5013700EC0ECD /* Embed Frameworks */,
+				E20000002FCF000000000007 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E20000002FCF000000000006 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E14563272DFCAE6E008FF700 /* Shared */,
@@ -625,6 +686,25 @@
 			productReference = 5377CBF1263B596A003A4E83 /* Swiftfin iOS.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E20000002FCF000000000011 /* Swiftfin tvOS Top Shelf */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E20000002FCF000000000014 /* Build configuration list for PBXNativeTarget "Swiftfin tvOS Top Shelf" */;
+			buildPhases = (
+				E20000002FCF000000000009 /* Sources */,
+				E20000002FCF000000000008 /* Frameworks */,
+				E20000002FCF000000000010 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Swiftfin tvOS Top Shelf";
+			packageProductDependencies = (
+			);
+			productName = "Swiftfin tvOS Top Shelf";
+			productReference = E20000002FCF000000000100 /* Swiftfin tvOS Top Shelf.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -643,6 +723,9 @@
 					};
 					5377CBF0263B596A003A4E83 = {
 						CreatedOnToolsVersion = 12.5;
+					};
+					E20000002FCF000000000011 = {
+						CreatedOnToolsVersion = 26.0;
 					};
 				};
 			};
@@ -740,6 +823,7 @@
 			targets = (
 				5377CBF0263B596A003A4E83 /* Swiftfin iOS */,
 				5358705F2669D21600D05A09 /* Swiftfin tvOS */,
+				E20000002FCF000000000011 /* Swiftfin tvOS Top Shelf */,
 			);
 		};
 /* End PBXProject section */
@@ -753,6 +837,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5377CBEF263B596A003A4E83 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E20000002FCF000000000010 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -933,7 +1024,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E20000002FCF000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E20000002FCF000000000001 /* TopShelfContentProvider.swift in Sources */,
+				E20000002FCF000000000002 /* TopShelfResumeCache.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E20000002FCF000000000006 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E20000002FCF000000000011 /* Swiftfin tvOS Top Shelf */;
+			targetProxy = E20000002FCF000000000005 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		535870722669D21700D05A09 /* Debug */ = {
@@ -944,6 +1052,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Swiftfin tvOS/Resources/Swiftfin-tvOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 70;
@@ -976,6 +1085,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Swiftfin tvOS/Resources/Swiftfin-tvOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 70;
@@ -1205,6 +1315,67 @@
 			};
 			name = Release;
 		};
+		E20000002FCF000000000012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = "Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 70;
+				DEVELOPMENT_TEAM = S77VC3X88P;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Swiftfin tvOS Top Shelf/Resources/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4.1;
+				PRODUCT_BUNDLE_IDENTIFIER = timo.jellyfin.swiftfin.TopShelf;
+				PRODUCT_MODULE_NAME = SwiftfinTopShelf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Debug;
+		};
+		E20000002FCF000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = "Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 70;
+				DEVELOPMENT_TEAM = S77VC3X88P;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Swiftfin tvOS Top Shelf/Resources/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4.1;
+				PRODUCT_BUNDLE_IDENTIFIER = timo.jellyfin.swiftfin.TopShelf;
+				PRODUCT_MODULE_NAME = SwiftfinTopShelf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1231,6 +1402,15 @@
 			buildConfigurations = (
 				5377CC1C263B596B003A4E83 /* Debug */,
 				5377CC1D263B596B003A4E83 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E20000002FCF000000000014 /* Build configuration list for PBXNativeTarget "Swiftfin tvOS Top Shelf" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E20000002FCF000000000012 /* Debug */,
+				E20000002FCF000000000013 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

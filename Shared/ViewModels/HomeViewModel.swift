@@ -97,6 +97,12 @@ final class HomeViewModel: ViewModel, Stateful {
                     await MainActor.run {
                         guard let self else { return }
                         self.resumeItems.elements = resumeItems
+                        #if os(tvOS)
+                        TopShelfResumeCacheWriter.write(
+                            items: resumeItems,
+                            userSession: self.userSession
+                        )
+                        #endif
                         self.backgroundStates.remove(.refresh)
                     }
                 } catch is CancellationError {
@@ -192,6 +198,12 @@ final class HomeViewModel: ViewModel, Stateful {
 
         await MainActor.run {
             self.resumeItems.elements = resumeItems
+            #if os(tvOS)
+            TopShelfResumeCacheWriter.write(
+                items: resumeItems,
+                userSession: userSession
+            )
+            #endif
             self.libraries = libraries
         }
     }
