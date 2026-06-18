@@ -16,10 +16,8 @@ struct HomeView: View {
     private enum HomeFocusSection: Hashable {
         case cinematicResume
         case nextUp
-    }
-
-    private enum HomeScrollTarget: Hashable {
-        case nextUp
+        case recentlyAdded
+        case library(ObjectIdentifier)
     }
 
     private let bottomPadding: CGFloat = 80
@@ -32,7 +30,7 @@ struct HomeView: View {
     private var focusedSection: HomeFocusSection?
 
     @State
-    private var revealsNextSection = true
+    private var heroPresentation: HeroScrollPresentation = .hero
 
     @StateObject
     private var viewModel = HomeViewModel()
@@ -42,44 +40,46 @@ struct HomeView: View {
 
     @ViewBuilder
     private var contentView: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: sectionSpacing) {
+        HeroScrollView(
+            presentation: $heroPresentation,
+            belowHeroAnchor: UnitPoint(x: 0.5, y: 0.16)
+        ) {
+            LazyVStack(alignment: .leading, spacing: sectionSpacing) {
 
-                    if viewModel.resumeItems.isNotEmpty {
-                        CinematicResumeView(
-                            viewModel: viewModel,
-                            revealsNextSection: revealsNextSection
-                        )
-                        .focused($focusedSection, equals: .cinematicResume)
+                if viewModel.resumeItems.isNotEmpty {
+                    CinematicResumeView(
+                        viewModel: viewModel,
+                        presentation: heroPresentation
+                    )
+                    .id(HeroScrollPresentation.hero)
+                    .focused($focusedSection, equals: .cinematicResume)
 
-                        NextUpView(
-                            viewModel: viewModel.nextUpViewModel,
-                            onFirstPosterFocused: {
-                                scrollToNextUp(with: scrollProxy)
-                            }
-                        )
-                        .id(HomeScrollTarget.nextUp)
+                    NextUpView(viewModel: viewModel.nextUpViewModel)
+                        .id(HeroScrollPresentation.belowHero)
                         .focused($focusedSection, equals: .nextUp)
 
-                        if showRecentlyAdded {
-                            RecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
-                        }
-                    } else {
-                        if showRecentlyAdded {
-                            CinematicRecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
-                        }
-
-                        NextUpView(viewModel: viewModel.nextUpViewModel)
-                            .safeAreaPadding(.top, 150)
+                    if showRecentlyAdded {
+                        RecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+                            .focused($focusedSection, equals: .recentlyAdded)
+                    }
+                } else {
+                    if showRecentlyAdded {
+                        CinematicRecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
                     }
 
-                    ForEach(viewModel.libraries) { viewModel in
-                        LatestInLibraryView(viewModel: viewModel)
-                    }
+                    NextUpView(viewModel: viewModel.nextUpViewModel)
+                        .safeAreaPadding(.top, 150)
                 }
-                .padding(.bottom, bottomPadding)
+
+                ForEach(viewModel.libraries) { viewModel in
+                    LatestInLibraryView(viewModel: viewModel)
+                        .focused(
+                            $focusedSection,
+                            equals: .library(ObjectIdentifier(viewModel))
+                        )
+                }
             }
+            .padding(.bottom, bottomPadding)
         }
     }
 
@@ -98,11 +98,17 @@ struct HomeView: View {
         }
         .animation(.linear(duration: 0.1), value: viewModel.state)
         .onChange(of: focusedSection) { _, section in
+            guard viewModel.resumeItems.isNotEmpty else { return }
+
             switch section {
             case .cinematicResume:
-                revealsNextSection = true
-            case .nextUp:
-                revealsNextSection = false
+                withAnimation(.easeOut(duration: 0.35)) {
+                    heroPresentation = .hero
+                }
+            case .nextUp, .recentlyAdded, .library:
+                withAnimation(.easeOut(duration: 0.35)) {
+                    heroPresentation = .belowHero
+                }
             case nil:
                 break
             }
@@ -117,12 +123,6 @@ struct HomeView: View {
         .sinceLastDisappear { _ in
             viewModel.send(.backgroundRefresh)
             viewModel.notificationsReceived.remove(.itemMetadataDidChange)
-        }
-    }
-
-    private func scrollToNextUp(with proxy: ScrollViewProxy) {
-        withAnimation(.easeOut(duration: 0.35)) {
-            proxy.scrollTo(HomeScrollTarget.nextUp, anchor: .top)
         }
     }
 }

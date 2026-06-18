@@ -34,7 +34,7 @@ extension HomeView {
 
         @ObservedObject
         var viewModel: HomeViewModel
-        let revealsNextSection: Bool
+        let presentation: HeroScrollPresentation
 
         @StateObject
         private var backgroundViewModel: CinematicBackgroundView.Proxy = .init(
@@ -84,7 +84,7 @@ extension HomeView {
         }
 
         private var contentOffset: CGFloat {
-            revealsNextSection ? 0 : -nextSectionRevealHeight
+            presentation == .hero ? 0 : -nextSectionRevealHeight
         }
 
         var body: some View {
@@ -127,7 +127,6 @@ extension HomeView {
                 height: UIScreen.main.bounds.height - nextSectionRevealHeight,
                 alignment: .top
             )
-            .animation(.easeOut(duration: 0.35), value: revealsNextSection)
             .onAppear {
                 selectCurrentItem()
             }

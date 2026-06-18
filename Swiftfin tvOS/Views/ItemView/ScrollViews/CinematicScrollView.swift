@@ -324,6 +324,7 @@ extension ItemView {
                         .padding(.leading, 150)
                     }
                 }
+                .padding(.bottom, 40)
             }
             .padding(.leading, 80)
             .padding(.trailing, 50)
