@@ -9,7 +9,6 @@
 #if !os(tvOS)
 import CollectionHStack
 #endif
-import CollectionVGrid
 import Combine
 import Defaults
 import Foundation
@@ -257,16 +256,18 @@ extension EpisodeMediaPlayerQueue {
                 switch selectionViewModel.state {
                 case .content:
                     if selectionViewModel.elements.isNotEmpty {
-                        CollectionVGrid(
-                            uniqueElements: selectionViewModel.elements,
-                            layout: .columns(
-                                1,
-                                insets: .edgeInsets
-                            )
-                        ) { item in
-                            EpisodeRow(episode: item) {
-                                action(item)
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.flexible())]) {
+                                ForEach(
+                                    selectionViewModel.elements,
+                                    id: \.unwrappedIDHashOrZero
+                                ) { item in
+                                    EpisodeRow(episode: item) {
+                                        action(item)
+                                    }
+                                }
                             }
+                            .padding(.edgeInsets)
                         }
                     }
                 case .initial, .refreshing:
@@ -305,6 +306,9 @@ extension EpisodeMediaPlayerQueue {
             #if !os(tvOS)
             @Environment(\.safeAreaInsets)
             private var safeAreaInsets: EdgeInsets
+            #else
+            @EnvironmentObject
+            private var manager: MediaPlayerManager
             #endif
 
             @ObservedObject
@@ -315,15 +319,26 @@ extension EpisodeMediaPlayerQueue {
             @ViewBuilder
             private var contentView: some View {
                 #if os(tvOS)
-                SeriesEpisodeSelector.EpisodeRow(columnCount: 5) {
-                    ForEach(
-                        selectionViewModel.elements,
-                        id: \.unwrappedIDHashOrZero
-                    ) { episode in
-                        EpisodeButton(episode: episode) {
-                            action(episode)
+                ScrollViewReader { proxy in
+                    SeriesEpisodeSelector.EpisodeRow(columnCount: 5) {
+                        ForEach(
+                            selectionViewModel.elements,
+                            id: \.unwrappedIDHashOrZero
+                        ) { episode in
+                            EpisodeButton(episode: episode) {
+                                action(episode)
+                            }
+                            .episodeHStackItemFrame()
+                            .id(episode.unwrappedIDHashOrZero)
                         }
-                        .episodeHStackItemFrame()
+                    }
+                    .onFirstAppear {
+                        DispatchQueue.main.async {
+                            proxy.scrollTo(manager.item.unwrappedIDHashOrZero, anchor: .leading)
+                        }
+                    }
+                    .onChange(of: manager.item.id) { _, _ in
+                        proxy.scrollTo(manager.item.unwrappedIDHashOrZero, anchor: .leading)
                     }
                 }
                 .padding(.top, EdgeInsets.edgePadding / 2)
