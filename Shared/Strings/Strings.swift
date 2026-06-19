@@ -776,6 +776,8 @@ internal enum L10n {
   internal static let gesturesUnlocked = L10n.tr("Localizable", "gesturesUnlocked", fallback: "Gestures unlocked")
   /// Gbps
   internal static let gigabitsPerSecond = L10n.tr("Localizable", "gigabitsPerSecond", fallback: "Gbps")
+  /// Go to Show
+  internal static let goToShow = L10n.tr("Localizable", "goToShow", fallback: "Go to Show")
   /// Green
   internal static let green = L10n.tr("Localizable", "green", fallback: "Green")
   /// Grid

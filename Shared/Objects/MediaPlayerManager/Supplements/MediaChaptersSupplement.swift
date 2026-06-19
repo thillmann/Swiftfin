@@ -77,6 +77,16 @@ extension MediaChaptersSupplement {
             return chapters.first { $0.id == id }
         }
 
+        private var itemLandscapeImageSources: [ImageSource] {
+            if manager.item.type == .episode {
+                return [manager.item.imageSource(.primary, maxWidth: 300, quality: 90)]
+            }
+
+            return manager.item.landscapeImageSources(maxWidth: 300, quality: 90) + [
+                manager.item.imageSource(.primary, maxWidth: 300, quality: 90),
+            ]
+        }
+
         private func updateActiveChapter(for seconds: Duration) {
             let newID = supplement.chapterID(at: seconds)
             if newID != supplement.activeChapterID {
@@ -149,16 +159,19 @@ extension MediaChaptersSupplement {
         }
 
         var tvOSView: some View {
-            CollectionHStack(
-                uniqueElements: chapters,
-                id: \.unwrappedIDHashOrZero,
-                layout: .grid(columns: 5, rows: 1, columnTrailingInset: 0)
-//                layout: .minimumWidth(columnWidth: 170, rows: 1)
-            ) { chapter in
-                ChapterButton(supplement: supplement, chapter: chapter) {
-                    guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
-                    manager.proxy?.setSeconds(startSeconds)
-                    manager.setPlaybackRequestStatus(status: .playing)
+            SeriesEpisodeSelector.EpisodeRow(columnCount: 4.5) {
+                ForEach(chapters, id: \.unwrappedIDHashOrZero) { chapter in
+                    ChapterButton(
+                        supplement: supplement,
+                        chapter: chapter,
+                        imageSources: itemLandscapeImageSources
+                    ) {
+                        guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
+                        manager.proxy?.setSeconds(startSeconds)
+                        manager.setPlaybackRequestStatus(status: .playing)
+                    }
+                    .episodeHStackItemFrame()
+                    .id(chapter.unwrappedIDHashOrZero)
                 }
             }
             //            .proxy(collectionHStackProxy)
@@ -168,6 +181,7 @@ extension MediaChaptersSupplement {
             //                    collectionHStackProxy.scrollTo(id: currentChapter.unwrappedIDHashOrZero, animated: false)
             //                }
             //            }
+            .fixedSize(horizontal: false, vertical: true)
             .ignoresSafeArea(.container, edges: .horizontal)
             .focusSection()
             .onReceive(manager.secondsBox.$value, perform: updateActiveChapter(for:))
@@ -255,21 +269,132 @@ extension MediaChaptersSupplement {
 
         struct ChapterButton: View {
 
+            @Default(.accentColor)
+            private var accentColor
+
             @ObservedObject
             var supplement: MediaChaptersSupplement
 
             let chapter: ChapterInfo.FullInfo
+            let imageSources: [ImageSource]?
             let action: () -> Void
 
+            init(
+                supplement: MediaChaptersSupplement,
+                chapter: ChapterInfo.FullInfo,
+                imageSources: [ImageSource]? = nil,
+                action: @escaping () -> Void
+            ) {
+                self.supplement = supplement
+                self.chapter = chapter
+                self.imageSources = imageSources
+                self.action = action
+            }
+
+            private var isCurrentChapter: Bool {
+                chapter.id == supplement.activeChapterID
+            }
+
             var body: some View {
-                SupplementPosterButton(
-                    item: chapter,
-                    action: action
-                ) {
-                    ChapterContent(chapter: chapter)
+                Group {
+                    #if os(tvOS)
+                    PosterButton(
+                        item: chapter,
+                        type: .landscape,
+                        imageSources: imageSources,
+                        usesContextMenu: false,
+                        action: action
+                    ) {
+                        PosterFallbackContentView(
+                            title: chapter.displayTitle,
+                            systemName: chapter.systemImage
+                        )
+                    } overlay: {
+                        ChapterPosterOverlay(
+                            chapter: chapter,
+                            isCurrentChapter: isCurrentChapter,
+                            accentColor: accentColor
+                        )
+                    }
+                    #else
+                    SupplementPosterButton(
+                        item: chapter,
+                        action: action
+                    ) {
+                        ChapterContent(chapter: chapter)
+                    }
+                    #endif
                 }
-                .isSelected(chapter.id == supplement.activeChapterID)
+                .isSelected(isCurrentChapter)
             }
         }
+
+        #if os(tvOS)
+        private struct ChapterPosterOverlay: View {
+
+            let chapter: ChapterInfo.FullInfo
+            let isCurrentChapter: Bool
+            let accentColor: Color
+
+            var body: some View {
+                ZStack {
+                    VStack {
+                        Spacer(minLength: 0)
+
+                        ZStack(alignment: .bottom) {
+                            bottomBackdrop
+
+                            DotHStack {
+                                Text(chapter.displayTitle)
+
+                                Text(chapter.chapterInfo.startSeconds ?? .zero, format: .runtime)
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 64)
+                    }
+
+                    if isCurrentChapter {
+                        ContainerRelativeShape()
+                            .stroke(accentColor, lineWidth: 12)
+                            .clipped()
+                    }
+                }
+            }
+
+            private var bottomBackdrop: some View {
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        .black.opacity(0.34),
+                        .black.opacity(0.5),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .mask(
+                            LinearGradient(
+                                colors: [
+                                    .clear,
+                                    .black.opacity(0.85),
+                                    .black,
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+            }
+        }
+        #endif
     }
 }

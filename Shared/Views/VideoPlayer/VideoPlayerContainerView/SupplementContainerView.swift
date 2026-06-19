@@ -171,12 +171,16 @@ extension VideoPlayer.UIVideoPlayerContainerViewController {
                     tabButtons
 
                     supplementContent
+                        .padding(
+                            .top,
+                            UIDevice.isTV && !containerState.isGuestSupplement ? EdgeInsets.edgePadding / 2 : 0
+                        )
                         .isVisible(containerState.isPresentingSupplement)
                         .disabled(!containerState.isPresentingSupplement)
                         .animation(.linear(duration: 0.25), value: containerState.selectedSupplement?.id)
                 }
                 .isVisible(isPresentingOverlay && !isScrubbing)
-                .padding(.top, EdgeInsets.edgeInsets.bottom / (UIDevice.isTV ? 2 : 1))
+                .padding(.top, EdgeInsets.edgeInsets.bottom / (UIDevice.isTV ? 8 : 1))
                 .animation(.linear(duration: 0.25), value: isPresentingOverlay)
                 .animation(.linear(duration: 0.1), value: isScrubbing)
                 .animation(.bouncy(duration: 0.25, extraBounce: 0.1), value: currentSupplements)

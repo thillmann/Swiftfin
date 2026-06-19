@@ -296,6 +296,11 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
     let item: Item
     let overlayOptions: PosterButtonOverlayOptions
     let unplayedIndicatorType: UnplayedIndicatorType
+    var alwaysShowsBottomContent: Bool = false
+
+    private var isBottomContentVisible: Bool {
+        isFocused || alwaysShowsBottomContent
+    }
 
     private var baseItem: BaseItemDto? {
         item as? BaseItemDto
@@ -359,8 +364,8 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
         Image(systemName: isPlayed ? "arrow.counterclockwise" : "play.fill")
             .font(.caption2)
             .foregroundStyle(.white)
-            .opacity(isFocused ? 1 : 0.4)
-            .animation(.easeInOut(duration: 0.18), value: isFocused)
+            .opacity(isBottomContentVisible ? 1 : 0.4)
+            .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
     }
 
     @ViewBuilder
@@ -391,8 +396,8 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
                 )
             )
             .frame(width: 40)
-            .opacity(isFocused ? 1 : 0.4)
-            .animation(.easeInOut(duration: 0.18), value: isFocused)
+            .opacity(isBottomContentVisible ? 1 : 0.4)
+            .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
     }
 
     @ViewBuilder
@@ -408,8 +413,8 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
                 .frame(height: 21)
                 .frame(minWidth: 21)
                 .background(.black.opacity(0.55), in: Capsule())
-                .opacity(isFocused ? 1 : 0.4)
-                .animation(.easeInOut(duration: 0.18), value: isFocused)
+                .opacity(isBottomContentVisible ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
         }
     }
 
@@ -419,8 +424,8 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
             Text(durationLeftLabel)
                 .font(.caption2)
                 .foregroundStyle(.white)
-                .opacity(isFocused ? 1 : 0.4)
-                .animation(.easeInOut(duration: 0.18), value: isFocused)
+                .opacity(isBottomContentVisible ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
         }
     }
 
@@ -432,15 +437,15 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
                     Text(seasonEpisodeLabel)
                         .font(.caption2)
                         .foregroundStyle(.white)
-                        .opacity(isFocused ? 1 : 0.4)
-                        .animation(.easeInOut(duration: 0.18), value: isFocused)
+                        .opacity(isBottomContentVisible ? 1 : 0.4)
+                        .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
                 }
 
                 if shouldShowDurationLeft {
                     durationLeftOverlay
                 }
-            }.foregroundStyle(.white).opacity(isFocused ? 1 : 0.4)
-                .animation(.easeInOut(duration: 0.18), value: isFocused)
+            }.foregroundStyle(.white).opacity(isBottomContentVisible ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
         }
 
         if baseItem?.type == .movie, shouldShowDurationLeft {
@@ -525,8 +530,8 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
                     )
                 )
         }
-        .opacity(isFocused ? 1 : 0)
-        .animation(.easeInOut(duration: 0.18), value: isFocused)
+        .opacity(isBottomContentVisible ? 1 : 0)
+        .animation(.easeInOut(duration: 0.18), value: isBottomContentVisible)
     }
 
     @ViewBuilder

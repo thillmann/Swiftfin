@@ -277,7 +277,7 @@ extension VideoPlayer {
 
         private var regularSupplementContainerOffset: CGFloat {
             if UIDevice.isTV {
-                view.bounds.height / 3 + EdgeInsets.edgePadding * 2
+                view.bounds.height / 3 + EdgeInsets.edgePadding - 20
             } else {
                 200.0 + EdgeInsets.edgePadding * 2
             }

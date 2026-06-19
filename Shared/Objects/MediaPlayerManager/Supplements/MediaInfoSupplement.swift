@@ -29,11 +29,19 @@ extension MediaInfoSupplement {
 
     private struct InfoOverlay: PlatformView {
 
+        private enum ActionFocus: Hashable {
+            case fromBeginning
+            case goToShow
+        }
+
         @Environment(\.safeAreaInsets)
         private var safeAreaInsets: EdgeInsets
 
         @FocusState
-        private var isResetButtonFocused: Bool
+        private var focusedAction: ActionFocus?
+
+        @Router
+        private var router
 
         @EnvironmentObject
         private var containerState: VideoPlayerContainerState
@@ -41,6 +49,47 @@ extension MediaInfoSupplement {
         private var manager: MediaPlayerManager
 
         let item: BaseItemDto
+
+        private var contentVerticalAlignment: VerticalAlignment {
+            #if os(tvOS)
+            .center
+            #else
+            .bottom
+            #endif
+        }
+
+        private var posterDisplayType: PosterDisplayType {
+            #if os(tvOS)
+            .landscape
+            #else
+            item.preferredPosterDisplayType
+            #endif
+        }
+
+        private var posterWidth: CGFloat? {
+            #if os(tvOS)
+            300
+            #else
+            nil
+            #endif
+        }
+
+        private var posterImageSources: [ImageSource]? {
+            #if os(tvOS)
+            guard item.type == .episode else { return nil }
+            return [item.imageSource(.primary, maxWidth: 300, quality: 90)]
+            #else
+            nil
+            #endif
+        }
+
+        private var overviewFont: Font {
+            #if os(tvOS)
+            item.type == .episode ? .caption : .subheadline
+            #else
+            .subheadline
+            #endif
+        }
 
         @ViewBuilder
         private var accessoryView: some View {
@@ -75,6 +124,9 @@ extension MediaInfoSupplement {
                 manager.setPlaybackRequestStatus(status: .playing)
                 containerState.select(supplement: nil)
             } label: {
+                #if os(tvOS)
+                Label(L10n.fromBeginning, systemImage: "play.fill")
+                #else
                 ZStack {
                     RoundedRectangle(cornerRadius: 7)
                         .foregroundStyle(.white)
@@ -84,13 +136,50 @@ extension MediaInfoSupplement {
                         .fontWeight(.semibold)
                         .foregroundStyle(.black)
                 }
+                #endif
             }
-            .buttonStyle(.card)
             #if os(tvOS)
-                .focused($isResetButtonFocused)
+            .focused($focusedAction, equals: .fromBeginning)
+            .buttonStyle(
+                SeasonButtonStyle(
+                    isFocused: focusedAction == .fromBeginning,
+                    isSelected: true,
+                    width: 320
+                )
+            )
+            .focusEffectDisabled()
+            #else
+            .buttonStyle(.card)
+            .frame(height: 40)
             #endif
-                .frame(height: UIDevice.isTV ? 80 : 40)
         }
+
+        #if os(tvOS)
+        @ViewBuilder
+        private var goToShowButton: some View {
+            if item.type == .episode, let seriesID = item.seriesID {
+                Button {
+                    let series = BaseItemDto(
+                        id: seriesID,
+                        name: item.seriesName,
+                        type: .series
+                    )
+                    router.route(to: .item(item: series))
+                } label: {
+                    Label(L10n.goToShow, systemImage: "info.circle")
+                }
+                .focused($focusedAction, equals: .goToShow)
+                .buttonStyle(
+                    SeasonButtonStyle(
+                        isFocused: focusedAction == .goToShow,
+                        isSelected: true,
+                        width: 320
+                    )
+                )
+                .focusEffectDisabled()
+            }
+        }
+        #endif
 
         // TODO: may need to be a layout for correct overview frame
         //       with scrolling if too long
@@ -138,18 +227,18 @@ extension MediaInfoSupplement {
 
         @ViewBuilder
         private var regularContent: some View {
-            HStack(alignment: .bottom, spacing: EdgeInsets.edgePadding) {
-                // TODO: determine what to do with non-portrait (channel, home video) images
-                //       - use aspect ratio?
+            HStack(alignment: contentVerticalAlignment, spacing: EdgeInsets.edgePadding / 2) {
                 PosterImage(
                     item: item,
-                    type: item.preferredPosterDisplayType,
-                    contentMode: .fit
+                    type: posterDisplayType,
+                    contentMode: .fit,
+                    imageSources: posterImageSources
                 )
-                .posterCornerRadius(item.preferredPosterDisplayType)
+                .frame(width: posterWidth)
+                .posterCornerRadius(posterDisplayType)
                 .environment(\.isOverComplexContent, true)
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(item.displayTitle)
                         .font(.callout.weight(.semibold))
                         .lineLimit(2)
@@ -157,7 +246,7 @@ extension MediaInfoSupplement {
 
                     if let overview = item.overview {
                         Text(overview)
-                            .font(.subheadline)
+                            .font(overviewFont)
                             .fontWeight(.regular)
                             .lineLimit(4)
                     }
@@ -169,6 +258,15 @@ extension MediaInfoSupplement {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if !item.isLiveStream {
+                    #if os(tvOS)
+                    VStack(spacing: 12) {
+                        fromBeginningButton
+
+                        if item.type == .episode, item.seriesID != nil {
+                            goToShowButton
+                        }
+                    }
+                    #else
                     AlternateLayoutView {
                         Label(L10n.fromBeginning, systemImage: "play.fill")
                             .font(.subheadline)
@@ -179,28 +277,43 @@ extension MediaInfoSupplement {
                     } content: {
                         fromBeginningButton
                     }
+                    #endif
                 }
             }
         }
 
+        @ViewBuilder
         var tvOSView: some View {
-            regularContent
-                .edgePadding(.horizontal)
-                .padding(.vertical, EdgeInsets.edgePadding / 2)
-                .background {
-                    RoundedRectangle(cornerRadius: 32)
-                        .fill(Material.thin)
+            Group {
+                if #available(tvOS 26.0, *) {
+                    regularContent
+                        .edgePadding(.horizontal)
+                        .padding(.vertical, EdgeInsets.edgePadding / 2)
+                        .glassEffect(
+                            .clear,
+                            in: RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        )
+                } else {
+                    regularContent
+                        .edgePadding(.horizontal)
+                        .padding(.vertical, EdgeInsets.edgePadding / 2)
+                        .background {
+                            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                .fill(Material.thin)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 32))
-                .edgePadding()
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                .focusSection()
-                .backport
-                .defaultFocus(
-                    $isResetButtonFocused,
-                    true,
-                    priority: .userInitiated
-                )
+            }
+            .padding(.horizontal, EdgeInsets.edgePadding)
+            .padding(.bottom, EdgeInsets.edgePadding / 4)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .focusSection()
+            .backport
+            .defaultFocus(
+                $focusedAction,
+                .fromBeginning,
+                priority: .userInitiated
+            )
         }
     }
 }

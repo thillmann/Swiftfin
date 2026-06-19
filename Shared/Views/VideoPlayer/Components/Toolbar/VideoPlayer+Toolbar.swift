@@ -92,7 +92,10 @@ extension VideoPlayer.PlaybackControls.Toolbar {
         private var _titleSubtitle: (title: String, subtitle: String?) {
             if item.type == .episode {
                 if let parentTitle = item.parentTitle {
-                    return (title: parentTitle, subtitle: item.seasonEpisodeLabel)
+                    let subtitle = [item.seasonEpisodeLabel, item.displayTitle]
+                        .compactMap(\.self)
+                        .joined(separator: " • ")
+                    return (title: parentTitle, subtitle: subtitle)
                 }
             }
 

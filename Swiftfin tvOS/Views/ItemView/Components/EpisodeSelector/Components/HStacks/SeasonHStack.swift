@@ -208,17 +208,18 @@ extension SeriesEpisodeSelector {
     }
 }
 
-private struct SeasonButtonStyle: ButtonStyle {
+struct SeasonButtonStyle: ButtonStyle {
 
     let isFocused: Bool
     let isSelected: Bool
+    var width: CGFloat?
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .fontWeight(.semibold)
             .foregroundStyle(isFocused ? .black : .white.opacity(isSelected ? 1 : 0.72))
             .padding(.horizontal, 32)
-            .frame(height: FeatureButtonTokens.baseHeight)
+            .frame(width: width, height: FeatureButtonTokens.baseHeight)
             .background {
                 Capsule(style: .continuous)
                     .fill(.white.opacity(isFocused ? 1 : isSelected ? 0.3 : 0))

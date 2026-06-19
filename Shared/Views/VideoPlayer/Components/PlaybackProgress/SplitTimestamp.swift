@@ -53,6 +53,10 @@ extension VideoPlayer.PlaybackControls {
             containerState.isScrubbing
         }
 
+        private var isPaused: Bool {
+            manager.playbackRequestStatus == .paused
+        }
+
         private var scrubbedSeconds: Duration {
             scrubbedSecondsBox.value
         }
@@ -153,6 +157,18 @@ extension VideoPlayer.PlaybackControls {
             .overlay(alignment: .leading) {
                 Text(scrubbedSeconds, format: .runtime)
                     .trackingSize($leadingTimestampSize)
+                    .overlay(alignment: .trailing) {
+                        if isPaused {
+                            HStack(spacing: 8) {
+                                Image(systemName: "pause.circle")
+                                    .accessibilityLabel(L10n.pause)
+
+                                Text(scrubbedSeconds, format: .runtime)
+                                    .hidden()
+                            }
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                    }
                     .offset(x: previewXOffset)
             }
             .font(.caption)

@@ -320,7 +320,7 @@ extension EpisodeMediaPlayerQueue {
             private var contentView: some View {
                 #if os(tvOS)
                 ScrollViewReader { proxy in
-                    SeriesEpisodeSelector.EpisodeRow(columnCount: 5) {
+                    SeriesEpisodeSelector.EpisodeRow(columnCount: 4.5) {
                         ForEach(
                             selectionViewModel.elements,
                             id: \.unwrappedIDHashOrZero
@@ -341,7 +341,6 @@ extension EpisodeMediaPlayerQueue {
                         proxy.scrollTo(manager.item.unwrappedIDHashOrZero, anchor: .leading)
                     }
                 }
-                .padding(.top, EdgeInsets.edgePadding / 2)
                 .fixedSize(horizontal: false, vertical: true)
                 .ignoresSafeArea(.container, edges: .horizontal)
                 .focusSection()
@@ -541,32 +540,72 @@ extension EpisodeMediaPlayerQueue {
 
     private struct EpisodeButton: View {
 
+        @Default(.accentColor)
+        private var accentColor
+
         @EnvironmentObject
         private var manager: MediaPlayerManager
 
         let episode: BaseItemDto
         let action: () -> Void
 
-        var body: some View {
-            SupplementPosterButton(
-                item: episode._withLandscapeImages { [episode.imageSource(.primary, maxWidth: $0, quality: $1)] },
-                action: action
-            ) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(episode.displayTitle)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1, reservesSpace: true)
+        private var isCurrentEpisode: Bool {
+            manager.item.id == episode.id
+        }
 
-                    EpisodeDescription(episode: episode)
-                        .font(UIDevice.isTV ? .caption : .subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1, reservesSpace: true)
+        var body: some View {
+            Group {
+                #if os(tvOS)
+                PosterButton(
+                    item: episode,
+                    type: .landscape,
+                    overlayOptions: [.seasonEpisodeLabel, .durationLeft],
+                    imageSources: [episode.imageSource(.primary, maxWidth: 300, quality: 90)],
+                    usesContextMenu: false,
+                    action: action
+                ) {
+                    PosterFallbackContentView(
+                        title: episode.showTitle ? episode.displayTitle : nil,
+                        systemName: episode.systemImage
+                    )
+                } overlay: {
+                    ZStack {
+                        PosterButtonDefaultOverlay(
+                            item: episode,
+                            overlayOptions: [.seasonEpisodeLabel, .durationLeft],
+                            unplayedIndicatorType: .none,
+                            alwaysShowsBottomContent: true
+                        )
+
+                        if isCurrentEpisode {
+                            ContainerRelativeShape()
+                                .stroke(accentColor, lineWidth: 12)
+                                .clipped()
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                #else
+                SupplementPosterButton(
+                    item: episode._withLandscapeImages { [episode.imageSource(.primary, maxWidth: $0, quality: $1)] },
+                    action: action
+                ) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(episode.displayTitle)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1, reservesSpace: true)
+
+                        EpisodeDescription(episode: episode)
+                            .font(UIDevice.isTV ? .caption : .subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1, reservesSpace: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                #endif
             }
-            .isSelected(manager.item.id == episode.id)
+            .isSelected(isCurrentEpisode)
         }
     }
 }
