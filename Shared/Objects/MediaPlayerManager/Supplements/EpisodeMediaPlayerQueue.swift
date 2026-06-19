@@ -6,7 +6,9 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+#if !os(tvOS)
 import CollectionHStack
+#endif
 import CollectionVGrid
 import Combine
 import Defaults
@@ -313,15 +315,19 @@ extension EpisodeMediaPlayerQueue {
             @ViewBuilder
             private var contentView: some View {
                 #if os(tvOS)
-                CollectionHStack(
-                    uniqueElements: selectionViewModel.elements,
-                    id: \.unwrappedIDHashOrZero,
-                    layout: .grid(columns: 5, rows: 1, columnTrailingInset: 0)
-                ) { episode in
-                    EpisodeButton(episode: episode) {
-                        action(episode)
+                SeriesEpisodeSelector.EpisodeRow(columnCount: 5) {
+                    ForEach(
+                        selectionViewModel.elements,
+                        id: \.unwrappedIDHashOrZero
+                    ) { episode in
+                        EpisodeButton(episode: episode) {
+                            action(episode)
+                        }
+                        .episodeHStackItemFrame()
                     }
                 }
+                .padding(.top, EdgeInsets.edgePadding / 2)
+                .fixedSize(horizontal: false, vertical: true)
                 .ignoresSafeArea(.container, edges: .horizontal)
                 .focusSection()
                 #else

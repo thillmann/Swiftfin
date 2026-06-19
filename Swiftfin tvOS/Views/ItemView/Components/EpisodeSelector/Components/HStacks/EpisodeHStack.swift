@@ -364,11 +364,10 @@ extension SeriesEpisodeSelector {
 
     struct EpisodeRow<Content: View>: View {
 
-        private let columnCount: CGFloat = 4
-        private let horizontalPadding = EdgeInsets.edgePadding
-        private let itemSpacing: CGFloat = 40
-
-        var scrollDisabled = false
+        private let columnCount: CGFloat
+        private let horizontalPadding: CGFloat
+        private let itemSpacing: CGFloat
+        private let scrollDisabled: Bool
         let content: () -> Content
 
         @State
@@ -385,9 +384,15 @@ extension SeriesEpisodeSelector {
 
         init(
             scrollDisabled: Bool = false,
+            columnCount: CGFloat = 4,
+            horizontalPadding: CGFloat = EdgeInsets.edgePadding,
+            itemSpacing: CGFloat = 40,
             @ViewBuilder content: @escaping () -> Content
         ) {
             self.scrollDisabled = scrollDisabled
+            self.columnCount = columnCount
+            self.horizontalPadding = horizontalPadding
+            self.itemSpacing = itemSpacing
             self.content = content
         }
 

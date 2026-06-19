@@ -40,20 +40,34 @@ struct SupplementPosterButton<Item: Poster, Label: View>: View {
                 .clipped()
         }
 
+        #if os(tvOS)
+        PosterButtonDefaultOverlay(
+            item: posterItem,
+            overlayOptions: .default,
+            unplayedIndicatorType: .none
+        )
+        #else
         PosterButton.DefaultOverlay(item: posterItem)
+        #endif
     }
 
     var body: some View {
         #if os(tvOS)
-        PosterButton(
-            item: item,
-            type: .landscape,
-            action: action
-        ) {
+        VStack(alignment: .leading, spacing: 5) {
+            PosterButton(
+                item: item,
+                type: .landscape,
+                action: action
+            ) {
+                PosterFallbackContentView(
+                    title: item.showTitle ? item.displayTitle : nil,
+                    systemName: item.systemImage
+                )
+            } overlay: {
+                overlay(for: item)
+            }
+
             label
-        }
-        .posterOverlay(for: Item.self) { posterItem in
-            overlay(for: posterItem)
         }
         #else
         PosterButton(
