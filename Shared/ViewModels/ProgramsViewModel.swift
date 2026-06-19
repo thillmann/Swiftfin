@@ -211,7 +211,7 @@ final class ProgramsViewModel: ViewModel, Stateful {
         parameters.sortOrder = .ascending
 
         let request = Paths.getLiveTvChannels(parameters: parameters)
-        let response = try await userSession.client.send(request)
+        let response = try await send(request)
 
         return Self.sortChannels(response.value.items ?? [])
     }
@@ -231,7 +231,7 @@ final class ProgramsViewModel: ViewModel, Stateful {
         parameters.ids = channelIDs
 
         let request = Paths.getItems(parameters: parameters)
-        let response = try await userSession.client.send(request)
+        let response = try await send(request)
 
         for channel in response.value.items ?? [] {
             guard let id = channel.id else { continue }

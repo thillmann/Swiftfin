@@ -98,10 +98,12 @@ final class HomeViewModel: ViewModel, Stateful {
                         guard let self else { return }
                         self.resumeItems.elements = resumeItems
                         #if os(tvOS)
-                        TopShelfResumeCacheWriter.write(
-                            items: resumeItems,
-                            userSession: self.userSession
-                        )
+                        if let userSession = self.userSession {
+                            TopShelfResumeCacheWriter.write(
+                                items: resumeItems,
+                                userSession: userSession
+                            )
+                        }
                         #endif
                         self.backgroundStates.remove(.refresh)
                     }
@@ -199,10 +201,12 @@ final class HomeViewModel: ViewModel, Stateful {
         await MainActor.run {
             self.resumeItems.elements = resumeItems
             #if os(tvOS)
-            TopShelfResumeCacheWriter.write(
-                items: resumeItems,
-                userSession: userSession
-            )
+            if let userSession {
+                TopShelfResumeCacheWriter.write(
+                    items: resumeItems,
+                    userSession: userSession
+                )
+            }
             #endif
             self.libraries = libraries
         }
@@ -271,20 +275,21 @@ final class HomeViewModel: ViewModel, Stateful {
 
     private func setIsFavorite(_ isFavorite: Bool, for item: BaseItemDto) async throws {
         guard let itemID = item.id else { return }
+        let user = try authenticatedUser
 
         let request: Request<UserItemDataDto> = if isFavorite {
             Paths.markFavoriteItem(
                 itemID: itemID,
-                userID: userSession.user.id
+                userID: user.id
             )
         } else {
             Paths.unmarkFavoriteItem(
                 itemID: itemID,
-                userID: userSession.user.id
+                userID: user.id
             )
         }
 
-        _ = try await userSession.client.send(request)
+        _ = try await send(request)
         Notifications[.itemShouldRefreshMetadata].post(itemID)
     }
 }

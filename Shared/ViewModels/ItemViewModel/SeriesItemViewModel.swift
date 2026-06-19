@@ -230,7 +230,7 @@ final class SeriesItemViewModel: ItemViewModel {
         }
 
         do {
-            return try await item.getFullItem(userSession: userSession)
+            return try await item.getFullItem(userSession: requireUserSession())
         } catch {
             return item
         }
@@ -259,7 +259,7 @@ final class SeriesItemViewModel: ItemViewModel {
         let request = Paths.getItems(parameters: parameters)
 
         do {
-            let response = try await userSession.client.send(request)
+            let response = try await authenticatedClient.send(request)
             let items = response.value.items ?? []
 
             guard let firstItem = items.first else {

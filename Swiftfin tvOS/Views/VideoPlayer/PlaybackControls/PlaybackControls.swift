@@ -53,9 +53,10 @@ extension VideoPlayer {
                     )
                     .disabled(containerState.isPresentingSupplement)
 
-                SkipIntroButton()
-                    .isVisible(isInIntroSegment && !containerState.isScrubbing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                if isInIntroSegment && !containerState.isScrubbing {
+                    SkipIntroButton()
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
 
                 PlaybackProgress()
                     .focused($isPlaybackProgressFocused)

@@ -83,7 +83,7 @@ struct SeerrSettingsView: View {
                         .truncationMode(.middle)
                 }
             } header: {
-                Text(L10n.serverURL)
+                Text(L10n.url)
             }
 
             Section {
@@ -106,7 +106,7 @@ struct SeerrSettingsView: View {
         .task(id: serverURL.trimmingCharacters(in: .whitespacesAndNewlines)) {
             await loadStatus()
         }
-        .alert(L10n.serverURL, isPresented: $isPresentingServerURLEditor) {
+        .alert(L10n.url, isPresented: $isPresentingServerURLEditor) {
             TextField("http://", text: $editableServerURL)
 
             Button(L10n.save) {

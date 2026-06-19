@@ -225,7 +225,7 @@ extension HomeView {
                 selectNextItem()
             } label: {}
                 .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.next)
+                .accessibilityLabel(L10n.nextItem)
                 .enabled(items.count > 1)
         }
 
@@ -352,10 +352,15 @@ extension HomeView {
                 return
             }
 
+            guard let userSession = viewModel.userSession else {
+                detailedSelectedItem = nil
+                return
+            }
+
             detailedSelectedItem = nil
 
             do {
-                let fullItem = try await selectedItem.getFullItem(userSession: viewModel.userSession)
+                let fullItem = try await selectedItem.getFullItem(userSession: userSession)
 
                 guard !Task.isCancelled, fullItem.id == selectedItem.id else { return }
 

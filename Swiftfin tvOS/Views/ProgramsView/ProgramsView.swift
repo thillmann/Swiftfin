@@ -25,6 +25,13 @@ struct ProgramsView: View {
     @StateObject
     private var programsViewModel = ProgramsViewModel()
 
+    private func play(_ item: BaseItemDto) {
+        guard let userSession else { return }
+
+        let provider = item.getPlaybackItemProvider(userSession: userSession)
+        router.route(to: .videoPlayer(provider: provider))
+    }
+
     @ViewBuilder
     private var contentView: some View {
         ScrollView(showsIndicators: false) {
@@ -70,8 +77,7 @@ struct ProgramsView: View {
                 item: channel,
                 subtitle: nil,
                 action: {
-                    let provider = channel.getPlaybackItemProvider(userSession: programsViewModel.userSession)
-                    router.route(to: .videoPlayer(provider: provider))
+                    play(channel)
                 }
             )
         }
@@ -91,8 +97,7 @@ struct ProgramsView: View {
                 let channel = programsViewModel.channel(for: item)
 
                 PosterButton(item: item, type: .landscape) {
-                    let provider = item.getPlaybackItemProvider(userSession: programsViewModel.userSession)
-                    router.route(to: .videoPlayer(provider: provider))
+                    play(item)
                 } fallback: {
                     ProgramFallback()
                 } overlay: {
