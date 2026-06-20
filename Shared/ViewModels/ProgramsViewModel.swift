@@ -12,13 +12,21 @@ import JellyfinAPI
 
 final class ProgramsViewModel: ViewModel, Stateful {
 
-    enum ProgramSection: CaseIterable {
+    enum ProgramSection {
         case kids
         case movies
         case news
         case recommended
         case series
         case sports
+
+        static let categories: [ProgramSection] = [
+            .kids,
+            .movies,
+            .news,
+            .series,
+            .sports,
+        ]
     }
 
     // MARK: Action
@@ -142,16 +150,16 @@ final class ProgramsViewModel: ViewModel, Stateful {
         ) { group in
 
             // sections
-            for section in ProgramSection.allCases {
+            for section in ProgramSection.categories {
                 group.addTask {
-                    let items = try await self.getPrograms(for: section)
+                    let items = try await self.getRecommendedPrograms(for: section)
                     return (section, items)
                 }
             }
 
             // recommended
             group.addTask {
-                let items = try await self.getRecommendedPrograms()
+                let items = try await self.getOnNowPrograms()
                 return (ProgramSection.recommended, items)
             }
 
@@ -165,7 +173,7 @@ final class ProgramsViewModel: ViewModel, Stateful {
         }
     }
 
-    private func getRecommendedPrograms() async throws -> [BaseItemDto] {
+    private func getOnNowPrograms() async throws -> [BaseItemDto] {
 
         var parameters = Paths.GetRecommendedProgramsParameters()
         parameters.fields = .MinimumFields
@@ -179,21 +187,31 @@ final class ProgramsViewModel: ViewModel, Stateful {
         return response.value.items ?? []
     }
 
-    private func getPrograms(for section: ProgramSection) async throws -> [BaseItemDto] {
+    private func getRecommendedPrograms(for section: ProgramSection) async throws -> [BaseItemDto] {
 
-        var parameters = Paths.GetLiveTvProgramsParameters()
+        var parameters = Paths.GetRecommendedProgramsParameters()
         parameters.fields = .MinimumFields
             .appending(.channelInfo)
         parameters.hasAired = false
         parameters.limit = 20
 
-        parameters.isKids = section == .kids
-        parameters.isMovie = section == .movies
-        parameters.isNews = section == .news
-        parameters.isSeries = section == .series
-        parameters.isSports = section == .sports
+        switch section {
+        case .kids:
+            parameters.isKids = true
+        case .movies:
+            parameters.isMovie = true
+        case .news:
+            parameters.isNews = true
+        case .series:
+            parameters.isSeries = true
+        case .sports:
+            parameters.isSports = true
+        case .recommended:
+            assertionFailure("Recommended programs must specify a category")
+            return []
+        }
 
-        let request = Paths.getLiveTvPrograms(parameters: parameters)
+        let request = Paths.getRecommendedPrograms(parameters: parameters)
         let response = try await send(request)
 
         return response.value.items ?? []
