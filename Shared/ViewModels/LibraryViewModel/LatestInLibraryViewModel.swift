@@ -11,6 +11,12 @@ import JellyfinAPI
 
 final class LatestInLibraryViewModel: PagingLibraryViewModel<BaseItemDto>, Identifiable {
 
+    #if os(tvOS)
+    override var retainsItemsOnRefresh: Bool {
+        true
+    }
+    #endif
+
     override func get(page: Int) async throws -> [BaseItemDto] {
 
         let parameters = try parameters(user: authenticatedUser)

@@ -116,13 +116,9 @@ struct HomeView: View {
         .refreshable {
             viewModel.send(.refresh)
         }
-        .onFirstAppear {
+        .onAppear {
             viewModel.send(.refresh)
         }
         .ignoresSafeArea()
-        .sinceLastDisappear { _ in
-            viewModel.send(.backgroundRefresh)
-            viewModel.notificationsReceived.remove(.itemMetadataDidChange)
-        }
     }
 }

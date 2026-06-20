@@ -14,6 +14,12 @@ import JellyfinAPI
 //       *when* new episodes are added to a series?
 final class RecentlyAddedLibraryViewModel: PagingLibraryViewModel<BaseItemDto> {
 
+    #if os(tvOS)
+    override var retainsItemsOnRefresh: Bool {
+        true
+    }
+    #endif
+
     // Necessary because this is paginated and also used on home view
     init(customPageSize: Int? = nil) {
 
@@ -50,7 +56,9 @@ final class RecentlyAddedLibraryViewModel: PagingLibraryViewModel<BaseItemDto> {
         // because excluded IDs may be filtered before the offset is applied.
         // Could be a performance issue for lots of items, but there's nothing
         // we can do about it.
-        parameters.excludeItemIDs = elements.compactMap(\.id)
+        if page > 0 {
+            parameters.excludeItemIDs = elements.compactMap(\.id)
+        }
 
         if user.data.configuration?.isHidePlayedInLatest == true {
             parameters.isPlayed = false

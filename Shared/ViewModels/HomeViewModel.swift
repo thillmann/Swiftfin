@@ -160,7 +160,11 @@ final class HomeViewModel: ViewModel, Stateful {
             }
             .asAnyCancellable()
 
+            #if os(tvOS)
+            return state == .initial ? .refreshing : state
+            #else
             return .refreshing
+            #endif
         case let .toggleIsFavorite(item):
 
             Task {
@@ -192,7 +196,16 @@ final class HomeViewModel: ViewModel, Stateful {
         await recentlyAddedViewModel.send(.refresh)
 
         let resumeItems = try await getResumeItems()
+        #if os(tvOS)
+        let fetchedLibraries = try await getLibraries()
+        let libraries = fetchedLibraries.map { fetchedLibrary in
+            self.libraries.first { library in
+                library.parent?.id == fetchedLibrary.parent?.id
+            } ?? fetchedLibrary
+        }
+        #else
         let libraries = try await getLibraries()
+        #endif
 
         for library in libraries {
             await library.send(.refresh)
@@ -221,9 +234,35 @@ final class HomeViewModel: ViewModel, Stateful {
 
         let request = Paths.getResumeItems(parameters: parameters)
         let response = try await send(request)
+        let items = response.value.items ?? []
 
-        return response.value.items ?? []
+        #if os(tvOS)
+        return Array(
+            items.lazy
+                .filter { !self.isLikelyInCredits($0) }
+                .prefix(8)
+        )
+        #else
+        return items
+        #endif
     }
+
+    #if os(tvOS)
+    private func isLikelyInCredits(_ item: BaseItemDto) -> Bool {
+        guard let runTimeTicks = item.runTimeTicks,
+              runTimeTicks > 0,
+              let playbackPositionTicks = item.userData?.playbackPositionTicks,
+              playbackPositionTicks > 0
+        else {
+            return false
+        }
+
+        let remainingTicks = max(0, runTimeTicks - playbackPositionTicks)
+        let watchedFraction = Double(playbackPositionTicks) / Double(runTimeTicks)
+
+        return watchedFraction >= 0.9 && remainingTicks <= Duration.minutes(5).ticks
+    }
+    #endif
 
     private func getLibraries() async throws -> [LatestInLibraryViewModel] {
 

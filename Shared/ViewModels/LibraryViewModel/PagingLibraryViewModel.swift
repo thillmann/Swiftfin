@@ -120,6 +120,10 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     }
 
     let pageSize: Int
+    var retainsItemsOnRefresh: Bool {
+        false
+    }
+
     private(set) var currentPage = -1
     private(set) var hasNextPage = true
     private(set) var isLoading = false
@@ -287,7 +291,11 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
                     guard !Task.isCancelled else { return }
 
                     await MainActor.run {
-                        self.send(.error(.init(error.localizedDescription)))
+                        if self.retainsItemsOnRefresh, self.items.isNotEmpty {
+                            self.state = .content
+                        } else {
+                            self.send(.error(.init(error.localizedDescription)))
+                        }
                     }
                 }
             }
@@ -345,6 +353,19 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
     // MARK: refresh
 
     final func refresh() async throws {
+        if retainsItemsOnRefresh, items.isNotEmpty {
+            let pageItems = try await get(page: 0)
+
+            try Task.checkCancellation()
+
+            items.removeAll(keepingCapacity: true)
+            currentPage = 0
+            hasNextPage = pageItems.count >= pageSize
+            shouldLoadNextPageAfterCurrentLoad = false
+            appendUnique(pageItems)
+            return
+        }
+
         items.removeAll()
         currentPage = -1
         hasNextPage = !isStatic

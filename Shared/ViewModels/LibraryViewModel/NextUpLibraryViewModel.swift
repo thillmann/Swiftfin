@@ -13,6 +13,12 @@ import JellyfinAPI
 
 final class NextUpLibraryViewModel: PagingLibraryViewModel<BaseItemDto> {
 
+    #if os(tvOS)
+    override var retainsItemsOnRefresh: Bool {
+        true
+    }
+    #endif
+
     init() {
         super.init(parent: TitledLibraryParent(displayTitle: L10n.nextUp, id: "nextUp"))
     }
