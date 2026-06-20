@@ -15,6 +15,26 @@ import Transmission
 
 extension NavigationRoute {
 
+    #if os(tvOS)
+    static var seerrTrending: NavigationRoute {
+        NavigationRoute(
+            id: "seerr-trending",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            SeerrTrendingView()
+        }
+    }
+
+    static var seerrUpcoming: NavigationRoute {
+        NavigationRoute(
+            id: "seerr-upcoming",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            SeerrUpcomingView()
+        }
+    }
+    #endif
+
     static var channels: NavigationRoute {
         NavigationRoute(
             id: "channels"

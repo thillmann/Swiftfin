@@ -37,14 +37,26 @@ extension MediaView {
         let action: (Namespace.ID) -> Void
 
         private var useTitleLabel: Bool {
-            useRandomImage ||
-                type == .downloads ||
-                type == .favorites
+            if useRandomImage || type == .downloads || type == .favorites {
+                return true
+            }
+
+            #if os(tvOS)
+            return type == .trending || type == .upcoming
+            #else
+            return false
+            #endif
         }
 
         private func setImageSources() {
             Task { @MainActor in
-                if useRandomImage {
+                #if os(tvOS)
+                let isSeerrLibrary = type == .trending || type == .upcoming
+                #else
+                let isSeerrLibrary = false
+                #endif
+
+                if useRandomImage || isSeerrLibrary {
                     self.imageSources = try await viewModel.randomItemImageSources(for: type)
                     return
                 }

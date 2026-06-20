@@ -17,6 +17,10 @@ extension MediaViewModel {
         case downloads
         case favorites
         case liveTV(BaseItemDto)
+        #if os(tvOS)
+        case trending
+        case upcoming
+        #endif
 
         var displayTitle: String {
             switch self {
@@ -28,6 +32,12 @@ extension MediaViewModel {
                 L10n.favorites
             case .liveTV:
                 L10n.liveTV
+            #if os(tvOS)
+            case .trending:
+                L10n.trending
+            case .upcoming:
+                L10n.upcoming
+            #endif
             }
         }
 
@@ -41,6 +51,12 @@ extension MediaViewModel {
                 "favorites"
             case let .liveTV(item):
                 item.id
+            #if os(tvOS)
+            case .trending:
+                "seerr-trending"
+            case .upcoming:
+                "seerr-upcoming"
+            #endif
             }
         }
     }

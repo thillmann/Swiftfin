@@ -1124,6 +1124,8 @@ internal enum L10n {
   internal static func notImplementedYetWithType(_ p1: Any) -> String {
     return L10n.tr("Localizable", "notImplementedYetWithType", String(describing: p1), fallback: "Type: %@ not implemented yet :(")
   }
+  /// No upcoming titles
+  internal static let noUpcomingTitles = L10n.tr("Localizable", "noUpcomingTitles", fallback: "No upcoming titles")
   /// Official rating
   internal static let officialRating = L10n.tr("Localizable", "officialRating", fallback: "Official rating")
   /// OK
@@ -1690,6 +1692,8 @@ internal enum L10n {
   internal static let transcodeReasons = L10n.tr("Localizable", "transcodeReasons", fallback: "Transcode reason(s)")
   /// Translator
   internal static let translator = L10n.tr("Localizable", "translator", fallback: "Translator")
+  /// Trending
+  internal static let trending = L10n.tr("Localizable", "trending", fallback: "Trending")
   /// Trickplays
   internal static let trickplays = L10n.tr("Localizable", "trickplays", fallback: "Trickplays")
   /// Trigger already exists
@@ -1750,6 +1754,8 @@ internal enum L10n {
   internal static let unreleased = L10n.tr("Localizable", "unreleased", fallback: "Unreleased")
   /// You have unsaved changes. Are you sure you want to discard them?
   internal static let unsavedChangesMessage = L10n.tr("Localizable", "unsavedChangesMessage", fallback: "You have unsaved changes. Are you sure you want to discard them?")
+  /// Upcoming
+  internal static let upcoming = L10n.tr("Localizable", "upcoming", fallback: "Upcoming")
   /// Upload file
   internal static let uploadFile = L10n.tr("Localizable", "uploadFile", fallback: "Upload file")
   /// Upload photo

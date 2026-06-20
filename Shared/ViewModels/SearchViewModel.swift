@@ -27,7 +27,7 @@ enum UnifiedSearchResult: Identifiable {
         case let .jellyfin(item):
             "jellyfin-\(item.id ?? item.displayTitle)"
         case let .seer(item):
-            "seer-\(item.id)"
+            "seer-\(item.mediaType?.rawValue ?? "unknown")-\(item.id)"
         }
     }
 

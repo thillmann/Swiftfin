@@ -56,6 +56,12 @@ struct MediaView: View {
                     router.route(to: .library(viewModel: viewModel), in: namespace)
                 case .liveTV:
                     router.route(to: .liveTV)
+                #if os(tvOS)
+                case .trending:
+                    router.route(to: .seerrTrending, in: namespace)
+                case .upcoming:
+                    router.route(to: .seerrUpcoming, in: namespace)
+                #endif
                 }
             }
         }

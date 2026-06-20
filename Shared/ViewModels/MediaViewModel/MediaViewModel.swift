@@ -38,7 +38,7 @@ final class MediaViewModel: ViewModel {
 
         mediaItems.removeAll()
 
-        let media: [MediaType] = try await getUserViews()
+        var media: [MediaType] = try await getUserViews()
             .compactMap { userView in
                 if userView.collectionType == .livetv {
                     return .liveTV(userView)
@@ -47,6 +47,12 @@ final class MediaViewModel: ViewModel {
                 return .collectionFolder(userView)
             }
             .prepending(.favorites, if: Defaults[.Customization.Library.showFavorites])
+
+        #if os(tvOS)
+        if SeerrIntegration.isAvailable {
+            media.append(contentsOf: [.trending, .upcoming])
+        }
+        #endif
 
         mediaItems.elements = media
     }
@@ -85,6 +91,22 @@ final class MediaViewModel: ViewModel {
 
     func randomItemImageSources(for mediaType: MediaType) async throws -> [ImageSource] {
 
+        #if os(tvOS)
+        switch mediaType {
+        case .trending:
+            let result = await SeerrClient.discoverTrending(language: "en")
+            return try seerrImageSources(from: result)
+        case .upcoming:
+            async let movies = SeerrClient.discoverUpcomingMovies()
+            async let tv = SeerrClient.discoverUpcomingTV()
+            let (movieResult, tvResult) = await (movies, tv)
+
+            return try seerrImageSources(from: movieResult) + seerrImageSources(from: tvResult)
+        default:
+            break
+        }
+        #endif
+
         // live tv doesn't have random
         if case MediaType.liveTV = mediaType {
             return []
@@ -121,4 +143,17 @@ final class MediaViewModel: ViewModel {
         return (response.value.items ?? [])
             .flatMap { $0.landscapeImageSources(maxWidth: 200) }
     }
+
+    #if os(tvOS)
+    private func seerrImageSources(
+        from result: Result<SeerrClient.Page<SeerrClient.MediaResult>, SeerrClient.ProbeError>
+    ) throws -> [ImageSource] {
+        switch result {
+        case let .success(page):
+            return page.results.prefix(2).map(\.backdropImageSource)
+        case let .failure(error):
+            throw error
+        }
+    }
+    #endif
 }

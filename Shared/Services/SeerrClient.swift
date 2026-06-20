@@ -72,6 +72,7 @@ enum SeerrClient {
         let backdropPath: String?
         let releaseDate: String?
         let firstAirDate: String?
+        let originalLanguage: String?
         let voteAverage: Double?
         let mediaInfo: MediaInfo?
 
@@ -94,6 +95,7 @@ enum SeerrClient {
                 backdropPath: backdropPath,
                 releaseDate: releaseDate,
                 firstAirDate: firstAirDate,
+                originalLanguage: originalLanguage,
                 voteAverage: voteAverage,
                 mediaInfo: .init(status: status.rawValue)
             )
@@ -399,6 +401,20 @@ enum SeerrClient {
                 URLQueryItem(name: "language", value: language),
             ],
             failurePrefix: "Seerr discover TV failed"
+        )
+    }
+
+    static func discoverTrending(
+        page: Int = 1,
+        language: String? = nil
+    ) async -> Result<Page<MediaResult>, ProbeError> {
+        await decode(
+            path: "discover/trending",
+            queryItems: [
+                URLQueryItem(name: "page", value: String(page)),
+                URLQueryItem(name: "language", value: language),
+            ],
+            failurePrefix: "Seerr trending failed"
         )
     }
 
