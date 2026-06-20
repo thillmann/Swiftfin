@@ -107,8 +107,8 @@ struct SeerrRequestView: View {
     private var requestSection: some View {
         HStack {
             HStack(spacing: 8) {
-                if let releaseYear = viewModel.releaseYearText {
-                    Text(releaseYear)
+                if let releaseDate = viewModel.releaseDateText {
+                    Text(releaseDate)
                 }
                 if let rating = viewModel.ratingText {
                     Text("•")
@@ -350,13 +350,23 @@ final class SeerrRequestViewModel: ObservableObject {
         movieDetails?.overview ?? tvDetails?.overview ?? item.overview
     }
 
-    var releaseDateText: String? {
+    private var rawReleaseDateText: String? {
         movieDetails?.releaseDate ?? tvDetails?.firstAirDate ?? item.releaseDate ?? item.firstAirDate
     }
 
-    var releaseYearText: String? {
-        guard let value = releaseDateText, value.count >= 4 else { return nil }
-        return String(value.prefix(4))
+    var releaseDateText: String? {
+        guard let value = rawReleaseDateText else { return nil }
+
+        let parser = DateFormatter()
+        parser.calendar = Calendar(identifier: .gregorian)
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.dateFormat = "yyyy-MM-dd"
+
+        guard let date = parser.date(from: value) else { return value }
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        return formatter.string(from: date)
     }
 
     var ratingText: String? {
