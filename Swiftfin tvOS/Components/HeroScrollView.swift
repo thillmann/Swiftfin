@@ -40,7 +40,7 @@ struct HeroScrollView<Content: View>: View {
                 content
             }
             .onChange(of: presentation) { _, newValue in
-                withAnimation(.easeOut(duration: 0.35)) {
+                withAnimation(.easeOut(duration: 0.6)) {
                     proxy.scrollTo(newValue, anchor: anchor(for: newValue))
                 }
             }

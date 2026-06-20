@@ -42,7 +42,7 @@ struct HomeView: View {
     private var contentView: some View {
         HeroScrollView(
             presentation: $heroPresentation,
-            belowHeroAnchor: UnitPoint(x: 0.5, y: 0.16)
+            belowHeroAnchor: UnitPoint(x: 0.5, y: 0.4)
         ) {
             LazyVStack(alignment: .leading, spacing: sectionSpacing) {
 
@@ -102,11 +102,11 @@ struct HomeView: View {
 
             switch section {
             case .cinematicResume:
-                withAnimation(.easeOut(duration: 0.35)) {
+                withAnimation(.easeOut(duration: 0.6)) {
                     heroPresentation = .hero
                 }
             case .nextUp, .recentlyAdded, .library:
-                withAnimation(.easeOut(duration: 0.35)) {
+                withAnimation(.easeOut(duration: 0.6)) {
                     heroPresentation = .belowHero
                 }
             case nil:
