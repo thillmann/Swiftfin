@@ -33,7 +33,7 @@ struct AttributeBadge: View {
                 .padding(.init(vertical: 1, horizontal: 4))
                 .hidden()
                 .background {
-                    Color(.white.opacity(0.8))
+                    Color.white.opacity(0.8)
                         .cornerRadius(4)
                         .inverseMask {
                             content()

@@ -158,6 +158,7 @@ extension MediaChaptersSupplement {
             //            }
         }
 
+        #if os(tvOS)
         var tvOSView: some View {
             SeriesEpisodeSelector.EpisodeRow(columnCount: 4.5) {
                 ForEach(chapters, id: \.unwrappedIDHashOrZero) { chapter in
@@ -186,6 +187,11 @@ extension MediaChaptersSupplement {
             .focusSection()
             .onReceive(manager.secondsBox.$value, perform: updateActiveChapter(for:))
         }
+        #else
+        var tvOSView: some View {
+            EmptyView()
+        }
+        #endif
 
         struct ChapterPreview: View {
 

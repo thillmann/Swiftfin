@@ -282,6 +282,7 @@ extension MediaInfoSupplement {
             }
         }
 
+        #if os(tvOS)
         @ViewBuilder
         var tvOSView: some View {
             Group {
@@ -315,5 +316,10 @@ extension MediaInfoSupplement {
                 priority: .userInitiated
             )
         }
+        #else
+        var tvOSView: some View {
+            EmptyView()
+        }
+        #endif
     }
 }
