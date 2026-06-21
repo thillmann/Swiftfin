@@ -54,13 +54,7 @@ struct SeerrRequestView: View {
                         .stroke(.white.opacity(0.12), lineWidth: 1)
                 )
                 #endif
-                .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(L10n.cancel) {
-                                dismiss()
-                            }
-                        }
-                    }
+                .toolbar {}
                     .task {
                         await viewModel.load()
                     }
