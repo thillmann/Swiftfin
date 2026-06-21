@@ -14,6 +14,11 @@ extension HomeView {
 
     struct NextUpView: View {
 
+        @Environment(\.posterButtonOverlayOptions)
+        private var posterButtonOverlayOptions
+        @Environment(\.posterButtonUnplayedIndicatorType)
+        private var posterButtonUnplayedIndicatorType
+
         @Default(.Customization.nextUpPosterType)
         private var nextUpPosterType
 
@@ -32,7 +37,9 @@ extension HomeView {
                 ) { item in
                     PosterButton(
                         item: item,
-                        type: nextUpPosterType
+                        type: nextUpPosterType,
+                        overlayOptions: posterButtonOverlayOptions,
+                        unplayedIndicatorType: posterButtonUnplayedIndicatorType
                     ) {
                         router.route(to: .item(item: item))
                     }

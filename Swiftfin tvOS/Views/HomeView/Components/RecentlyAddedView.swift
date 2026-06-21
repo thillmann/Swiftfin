@@ -13,6 +13,11 @@ extension HomeView {
 
     struct RecentlyAddedView: View {
 
+        @Environment(\.posterButtonOverlayOptions)
+        private var posterButtonOverlayOptions
+        @Environment(\.posterButtonUnplayedIndicatorType)
+        private var posterButtonUnplayedIndicatorType
+
         @Default(.Customization.recentlyAddedPosterType)
         private var recentlyAddedPosterType
 
@@ -27,7 +32,9 @@ extension HomeView {
                 PosterHStack(
                     title: L10n.recentlyAdded.localizedCapitalized,
                     type: recentlyAddedPosterType,
-                    items: viewModel.elements
+                    items: viewModel.elements,
+                    overlayOptions: posterButtonOverlayOptions,
+                    unplayedIndicatorType: posterButtonUnplayedIndicatorType
                 ) { item in
                     router.route(to: .item(item: item))
                 }

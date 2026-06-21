@@ -24,6 +24,14 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
     private var defaultListColumnCount: Int
     @Default(.Customization.Library.posterType)
     private var defaultPosterType: PosterDisplayType
+    @Default(.Customization.Indicators.showFavorited)
+    private var showFavorited
+    @Default(.Customization.Indicators.showProgress)
+    private var showProgress
+    @Default(.Customization.Indicators.showUnplayed)
+    private var showUnplayed
+    @Default(.Customization.Indicators.showPlayed)
+    private var showPlayed
 
     @Router
     private var router
@@ -96,6 +104,15 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
         }
     }
 
+    private var posterOverlayOptions: PosterButtonOverlayOptions {
+        PosterButtonOverlayOptions(
+            showPlayed: showPlayed,
+            showFavorited: showFavorited,
+            showProgress: showProgress,
+            showUnplayed: showUnplayed
+        )
+    }
+
     // MARK: Grid View
 
     @ViewBuilder
@@ -105,6 +122,8 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
             layout: activeDisplayType,
             posterType: activePosterType,
             columnCount: activeColumnCount,
+            overlayOptions: posterOverlayOptions,
+            unplayedIndicatorType: showUnplayed,
             onNeedsNextPage: { item in
                 viewModel.loadNextPageIfNeeded(currentItem: item)
             }

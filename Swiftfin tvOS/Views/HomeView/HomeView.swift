@@ -37,6 +37,23 @@ struct HomeView: View {
 
     @Default(.Customization.Home.showRecentlyAdded)
     private var showRecentlyAdded
+    @Default(.Customization.Indicators.showFavorited)
+    private var showFavorited
+    @Default(.Customization.Indicators.showProgress)
+    private var showProgress
+    @Default(.Customization.Indicators.showUnplayed)
+    private var showUnplayed
+    @Default(.Customization.Indicators.showPlayed)
+    private var showPlayed
+
+    private var posterOverlayOptions: PosterButtonOverlayOptions {
+        PosterButtonOverlayOptions(
+            showPlayed: showPlayed,
+            showFavorited: showFavorited,
+            showProgress: showProgress,
+            showUnplayed: showUnplayed
+        )
+    }
 
     @ViewBuilder
     private var contentView: some View {
@@ -55,24 +72,29 @@ struct HomeView: View {
                     .focused($focusedSection, equals: .cinematicResume)
 
                     NextUpView(viewModel: viewModel.nextUpViewModel)
+                        .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
                         .id(HeroScrollPresentation.belowHero)
                         .focused($focusedSection, equals: .nextUp)
 
                     if showRecentlyAdded {
                         RecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+                            .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
                             .focused($focusedSection, equals: .recentlyAdded)
                     }
                 } else {
                     if showRecentlyAdded {
                         CinematicRecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
+                            .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
                     }
 
                     NextUpView(viewModel: viewModel.nextUpViewModel)
+                        .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
                         .safeAreaPadding(.top, 150)
                 }
 
                 ForEach(viewModel.libraries) { viewModel in
                     LatestInLibraryView(viewModel: viewModel)
+                        .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
                         .focused(
                             $focusedSection,
                             equals: .library(ObjectIdentifier(viewModel))

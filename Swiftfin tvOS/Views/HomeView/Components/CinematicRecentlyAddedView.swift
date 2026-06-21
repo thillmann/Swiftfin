@@ -13,6 +13,11 @@ extension HomeView {
 
     struct CinematicRecentlyAddedView: View {
 
+        @Environment(\.posterButtonOverlayOptions)
+        private var posterButtonOverlayOptions
+        @Environment(\.posterButtonUnplayedIndicatorType)
+        private var posterButtonUnplayedIndicatorType
+
         @Router
         private var router
 
@@ -36,7 +41,11 @@ extension HomeView {
         }
 
         var body: some View {
-            CinematicItemSelector(items: viewModel.elements.elements) { item in
+            CinematicItemSelector(
+                items: viewModel.elements.elements,
+                overlayOptions: posterButtonOverlayOptions,
+                unplayedIndicatorType: posterButtonUnplayedIndicatorType
+            ) { item in
                 router.route(to: .item(item: item))
             }
             .topContent { item in

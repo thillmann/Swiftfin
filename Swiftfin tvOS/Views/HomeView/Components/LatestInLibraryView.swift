@@ -14,6 +14,11 @@ extension HomeView {
 
     struct LatestInLibraryView: View {
 
+        @Environment(\.posterButtonOverlayOptions)
+        private var posterButtonOverlayOptions
+        @Environment(\.posterButtonUnplayedIndicatorType)
+        private var posterButtonUnplayedIndicatorType
+
         @Default(.Customization.latestInLibraryPosterType)
         private var latestInLibraryPosterType
 
@@ -28,7 +33,9 @@ extension HomeView {
                 PosterHStack(
                     title: L10n.latestWithString(viewModel.parent?.displayTitle ?? .emptyDash),
                     type: latestInLibraryPosterType,
-                    items: viewModel.elements
+                    items: viewModel.elements,
+                    overlayOptions: posterButtonOverlayOptions,
+                    unplayedIndicatorType: posterButtonUnplayedIndicatorType
                 ) { item in
                     router.route(to: .item(item: item))
                 }

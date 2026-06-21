@@ -28,6 +28,8 @@ struct CinematicItemSelector<Item: Poster>: View {
     private var itemContent: (Item) -> any View
     private var trailingContent: () -> any View
     private let action: (Item) -> Void
+    private let overlayOptions: PosterButtonOverlayOptions
+    private let unplayedIndicatorType: UnplayedIndicatorType
 
     let items: [Item]
 
@@ -60,8 +62,8 @@ struct CinematicItemSelector<Item: Poster>: View {
                     PosterButton(
                         item: item,
                         type: .landscape,
-                        overlayOptions: .default,
-                        unplayedIndicatorType: .none
+                        overlayOptions: overlayOptions,
+                        unplayedIndicatorType: unplayedIndicatorType
                     ) {
                         action(item)
                     }
@@ -98,12 +100,19 @@ struct CinematicItemSelector<Item: Poster>: View {
 
 extension CinematicItemSelector {
 
-    init(items: [Item], action: @escaping (Item) -> Void = { _ in }) {
+    init(
+        items: [Item],
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
+        action: @escaping (Item) -> Void = { _ in }
+    ) {
         self.init(
             topContent: { _ in EmptyView() },
             itemContent: { _ in EmptyView() },
             trailingContent: { EmptyView() },
             action: action,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType,
             items: items
         )
     }

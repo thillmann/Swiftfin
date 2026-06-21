@@ -16,6 +16,8 @@ struct PosterVGrid<Element: Poster>: View {
     private let layout: LibraryDisplayType
     private let columnCount: Int
     private let posterType: PosterDisplayType
+    private let overlayOptions: PosterButtonOverlayOptions
+    private let unplayedIndicatorType: UnplayedIndicatorType
     private let onNeedsNextPage: (Element) -> Void
     private let onSelect: (Element) -> Void
 
@@ -38,12 +40,16 @@ struct PosterVGrid<Element: Poster>: View {
         data: [Element],
         layout: LibraryDisplayType = .grid,
         posterType: PosterDisplayType = .portrait,
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
         onNeedsNextPage: @escaping (Element) -> Void = { _ in },
         onSelect: @escaping (Element) -> Void
     ) {
         self.data = data
         self.layout = layout
         self.posterType = posterType
+        self.overlayOptions = overlayOptions
+        self.unplayedIndicatorType = unplayedIndicatorType
         self.columnCount = 1
         self.onNeedsNextPage = onNeedsNextPage
         self.onSelect = onSelect
@@ -54,12 +60,16 @@ struct PosterVGrid<Element: Poster>: View {
         layout: LibraryDisplayType = .grid,
         posterType: PosterDisplayType = .portrait,
         columnCount: Int,
+        overlayOptions: PosterButtonOverlayOptions = .default,
+        unplayedIndicatorType: UnplayedIndicatorType = .none,
         onNeedsNextPage: @escaping (Element) -> Void = { _ in },
         onSelect: @escaping (Element) -> Void
     ) {
         self.data = data
         self.layout = layout
         self.posterType = posterType
+        self.overlayOptions = overlayOptions
+        self.unplayedIndicatorType = unplayedIndicatorType
         self.columnCount = columnCount
         self.onNeedsNextPage = onNeedsNextPage
         self.onSelect = onSelect
@@ -68,7 +78,9 @@ struct PosterVGrid<Element: Poster>: View {
     private func gridCell(for item: Element) -> some View {
         PosterButton(
             item: item,
-            type: posterType
+            type: posterType,
+            overlayOptions: overlayOptions,
+            unplayedIndicatorType: unplayedIndicatorType
         ) {
             onSelect(item)
         }

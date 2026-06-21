@@ -9,7 +9,24 @@
 import JellyfinAPI
 import SwiftUI
 
+extension EnvironmentValues {
+
+    @Entry
+    var posterButtonOverlayOptions: PosterButtonOverlayOptions = .default
+
+    @Entry
+    var posterButtonUnplayedIndicatorType: UnplayedIndicatorType = .none
+}
+
 extension View {
+
+    func posterOverlayOptions(
+        _ options: PosterButtonOverlayOptions,
+        unplayedIndicatorType: UnplayedIndicatorType
+    ) -> some View {
+        environment(\.posterButtonOverlayOptions, options)
+            .environment(\.posterButtonUnplayedIndicatorType, unplayedIndicatorType)
+    }
 
     func posterOverlayFocus(_ isFocused: Bool) -> some View {
         modifier(PosterOverlayFocusModifier(isFocused: isFocused))
@@ -240,6 +257,10 @@ extension PosterButton where Overlay == PosterButtonDefaultOverlay<Item>, Fallba
 struct PosterButtonOverlayOptions: OptionSet {
     let rawValue: Int
 
+    init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
+
     static let watched = Self(rawValue: 1 << 0)
     static let favorite = Self(rawValue: 1 << 1)
     static let progress = Self(rawValue: 1 << 2)
@@ -255,6 +276,31 @@ struct PosterButtonOverlayOptions: OptionSet {
         .seasonEpisodeLabel,
         .durationLeft,
     ]
+
+    init(
+        showPlayed: Bool,
+        showFavorited: Bool,
+        showProgress: Bool,
+        showUnplayed: UnplayedIndicatorType
+    ) {
+        self = [.seasonEpisodeLabel, .durationLeft]
+
+        if showPlayed {
+            insert(.watched)
+        }
+
+        if showFavorited {
+            insert(.favorite)
+        }
+
+        if showProgress {
+            insert(.progress)
+        }
+
+        if showUnplayed != .none {
+            insert(.unwatched)
+        }
+    }
 }
 
 struct PosterButtonContent<Item: Poster, Overlay: View, Fallback: View>: View {
@@ -306,6 +352,10 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
         item as? BaseItemDto
     }
 
+    private var isSeries: Bool {
+        baseItem?.type == .series
+    }
+
     private var isPlayed: Bool {
         baseItem?.userData?.isPlayed == true ||
             (baseItem?.userData?.playedPercentage ?? 0) >= 100
@@ -313,6 +363,10 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
 
     private var playbackProgress: Double {
         baseItem?.userData?.playedPercentage ?? 0.0
+    }
+
+    private var unplayedCount: Int {
+        baseItem?.userData?.unplayedItemCount ?? 0
     }
 
     private var hasPlaybackProgress: Bool {
@@ -403,10 +457,9 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
     @ViewBuilder
     private var unwatchedCountOverlay: some View {
         if unplayedIndicatorType == .count,
-           let count = baseItem?.userData?.unplayedItemCount,
-           count > 0
+           unplayedCount > 0
         {
-            Text(count.description)
+            Text(unplayedCount.description)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 7)
@@ -454,22 +507,33 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
     }
 
     private var shouldShowWatchedOverlay: Bool {
-        isWatchedBranch &&
+        !isSeries &&
+            isWatchedBranch &&
             overlayOptions.contains(.watched)
     }
 
     private var shouldShowFavorite: Bool {
-        overlayOptions.contains(.favorite) && baseItem?.userData?.isFavorite == true
+        !isSeries &&
+            overlayOptions.contains(.favorite) &&
+            baseItem?.userData?.isFavorite == true
     }
 
     private var shouldShowProgressOverlay: Bool {
-        isProgressBranch &&
+        !isSeries &&
+            isProgressBranch &&
             overlayOptions.contains(.progress)
     }
 
     private var shouldShowUnwatchedOverlay: Bool {
-        isUnwatchedBranch &&
-            overlayOptions.contains(.unwatched)
+        guard isUnwatchedBranch, overlayOptions.contains(.unwatched) else {
+            return false
+        }
+
+        if isSeries {
+            return unplayedIndicatorType == .count && unplayedCount > 0
+        }
+
+        return unplayedIndicatorType != .none
     }
 
     private var shouldShowSeasonEpisodeLabel: Bool {
@@ -483,7 +547,9 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
     }
 
     private var shouldShowMetadataOverlay: Bool {
-        switch baseItem?.type {
+        guard !isSeries else { return false }
+
+        return switch baseItem?.type {
         case .episode:
             shouldShowSeasonEpisodeLabel || shouldShowDurationLeft
         case .movie:
@@ -497,6 +563,12 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
         shouldShowWatchedOverlay ||
             shouldShowProgressOverlay ||
             shouldShowUnwatchedOverlay
+    }
+
+    private var shouldShowPlayOverlay: Bool {
+        shouldShowWatchedOverlay ||
+            shouldShowProgressOverlay ||
+            (shouldShowUnwatchedOverlay && !isSeries)
     }
 
     private var shouldShowBottomOverlay: Bool {
@@ -565,7 +637,7 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
 
         if shouldShowBottomOverlay {
             bottomContent {
-                if shouldShowStatusOverlay {
+                if shouldShowPlayOverlay {
                     playOverlay
                 }
 
