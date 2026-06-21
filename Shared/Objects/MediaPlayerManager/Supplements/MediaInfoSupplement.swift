@@ -214,7 +214,7 @@ extension MediaInfoSupplement {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                if !item.isLiveStream {
+                if !manager.item.isLiveStream {
                     fromBeginningButton
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
@@ -257,7 +257,7 @@ extension MediaInfoSupplement {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if !item.isLiveStream {
+                if !manager.item.isLiveStream {
                     #if os(tvOS)
                     VStack(spacing: 12) {
                         fromBeginningButton

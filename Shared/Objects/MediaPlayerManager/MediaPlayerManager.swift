@@ -127,6 +127,8 @@ final class MediaPlayerManager: ViewModel {
     @Published
     private(set) var item: BaseItemDto
     @Published
+    private(set) var requestedItem: BaseItemDto
+    @Published
     private(set) var playbackRequestStatus: PlaybackRequestStatus = .playing
     @Published
     var rate: Float = Defaults[.VideoPlayer.Playback.playbackRate] {
@@ -149,7 +151,12 @@ final class MediaPlayerManager: ViewModel {
         self.supplements = Defaults[.VideoPlayer.supplements].compactMap { kind -> (any MediaPlayerSupplement)? in
             switch kind {
             case .info:
+                #if os(tvOS)
+                let infoItem = requestedItem.type == .program ? requestedItem : item
+                return MediaInfoSupplement(item: infoItem)
+                #else
                 return MediaInfoSupplement(item: item)
+                #endif
             case .chapters:
                 guard let chapters = item.fullChapterInfo, chapters.isNotEmpty else { return nil }
                 return MediaChaptersSupplement(chapters: chapters)
@@ -201,6 +208,7 @@ final class MediaPlayerManager: ViewModel {
         mediaPlayerItemProvider: @escaping MediaPlayerItemProviderFunction
     ) {
         self.item = item
+        self.requestedItem = item
         self.queue = queue.map { AnyMediaPlayerQueue($0) }
         self.state = .loadingItem
         self.initialMediaPlayerItemProvider = .init(
@@ -217,6 +225,7 @@ final class MediaPlayerManager: ViewModel {
         queue: (any MediaPlayerQueue)? = nil
     ) {
         self.item = playbackItem.baseItem
+        self.requestedItem = playbackItem.baseItem
         self.queue = queue.map { AnyMediaPlayerQueue($0) }
         self.state = .playback
         super.init()
@@ -281,6 +290,7 @@ final class MediaPlayerManager: ViewModel {
 
     @Function(\Action.Cases.playNewItem)
     private func _playNewItem(_ provider: MediaPlayerItemProvider) async throws {
+        requestedItem = provider.item
         item = provider.item
         setSupplements()
         proxy?.stop()

@@ -10,8 +10,6 @@ import Factory
 import JellyfinAPI
 import SwiftUI
 
-// TODO: background refresh for programs with timer?
-
 // Note: there are some unsafe first element accesses, but `ChannelProgram` data should always have a single program
 
 struct ProgramsView: View {
@@ -64,6 +62,7 @@ struct ProgramsView: View {
                     programsSection(title: L10n.news, keyPath: \.news)
                 }
             }
+            .padding(.bottom, EdgeInsets.edgePadding)
         }
     }
 
@@ -77,7 +76,7 @@ struct ProgramsView: View {
                 item: channel,
                 subtitle: nil,
                 action: {
-                    play(channel)
+                    play(channel.currentProgram ?? channel)
                 }
             )
         }
@@ -133,6 +132,14 @@ struct ProgramsView: View {
         .onFirstAppear {
             if programsViewModel.state == .initial {
                 programsViewModel.send(.refresh)
+            }
+        }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .minutes(5))
+
+                guard !Task.isCancelled else { return }
+                programsViewModel.send(.backgroundRefresh)
             }
         }
     }

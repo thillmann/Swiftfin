@@ -50,7 +50,6 @@ extension VideoPlayer.PlaybackControls.Toolbar {
                 filteredButtons.removeAll { $0 == .autoPlay }
                 filteredButtons.removeAll { $0 == .playbackSpeed }
 //                filteredButtons.removeAll { $0 == .playbackQuality }
-                filteredButtons.removeAll { $0 == .subtitles }
             }
 
             return filteredButtons

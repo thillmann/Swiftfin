@@ -25,6 +25,16 @@ extension VideoPlayer.PlaybackControls {
             UIDevice.isTV ? 34 : 24
         }
 
+        private var titleItem: BaseItemDto {
+            #if os(tvOS)
+            if manager.requestedItem.type == .program {
+                return manager.requestedItem
+            }
+            #endif
+
+            return manager.item
+        }
+
         private func onPressed(isPressed: Bool) {
             if isPressed {
                 containerState.timer.stop()
@@ -62,8 +72,12 @@ extension VideoPlayer.PlaybackControls {
                     closeButton
                 }
 
-                TitleView(item: manager.item)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                TitleView(
+                    item: titleItem,
+                    isLive: manager.item.isLiveStream || manager.requestedItem.type == .program,
+                    liveChannelName: manager.item.displayTitle
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 ActionButtons()
                     .frame(height: fontSize)
@@ -88,6 +102,8 @@ extension VideoPlayer.PlaybackControls.Toolbar {
         private var subtitleContentSize: CGSize = .zero
 
         let item: BaseItemDto
+        let isLive: Bool
+        let liveChannelName: String
 
         private var _titleSubtitle: (title: String, subtitle: String?) {
             if item.type == .episode {
@@ -111,6 +127,19 @@ extension VideoPlayer.PlaybackControls.Toolbar {
                 .trackingSize($subtitleContentSize)
         }
 
+        private var liveIndicator: some View {
+            Text(L10n.live)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+                .background {
+                    Capsule()
+                        .fill(Color.red)
+                }
+        }
+
         var iOSView: some View {
             Text(_titleSubtitle.title)
                 .fontWeight(.semibold)
@@ -127,7 +156,15 @@ extension VideoPlayer.PlaybackControls.Toolbar {
 
         var tvOSView: some View {
             VStack(alignment: .leading) {
-                if let subtitle = _titleSubtitle.subtitle {
+                if isLive {
+                    HStack(spacing: 12) {
+                        liveIndicator
+
+                        Text(liveChannelName)
+                            .font(.callout)
+                            .fontWeight(.medium)
+                    }
+                } else if let subtitle = _titleSubtitle.subtitle {
                     Text(subtitle)
                         .font(.callout)
                         .fontWeight(.medium)

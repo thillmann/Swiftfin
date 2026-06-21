@@ -18,18 +18,21 @@ struct VideoPlayerSlider<Value: BinaryFloatingPoint>: View {
     private let currentProgress: Value?
     private let total: Value
     private let isScrollingEnabled: Bool
+    private let displaysAsProgressBar: Bool
     private var onEditingChanged: (Bool) -> Void
 
     init(
         value: Binding<Value>,
         currentProgress: Value?,
         total: Value,
-        isScrollingEnabled: Bool = true
+        isScrollingEnabled: Bool = true,
+        displaysAsProgressBar: Bool = false
     ) {
         self._value = value
         self.currentProgress = currentProgress
         self.total = total
         self.isScrollingEnabled = isScrollingEnabled
+        self.displaysAsProgressBar = displaysAsProgressBar
         self.onEditingChanged = { _ in }
     }
 
@@ -41,7 +44,7 @@ struct VideoPlayerSlider<Value: BinaryFloatingPoint>: View {
             originProgress: currentProgress,
             onEditingChanged: onEditingChanged
         ) {
-            VideoPlayerSliderContent()
+            VideoPlayerSliderContent(displaysAsProgressBar: displaysAsProgressBar)
         }
     }
 }
@@ -54,6 +57,8 @@ extension VideoPlayerSlider {
 }
 
 private struct VideoPlayerSliderContent: SliderContentView {
+
+    let displaysAsProgressBar: Bool
 
     @Environment(\.isEnabled)
     private var isEnabled
@@ -102,6 +107,8 @@ private struct VideoPlayerSliderContent: SliderContentView {
     }
 
     private var visibleTickProgress: Double? {
+        guard !displaysAsProgressBar else { return nil }
+
         if shouldShowCurrentTick {
             return currentProgress
         }
@@ -143,7 +150,7 @@ private struct VideoPlayerSliderContent: SliderContentView {
                         .foregroundStyle(activeColor.opacity(0.45))
                 }
 
-                if sliderState.isFocused {
+                if sliderState.isFocused || displaysAsProgressBar {
                     progressSegment(progress: committedProgress, in: proxy.size)
                         .foregroundStyle(activeColor)
                 }

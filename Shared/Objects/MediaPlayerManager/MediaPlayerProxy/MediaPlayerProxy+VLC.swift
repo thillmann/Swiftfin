@@ -143,11 +143,12 @@ extension VLCMediaPlayerProxy {
             configuration.autoPlay = true
 
             let startSeconds = max(.zero, (baseItem.startSeconds ?? .zero) - Duration.seconds(Defaults[.VideoPlayer.resumeOffset]))
+            let subtitleIndex = item.indexMap.playerIndex(for: item.selectedSubtitleStreamIndex) ?? -1
+
+            configuration.subtitleIndex = .absolute(subtitleIndex)
 
             if !baseItem.isLiveStream {
                 configuration.startSeconds = startSeconds
-
-                let subtitleIndex = item.indexMap.playerIndex(for: item.selectedSubtitleStreamIndex) ?? -1
 
                 if mediaSource.transcodingURL != nil {
                     configuration.audioIndex = .auto
@@ -155,8 +156,6 @@ extension VLCMediaPlayerProxy {
                     let audioIndex = item.indexMap.playerIndex(for: item.selectedAudioStreamIndex) ?? -1
                     configuration.audioIndex = .absolute(audioIndex)
                 }
-
-                configuration.subtitleIndex = .absolute(subtitleIndex)
             }
 
             configuration.subtitleSize = .absolute(25 - Defaults[.VideoPlayer.Subtitle.subtitleSize])

@@ -32,6 +32,7 @@ final class ProgramsViewModel: ViewModel, Stateful {
     // MARK: Action
 
     enum Action: Equatable {
+        case backgroundRefresh
         case error(ErrorMessage)
         case refresh
     }
@@ -83,7 +84,8 @@ final class ProgramsViewModel: ViewModel, Stateful {
         switch action {
         case let .error(error):
             return .error(error)
-        case .refresh:
+        case .backgroundRefresh, .refresh:
+            let isBackgroundRefresh = action == .backgroundRefresh
             currentRefreshTask?.cancel()
 
             currentRefreshTask = Task { [weak self] in
@@ -128,13 +130,17 @@ final class ProgramsViewModel: ViewModel, Stateful {
                     guard !Task.isCancelled else { return }
 
                     await MainActor.run {
-                        self.send(.error(.init(error.localizedDescription)))
+                        if isBackgroundRefresh {
+                            self.logger.warning("Unable to refresh Live TV programs: \(error.localizedDescription)")
+                        } else {
+                            self.send(.error(.init(error.localizedDescription)))
+                        }
                     }
                 }
             }
             .asAnyCancellable()
 
-            return .refreshing
+            return isBackgroundRefresh ? state : .refreshing
         }
     }
 

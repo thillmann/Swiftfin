@@ -115,9 +115,13 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
 
         selectedAudioStreamIndex = resolvedAudioStreamIndex
 
-        selectedSubtitleStreamIndex = initialSubtitleStreamIndex
-            ?? mediaSource.defaultSubtitleStreamIndex
-            ?? -1
+        if baseItem.isLiveStream {
+            selectedSubtitleStreamIndex = initialSubtitleStreamIndex ?? -1
+        } else {
+            selectedSubtitleStreamIndex = initialSubtitleStreamIndex
+                ?? mediaSource.defaultSubtitleStreamIndex
+                ?? -1
+        }
 
         observers.append(MediaProgressObserver(item: self))
     }

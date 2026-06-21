@@ -32,7 +32,7 @@ extension VideoPlayer.PlaybackControls {
     private func handleLeftArrow(
         _ press: VideoPlayer.UIVideoPlayerContainerViewController.PressEvent
     ) {
-        guard containerState.isProgressBarFocused else {
+        guard containerState.isProgressBarFocused, !manager.item.isLiveStream else {
             press.resolve(.fallback)
             return
         }
@@ -53,7 +53,7 @@ extension VideoPlayer.PlaybackControls {
     private func handleRightArrow(
         _ press: VideoPlayer.UIVideoPlayerContainerViewController.PressEvent
     ) {
-        guard containerState.isProgressBarFocused else {
+        guard containerState.isProgressBarFocused, !manager.item.isLiveStream else {
             press.resolve(.fallback)
             return
         }

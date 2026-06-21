@@ -78,7 +78,7 @@ extension MediaPlayerItem {
         playbackInfo.maxStreamingBitrate = maxBitrate
         playbackInfo.userID = userSession.user.id
         playbackInfo.audioStreamIndex = audioStreamIndex
-        playbackInfo.subtitleStreamIndex = subtitleStreamIndex
+        playbackInfo.subtitleStreamIndex = item.isLiveStream ? subtitleStreamIndex ?? -1 : subtitleStreamIndex
 
         if !item.isLiveStream {
             playbackInfo.mediaSourceID = initialMediaSource.id
