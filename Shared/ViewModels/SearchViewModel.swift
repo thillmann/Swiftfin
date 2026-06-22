@@ -185,7 +185,7 @@ struct UnifiedSearchResultPosterOverlay: View {
     }
 
     var body: some View {
-        if item.source != .seer || item.kind == .series {
+        if item.source != .seer {
             EmptyView()
         } else {
             ZStack(alignment: .topTrailing) {
