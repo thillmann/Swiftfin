@@ -513,8 +513,7 @@ struct PosterButtonDefaultOverlay<Item: Poster>: View {
     }
 
     private var shouldShowFavorite: Bool {
-        !isSeries &&
-            overlayOptions.contains(.favorite) &&
+        overlayOptions.contains(.favorite) &&
             baseItem?.userData?.isFavorite == true
     }
 
