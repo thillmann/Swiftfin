@@ -159,10 +159,19 @@ extension SeerrUpcomingView {
             }
 
             items = sortByReleaseDate(
-                results
-                    .filter { $0.originalLanguage == "en" }
-                    .map(UnifiedSearchResult.seer)
+                deduplicated(
+                    results.filter { $0.originalLanguage == "en" }
+                )
+                .map(UnifiedSearchResult.seer)
             )
+        }
+
+        private func deduplicated(_ results: [SeerrClient.MediaResult]) -> [SeerrClient.MediaResult] {
+            var seenIDs = Set<String>()
+
+            return results.filter { item in
+                seenIDs.insert("\(item.mediaType?.rawValue ?? "unknown")-\(item.id)").inserted
+            }
         }
 
         private func discover(

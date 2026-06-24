@@ -36,6 +36,25 @@ struct PosterVGrid<Element: Poster>: View {
         )
     }
 
+    private var gridItems: [PosterVGridItem<Element>] {
+        let idCounts = Dictionary(
+            grouping: data.map(\.unwrappedIDHashOrZero).filter { $0 != 0 },
+            by: { $0 }
+        )
+        .mapValues(\.count)
+
+        return data.enumerated().map { offset, item in
+            let itemID = item.unwrappedIDHashOrZero
+            let id: PosterVGridItemID = if itemID != 0, idCounts[itemID] == 1 {
+                .item(itemID)
+            } else {
+                .offset(offset)
+            }
+
+            return PosterVGridItem(id: id, item: item)
+        }
+    }
+
     init(
         data: [Element],
         layout: LibraryDisplayType = .grid,
@@ -122,10 +141,10 @@ struct PosterVGrid<Element: Poster>: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: gridSpacing) {
-                ForEach(data, id: \.unwrappedIDHashOrZero) { item in
-                    cell(for: item)
+                ForEach(gridItems, id: \.id) { gridItem in
+                    cell(for: gridItem.item)
                         .onAppear {
-                            onNeedsNextPage(item)
+                            onNeedsNextPage(gridItem.item)
                         }
                 }
             }
@@ -133,4 +152,14 @@ struct PosterVGrid<Element: Poster>: View {
             .padding(.top, 120)
         }
     }
+}
+
+private enum PosterVGridItemID: Hashable {
+    case item(Int)
+    case offset(Int)
+}
+
+private struct PosterVGridItem<Element> {
+    let id: PosterVGridItemID
+    let item: Element
 }
