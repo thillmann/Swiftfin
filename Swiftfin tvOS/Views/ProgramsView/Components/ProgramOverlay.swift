@@ -13,8 +13,8 @@ import SwiftUI
 extension ProgramsView {
 
     struct ProgramOverlay: View {
-        @Environment(\.isFocused)
-        private var isFocused
+        @Environment(\.isPosterFocused)
+        private var isPosterFocused
 
         let program: BaseItemDto
         let channel: BaseItemDto?
@@ -105,8 +105,8 @@ extension ProgramsView {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .opacity(isFocused ? 1 : 0.4)
-            .animation(.easeInOut(duration: 0.18), value: isFocused)
+            .opacity(isPosterFocused ? 1 : 0.4)
+            .animation(.easeInOut(duration: 0.18), value: isPosterFocused)
         }
     }
 
@@ -179,15 +179,15 @@ extension ProgramsView {
     }
 
     struct ProgramFallback: View {
-        @Environment(\.isFocused)
-        private var isFocused
+        @Environment(\.isPosterFocused)
+        private var isPosterFocused
 
         var body: some View {
             Image(systemName: "tv")
                 .font(.largeTitle)
                 .foregroundStyle(.white)
-                .opacity(isFocused ? 1 : 0.4)
-                .animation(.easeInOut(duration: 0.18), value: isFocused)
+                .opacity(isPosterFocused ? 1 : 0.4)
+                .animation(.easeInOut(duration: 0.18), value: isPosterFocused)
         }
     }
 }
