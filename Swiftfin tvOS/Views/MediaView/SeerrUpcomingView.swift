@@ -76,7 +76,7 @@ struct SeerrUpcomingView: View {
         }
         .fullScreenCover(item: $pendingRequestItem) { item in
             SeerrRequestView(item: item) {
-                viewModel.markRequested(item.id)
+                viewModel.markRequested(item)
             }
         }
     }
@@ -96,27 +96,34 @@ extension SeerrUpcomingView {
         @Published
         private(set) var isLoading = false
 
+        private var results: [MediaType: [SeerrClient.MediaResult]] = [:]
         private var mediaType = MediaType.movies
 
         private let pageLimit = 5
 
         func select(_ mediaType: MediaType) async {
             self.mediaType = mediaType
-            items = []
+            updateItems()
             error = nil
-            isLoading = false
-            await load(mediaType: mediaType)
+
+            if results[mediaType] == nil {
+                isLoading = false
+                await load(mediaType: mediaType)
+            }
         }
 
         func refresh(mediaType: MediaType) async {
             await load(mediaType: mediaType)
         }
 
-        func markRequested(_ id: Int) {
-            items = items.map { item in
-                guard case let .seer(seerrItem) = item, seerrItem.id == id else { return item }
-                return .seer(seerrItem.updatingStatus(.pending))
+        func markRequested(_ requestedItem: SeerrClient.MediaResult) {
+            results = results.mapValues { items in
+                items.map { item in
+                    guard item.id == requestedItem.id, item.mediaType == requestedItem.mediaType else { return item }
+                    return item.updatingStatus(.pending)
+                }
             }
+            updateItems()
         }
 
         private func load(mediaType: MediaType) async {
@@ -140,7 +147,7 @@ extension SeerrUpcomingView {
                 return
             }
 
-            var results = firstPage.results
+            var newResults = firstPage.results
             let lastPage = min(firstPage.totalPages ?? 1, pageLimit)
 
             if lastPage > 1 {
@@ -150,7 +157,7 @@ extension SeerrUpcomingView {
 
                     switch result {
                     case let .success(response):
-                        results.append(contentsOf: response.results)
+                        newResults.append(contentsOf: response.results)
                     case let .failure(error):
                         self.error = error
                         return
@@ -158,12 +165,10 @@ extension SeerrUpcomingView {
                 }
             }
 
-            items = sortByReleaseDate(
-                deduplicated(
-                    results.filter { $0.originalLanguage == "en" }
-                )
-                .map(UnifiedSearchResult.seer)
+            results[mediaType] = deduplicated(
+                newResults.filter { $0.originalLanguage == "en" }
             )
+            updateItems()
         }
 
         private func deduplicated(_ results: [SeerrClient.MediaResult]) -> [SeerrClient.MediaResult] {
@@ -208,6 +213,13 @@ extension SeerrUpcomingView {
             guard case let .seer(item) = item else { return nil }
             guard let date = item.releaseDate ?? item.firstAirDate, date.isNotEmpty else { return nil }
             return date
+        }
+
+        private func updateItems() {
+            items = sortByReleaseDate(
+                (results[mediaType] ?? [])
+                    .map(UnifiedSearchResult.seer)
+            )
         }
     }
 }

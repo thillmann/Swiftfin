@@ -174,7 +174,7 @@ struct SeerrRequestView: View {
 
     private var seasonsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Seasons")
+            Text(L10n.seasons)
                 .font(.headline)
 
             Menu {
@@ -239,7 +239,7 @@ struct SeerrRequestView: View {
 
     private var optionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Advanced")
+            Text(L10n.advanced)
                 .font(.headline)
 
             if viewModel.profiles.isNotEmpty {
@@ -370,7 +370,7 @@ final class SeerrRequestViewModel: ObservableObject {
     }
 
     var mediaKindText: String {
-        isTV ? "Series" : "Movie"
+        isTV ? L10n.series : L10n.movie
     }
 
     var mediaGenresText: String? {
@@ -401,7 +401,7 @@ final class SeerrRequestViewModel: ObservableObject {
     }
 
     var requestButtonTitle: String {
-        isAlreadyRequested ? "Requested" : "Request"
+        isAlreadyRequested ? L10n.seerrStatusRequested : "Request"
     }
 
     var canSubmit: Bool {

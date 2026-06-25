@@ -100,8 +100,8 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Shared/Components/PosterImage.swift`                                                                     | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Components/PosterIndicators/ProgressIndicator.swift`                                              | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Components/RotateContentView.swift`                                                               | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Media.swift`                              | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Settings.swift`                           | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Media.swift`                              | ✅ Reviewed and actioned | Reviewed Seerr media routes; no remaining code changes. |
+| Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Settings.swift`                           | ✅ Reviewed and actioned | Reviewed Seerr settings route; no remaining code changes. |
 | Modified       | `Shared/Coordinators/Tabs/MainTabView.swift`                                                              | ✅ Reviewed and actioned | Top Shelf routing path inspected; no remaining code changes. |
 | Modified       | `Shared/Extensions/EdgeInsets.swift`                                                                      | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Extensions/JellyfinAPI/BaseItemDto/BaseItemDto+Poster.swift`                                      | ⬜ Not reviewed | —     |
@@ -119,29 +119,29 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Shared/Objects/MediaPlayerManager/Supplements/MediaInfoSupplement.swift`                                 | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/Supplements/MediaPeopleSupplement.swift`                               | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/Supplements/PlaybackRateMediaPlayerSupplement.swift`                   | ⬜ Not reviewed | —     |
-| Added          | `Shared/Services/SeerrClient.swift`                                                                       | ⬜ Not reviewed | —     |
-| Added          | `Shared/Services/SeerrIntegration.swift`                                                                  | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Services/SwiftfinDefaults.swift`                                                                  | ⬜ Not reviewed | —     |
+| Added          | `Shared/Services/SeerrClient.swift`                                                                       | ✅ Reviewed and actioned | Reviewed request/search/discover/status client flow; no remaining code changes. |
+| Added          | `Shared/Services/SeerrIntegration.swift`                                                                  | ✅ Reviewed and actioned | Reviewed URL/default/keychain integration; no remaining code changes. |
+| Modified       | `Shared/Services/SwiftfinDefaults.swift`                                                                  | ✅ Reviewed and actioned | Reviewed Seerr integration defaults; no remaining code changes. |
 | Modified       | `Shared/Strings/Strings.swift`                                                                            | ⬜ Not reviewed | Touched only to add `skipIntro` for the video-player review; broader strings diff not reviewed. |
 | Modified       | `Shared/ViewModels/HomeViewModel.swift`                                                                   | ✅ Reviewed and actioned | Reviewed Top Shelf cache write integration and resume filtering; no remaining code changes. |
 | Modified       | `Shared/ViewModels/ItemViewModel/ItemViewModel.swift`                                                     | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/ItemViewModel/SeasonItemViewModel.swift`                                               | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/ItemViewModel/SeriesItemViewModel.swift`                                               | ⬜ Not reviewed | —     |
+| Modified       | `Shared/ViewModels/ItemViewModel/SeriesItemViewModel.swift`                                               | 🔁 Follow-up needed | Seerr/Jellyfin upcoming episode lookup inspected; `New Episode on ...` pill copy remains literal and should be localized. |
 | Modified       | `Shared/ViewModels/LibraryViewModel/LatestInLibraryViewModel.swift`                                       | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/LibraryViewModel/NextUpLibraryViewModel.swift`                                         | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/LibraryViewModel/PagingLibraryViewModel.swift`                                         | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/LibraryViewModel/RecentlyAddedViewModel.swift`                                         | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/MediaViewModel/MediaType.swift`                                                        | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/MediaViewModel/MediaViewModel.swift`                                                   | ⬜ Not reviewed | —     |
+| Modified       | `Shared/ViewModels/MediaViewModel/MediaType.swift`                                                        | ✅ Reviewed and actioned | Reviewed Seerr media categories; no remaining code changes. |
+| Modified       | `Shared/ViewModels/MediaViewModel/MediaViewModel.swift`                                                   | ✅ Reviewed and actioned | Reviewed Seerr media tile image loading; no remaining code changes. |
 | Modified       | `Shared/ViewModels/ProgramsViewModel.swift`                                                               | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/SearchViewModel.swift`                                                                 | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/MediaView/Components/MediaItem.swift`                                                       | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/MediaView/MediaView.swift`                                                                  | ⬜ Not reviewed | —     |
-| Added          | `Shared/Views/SeerrRequestView.swift`                                                                     | ⬜ Not reviewed | —     |
+| Modified       | `Shared/ViewModels/SearchViewModel.swift`                                                                 | ✅ Reviewed and actioned | Reviewed unified Jellyfin/Seerr search merge and request status updates; no remaining code changes. |
+| Modified       | `Shared/Views/MediaView/Components/MediaItem.swift`                                                       | ✅ Reviewed and actioned | Reviewed Seerr media tile presentation; no remaining code changes. |
+| Modified       | `Shared/Views/MediaView/MediaView.swift`                                                                  | ✅ Reviewed and actioned | Reviewed Seerr media navigation; no remaining code changes. |
+| Added          | `Shared/Views/SeerrRequestView.swift`                                                                     | 🔁 Follow-up needed | Localized labels that already had existing keys; remaining Seerr-specific request-sheet copy should be added to localization tables. |
 | Modified       | `Shared/Views/SettingsView/CustomizeSettingsView.swift`                                                   | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Views/SettingsView/DebugSettingsView.swift`                                                       | ⬜ Not reviewed | —     |
-| Added          | `Shared/Views/SettingsView/SeerrSettingsView.swift`                                                       | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/SettingsView/SettingsView.swift`                                                            | ⬜ Not reviewed | —     |
+| Added          | `Shared/Views/SettingsView/SeerrSettingsView.swift`                                                       | 🔁 Follow-up needed | Settings flow inspected; Seerr-specific labels and validation/status copy should be added to localization tables. |
+| Modified       | `Shared/Views/SettingsView/SettingsView.swift`                                                            | 🔁 Follow-up needed | Seerr settings entry inspected; integration status copy should be localized. |
 | Modified       | `Shared/Views/SettingsView/VideoPlayerSettingsView.swift`                                                 | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Views/VideoPlayer/Components/PlaybackProgress/SplitTimestamp.swift`                               | ✅ Reviewed and actioned | —     |
 | Modified       | `Shared/Views/VideoPlayer/Components/Toolbar/ActionButtons/VideoPlayer+ActionButtons.swift`               | ✅ Reviewed and actioned | —     |
@@ -168,8 +168,8 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Added          | `Swiftfin tvOS/Components/PosterVGrid.swift`                                                              | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Components/VideoPlayerSlider.swift`                                                        | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin tvOS/Extensions/View/View-tvOS.swift`                                                           | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/Contents.json`                         | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/seerr.monochrome.svg`                  | ⬜ Not reviewed | —     |
+| Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/Contents.json`                         | ✅ Reviewed and actioned | Reviewed asset catalog metadata; no remaining code changes. |
+| Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/seerr.monochrome.svg`                  | ✅ Reviewed and actioned | Reviewed monochrome SVG asset; no remaining code changes. |
 | Modified       | `Swiftfin tvOS/Resources/Info.plist`                                                                      | ✅ Reviewed and actioned | —     |
 | Added          | `Swiftfin tvOS/Resources/Swiftfin-tvOS.entitlements`                                                      | 🔁 Follow-up needed | App group is hard-coded to `group.timo.jellyfin.swiftfin`; confirm production/shared signing identifier before release. |
 | Added          | `Swiftfin tvOS/Services/TopShelfDeepLinkStore.swift`                                                      | ✅ Reviewed and actioned | —     |
@@ -207,14 +207,14 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Swiftfin tvOS/Views/ItemView/ScrollViews/CinematicScrollView.swift`                                      | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ItemView/SeriesItemContentView.swift`                                                | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ItemView/SimpleItemContentView.swift`                                                | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Views/MediaView/SeerrTrendingView.swift`                                                   | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Views/MediaView/SeerrUpcomingView.swift`                                                   | ⬜ Not reviewed | —     |
+| Added          | `Swiftfin tvOS/Views/MediaView/SeerrTrendingView.swift`                                                   | ✅ Reviewed and actioned | Reviewed trending paging/filtering/request-status flow; no remaining code changes. |
+| Added          | `Swiftfin tvOS/Views/MediaView/SeerrUpcomingView.swift`                                                   | ✅ Reviewed and actioned | Kept backing Seerr results per tab so request status updates stay coherent across tab switches. |
 | Deleted        | `Swiftfin tvOS/Views/PagingLibraryView/Components/LibraryRow.swift`                                       | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/PagingLibraryView/PagingLibraryView.swift`                                           | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Views/ProgramsView/Components/ProgramOverlay.swift`                                        | ⬜ Not reviewed | —     |
 | Deleted        | `Swiftfin tvOS/Views/ProgramsView/Components/ProgramProgressOverlay.swift`                                | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ProgramsView/ProgramsView.swift`                                                     | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/SearchView.swift`                                                                    | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Views/SearchView.swift`                                                                    | ✅ Reviewed and actioned | Reviewed unified Seerr request presentation from search; no remaining code changes. |
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+PressHandling.swift`        | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackProgress.swift`                      | ✅ Reviewed and actioned | Restored a LIVE badge fallback when live channel playback has no program schedule dates. |
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift`                                 | ✅ Reviewed and actioned | —     |
