@@ -102,7 +102,7 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Shared/Components/RotateContentView.swift`                                                               | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Media.swift`                              | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Settings.swift`                           | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Coordinators/Tabs/MainTabView.swift`                                                              | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Coordinators/Tabs/MainTabView.swift`                                                              | ✅ Reviewed and actioned | Top Shelf routing path inspected; no remaining code changes. |
 | Modified       | `Shared/Extensions/EdgeInsets.swift`                                                                      | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Extensions/JellyfinAPI/BaseItemDto/BaseItemDto+Poster.swift`                                      | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Extensions/JellyfinAPI/BaseItemDto/BaseItemDto.swift`                                             | ⬜ Not reviewed | —     |
@@ -123,7 +123,7 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Added          | `Shared/Services/SeerrIntegration.swift`                                                                  | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Services/SwiftfinDefaults.swift`                                                                  | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Strings/Strings.swift`                                                                            | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/HomeViewModel.swift`                                                                   | ⬜ Not reviewed | —     |
+| Modified       | `Shared/ViewModels/HomeViewModel.swift`                                                                   | ✅ Reviewed and actioned | Reviewed Top Shelf cache write integration and resume filtering; no remaining code changes. |
 | Modified       | `Shared/ViewModels/ItemViewModel/ItemViewModel.swift`                                                     | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/ItemViewModel/SeasonItemViewModel.swift`                                               | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/ItemViewModel/SeriesItemViewModel.swift`                                               | ⬜ Not reviewed | —     |
@@ -149,10 +149,10 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Shared/Views/VideoPlayer/Components/Toolbar/VideoPlayer+Toolbar.swift`                                   | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Views/VideoPlayer/VideoPlayerContainerView/SupplementContainerView.swift`                         | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Views/VideoPlayer/VideoPlayerContainerView/VideoPlayerContainerView.swift`                        | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS Top Shelf/Resources/Info.plist`                                                            | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements`                                  | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS Top Shelf/TopShelfContentProvider.swift`                                                   | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/App/SwiftfinApp.swift`                                                                     | ⬜ Not reviewed | —     |
+| Added          | `Swiftfin tvOS Top Shelf/Resources/Info.plist`                                                            | ✅ Reviewed and actioned | —     |
+| Added          | `Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements`                                  | 🔁 Follow-up needed | App group is hard-coded to `group.timo.jellyfin.swiftfin`; confirm production/shared signing identifier before release. |
+| Added          | `Swiftfin tvOS Top Shelf/TopShelfContentProvider.swift`                                                   | ✅ Reviewed and actioned | —     |
+| Modified       | `Swiftfin tvOS/App/SwiftfinApp.swift`                                                                     | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin tvOS/Components/CapsuleSlider.swift`                                                            | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Components/CinematicBackgroundView.swift`                                                  | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Components/CinematicItemHeroView.swift`                                                    | ⬜ Not reviewed | —     |
@@ -170,11 +170,11 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Swiftfin tvOS/Extensions/View/View-tvOS.swift`                                                           | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/Contents.json`                         | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/seerr.monochrome.svg`                  | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Resources/Info.plist`                                                                      | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Resources/Swiftfin-tvOS.entitlements`                                                      | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Services/TopShelfDeepLinkStore.swift`                                                      | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Services/TopShelfResumeCache.swift`                                                        | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Services/TopShelfResumeCacheWriter.swift`                                                  | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Resources/Info.plist`                                                                      | ✅ Reviewed and actioned | —     |
+| Added          | `Swiftfin tvOS/Resources/Swiftfin-tvOS.entitlements`                                                      | 🔁 Follow-up needed | App group is hard-coded to `group.timo.jellyfin.swiftfin`; confirm production/shared signing identifier before release. |
+| Added          | `Swiftfin tvOS/Services/TopShelfDeepLinkStore.swift`                                                      | ✅ Reviewed and actioned | —     |
+| Added          | `Swiftfin tvOS/Services/TopShelfResumeCache.swift`                                                        | 🔁 Follow-up needed | Runtime app group constant is hard-coded to `group.timo.jellyfin.swiftfin`; keep in sync with the production entitlement decision. |
+| Added          | `Swiftfin tvOS/Services/TopShelfResumeCacheWriter.swift`                                                  | ✅ Reviewed and actioned | Fixed unauthenticated Top Shelf artwork URLs by including the query API key. |
 | Modified       | `Swiftfin tvOS/Views/HomeView/Components/CinematicRecentlyAddedView.swift`                                | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/HomeView/Components/CinematicResumeItemView.swift`                                   | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/HomeView/Components/LatestInLibraryView.swift`                                       | ⬜ Not reviewed | —     |
@@ -218,8 +218,8 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+PressHandling.swift`        | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackProgress.swift`                      | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift`                                 | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin.xcodeproj/project.pbxproj`                                                                      | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin tvOS.xcscheme`                                        | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin.xcodeproj/project.pbxproj`                                                                      | 🔁 Follow-up needed | Top Shelf target/embed wiring reviewed; extension bundle id is hard-coded to `timo.jellyfin.swiftfin.TopShelf`, which only matches local ignored signing overrides. Confirm production bundle-id strategy. |
+| Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin tvOS.xcscheme`                                        | ✅ Reviewed and actioned | Only Xcode upgrade metadata changed. |
 | Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin.xcscheme`                                             | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin/Views/SearchView.swift`                                                                         | ⬜ Not reviewed | —     |
 | Modified       | `Translations/en.lproj/Localizable.strings`                                                               | ⬜ Not reviewed | —     |

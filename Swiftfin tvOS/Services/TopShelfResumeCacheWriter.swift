@@ -183,7 +183,7 @@ enum TopShelfResumeCacheWriter {
             parameters: parameters
         )
 
-        return userSession.client.url(with: request)
+        return userSession.client.url(with: request, queryAPIKey: true)
     }
 
     private static func actionURL(
