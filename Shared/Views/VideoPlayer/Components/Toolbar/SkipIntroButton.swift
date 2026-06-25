@@ -23,7 +23,7 @@ extension VideoPlayer.PlaybackControls {
                     Image(systemName: "forward.end.fill")
                         .font(.system(size: 18, weight: .semibold))
 
-                    Text("Skip Intro")
+                    Text(L10n.skipIntro)
                 }
             }
             .buttonStyle(SkipIntroButtonStyle())

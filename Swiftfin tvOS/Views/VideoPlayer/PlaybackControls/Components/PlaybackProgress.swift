@@ -140,6 +140,19 @@ extension VideoPlayer.PlaybackControls {
             return clamp((elapsed / duration) * 100, min: 0, max: 100)
         }
 
+        private var liveIndicator: some View {
+            Text(L10n.live)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+                .background {
+                    Capsule()
+                        .fill(Color.gray)
+                }
+        }
+
         @ViewBuilder
         private var liveProgramProgress: some View {
             if let liveProgramDates {
@@ -172,6 +185,9 @@ extension VideoPlayer.PlaybackControls {
                         .monospacedDigit()
                     }
                 }
+            } else {
+                liveIndicator
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
 

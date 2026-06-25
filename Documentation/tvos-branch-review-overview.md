@@ -122,7 +122,7 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Added          | `Shared/Services/SeerrClient.swift`                                                                       | ⬜ Not reviewed | —     |
 | Added          | `Shared/Services/SeerrIntegration.swift`                                                                  | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Services/SwiftfinDefaults.swift`                                                                  | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Strings/Strings.swift`                                                                            | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Strings/Strings.swift`                                                                            | ⬜ Not reviewed | Touched only to add `skipIntro` for the video-player review; broader strings diff not reviewed. |
 | Modified       | `Shared/ViewModels/HomeViewModel.swift`                                                                   | ✅ Reviewed and actioned | Reviewed Top Shelf cache write integration and resume filtering; no remaining code changes. |
 | Modified       | `Shared/ViewModels/ItemViewModel/ItemViewModel.swift`                                                     | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/ItemViewModel/SeasonItemViewModel.swift`                                               | ⬜ Not reviewed | —     |
@@ -143,12 +143,12 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Added          | `Shared/Views/SettingsView/SeerrSettingsView.swift`                                                       | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Views/SettingsView/SettingsView.swift`                                                            | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Views/SettingsView/VideoPlayerSettingsView.swift`                                                 | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/VideoPlayer/Components/PlaybackProgress/SplitTimestamp.swift`                               | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/VideoPlayer/Components/Toolbar/ActionButtons/VideoPlayer+ActionButtons.swift`               | ⬜ Not reviewed | —     |
-| Added          | `Shared/Views/VideoPlayer/Components/Toolbar/SkipIntroButton.swift`                                       | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/VideoPlayer/Components/Toolbar/VideoPlayer+Toolbar.swift`                                   | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/VideoPlayer/VideoPlayerContainerView/SupplementContainerView.swift`                         | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Views/VideoPlayer/VideoPlayerContainerView/VideoPlayerContainerView.swift`                        | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Views/VideoPlayer/Components/PlaybackProgress/SplitTimestamp.swift`                               | ✅ Reviewed and actioned | —     |
+| Modified       | `Shared/Views/VideoPlayer/Components/Toolbar/ActionButtons/VideoPlayer+ActionButtons.swift`               | ✅ Reviewed and actioned | —     |
+| Added          | `Shared/Views/VideoPlayer/Components/Toolbar/SkipIntroButton.swift`                                       | ✅ Reviewed and actioned | Localized the button label through `L10n.skipIntro`. |
+| Modified       | `Shared/Views/VideoPlayer/Components/Toolbar/VideoPlayer+Toolbar.swift`                                   | ✅ Reviewed and actioned | —     |
+| Modified       | `Shared/Views/VideoPlayer/VideoPlayerContainerView/SupplementContainerView.swift`                         | ✅ Reviewed and actioned | —     |
+| Modified       | `Shared/Views/VideoPlayer/VideoPlayerContainerView/VideoPlayerContainerView.swift`                        | ✅ Reviewed and actioned | —     |
 | Added          | `Swiftfin tvOS Top Shelf/Resources/Info.plist`                                                            | ✅ Reviewed and actioned | —     |
 | Added          | `Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements`                                  | 🔁 Follow-up needed | App group is hard-coded to `group.timo.jellyfin.swiftfin`; confirm production/shared signing identifier before release. |
 | Added          | `Swiftfin tvOS Top Shelf/TopShelfContentProvider.swift`                                                   | ✅ Reviewed and actioned | —     |
@@ -166,7 +166,7 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Swiftfin tvOS/Components/PosterButton.swift`                                                             | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Components/PosterHStack.swift`                                                             | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Components/PosterVGrid.swift`                                                              | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Components/VideoPlayerSlider.swift`                                                        | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Components/VideoPlayerSlider.swift`                                                        | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin tvOS/Extensions/View/View-tvOS.swift`                                                           | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/Contents.json`                         | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/seerr.monochrome.svg`                  | ⬜ Not reviewed | —     |
@@ -215,11 +215,11 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Deleted        | `Swiftfin tvOS/Views/ProgramsView/Components/ProgramProgressOverlay.swift`                                | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ProgramsView/ProgramsView.swift`                                                     | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/SearchView.swift`                                                                    | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+PressHandling.swift`        | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackProgress.swift`                      | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift`                                 | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+PressHandling.swift`        | ✅ Reviewed and actioned | —     |
+| Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackProgress.swift`                      | ✅ Reviewed and actioned | Restored a LIVE badge fallback when live channel playback has no program schedule dates. |
+| Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift`                                 | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin.xcodeproj/project.pbxproj`                                                                      | 🔁 Follow-up needed | Top Shelf target/embed wiring reviewed; extension bundle id is hard-coded to `timo.jellyfin.swiftfin.TopShelf`, which only matches local ignored signing overrides. Confirm production bundle-id strategy. |
 | Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin tvOS.xcscheme`                                        | ✅ Reviewed and actioned | Only Xcode upgrade metadata changed. |
 | Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin.xcscheme`                                             | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin/Views/SearchView.swift`                                                                         | ⬜ Not reviewed | —     |
-| Modified       | `Translations/en.lproj/Localizable.strings`                                                               | ⬜ Not reviewed | —     |
+| Modified       | `Translations/en.lproj/Localizable.strings`                                                               | ⬜ Not reviewed | Touched only to add `skipIntro` for the video-player review; broader localization diff not reviewed. |
