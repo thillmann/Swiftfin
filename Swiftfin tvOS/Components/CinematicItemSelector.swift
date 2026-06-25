@@ -25,8 +25,6 @@ struct CinematicItemSelector<Item: Poster>: View {
     private var viewModel: CinematicBackgroundView.Proxy = .init()
 
     private var topContent: (Item) -> any View
-    private var itemContent: (Item) -> any View
-    private var trailingContent: () -> any View
     private let action: (Item) -> Void
     private let overlayOptions: PosterButtonOverlayOptions
     private let unplayedIndicatorType: UnplayedIndicatorType
@@ -108,8 +106,6 @@ extension CinematicItemSelector {
     ) {
         self.init(
             topContent: { _ in EmptyView() },
-            itemContent: { _ in EmptyView() },
-            trailingContent: { EmptyView() },
             action: action,
             overlayOptions: overlayOptions,
             unplayedIndicatorType: unplayedIndicatorType,
@@ -122,13 +118,5 @@ extension CinematicItemSelector {
 
     func topContent(@ViewBuilder _ content: @escaping (Item) -> any View) -> Self {
         copy(modifying: \.topContent, with: content)
-    }
-
-    func content(@ViewBuilder _ content: @escaping (Item) -> any View) -> Self {
-        copy(modifying: \.itemContent, with: content)
-    }
-
-    func trailingContent(@ViewBuilder _ content: @escaping () -> some View) -> Self {
-        copy(modifying: \.trailingContent, with: content)
     }
 }
