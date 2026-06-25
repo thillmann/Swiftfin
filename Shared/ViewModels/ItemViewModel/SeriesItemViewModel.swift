@@ -103,6 +103,7 @@ final class SeriesItemViewModel: ItemViewModel {
                 }
             }
             .store(in: &cancellables)
+            return parentState
         default: ()
         }
 
@@ -175,15 +176,14 @@ final class SeriesItemViewModel: ItemViewModel {
     private func getJellyfinUpcomingEpisode() async -> BaseItemDto? {
 
         let startOfToday = Calendar.current.startOfDay(for: Date())
-        let attempts: [(label: String, isMissing: Bool?, isUnaired: Bool?)] = [
-            ("unaired", nil, true),
-            ("missing", true, nil),
-            ("future", nil, nil),
+        let attempts: [(isMissing: Bool?, isUnaired: Bool?)] = [
+            (nil, true),
+            (true, nil),
+            (nil, nil),
         ]
 
         for attempt in attempts {
             if let item = await getUpcomingEpisode(
-                attempt: attempt.label,
                 isMissing: attempt.isMissing,
                 isUnaired: attempt.isUnaired,
                 minPremiereDate: startOfToday
@@ -219,7 +219,7 @@ final class SeriesItemViewModel: ItemViewModel {
             }
 
             return label
-        case let .failure(error):
+        case .failure:
             return nil
         }
     }
@@ -237,7 +237,6 @@ final class SeriesItemViewModel: ItemViewModel {
     }
 
     private func getUpcomingEpisode(
-        attempt: String,
         isMissing: Bool?,
         isUnaired: Bool?,
         minPremiereDate: Date
@@ -308,7 +307,7 @@ private extension BaseItemDto {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMMM"
 
-        return "New Episode on \(formatter.string(from: premiereDate))"
+        return L10n.newEpisodeOn(formatter.string(from: premiereDate))
     }
 }
 
@@ -323,12 +322,12 @@ private extension SeerrClient.TVDetails.Episode {
         parser.dateFormat = "yyyy-MM-dd"
 
         guard let date = parser.date(from: airDate) else {
-            return "New Episode on \(airDate)"
+            return L10n.newEpisodeOn(airDate)
         }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMMM"
 
-        return "New Episode on \(formatter.string(from: date))"
+        return L10n.newEpisodeOn(formatter.string(from: date))
     }
 }

@@ -14,8 +14,6 @@ extension ItemView {
 
     struct PlayButton: View {
 
-        private static let playAgainTitle = "Play Again"
-
         @FocusState
         private var isPlayButtonFocused: Bool
 
@@ -103,7 +101,7 @@ extension ItemView {
             }
 
             if isPlayed {
-                return Self.playAgainTitle
+                return L10n.playAgain
             }
 
             if isPartiallyWatched, remainingDuration == nil {

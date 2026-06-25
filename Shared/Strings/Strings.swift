@@ -1024,6 +1024,10 @@ internal enum L10n {
   internal static let mediaDownloads = L10n.tr("Localizable", "mediaDownloads", fallback: "Media downloads")
   /// Media playback
   internal static let mediaPlayback = L10n.tr("Localizable", "mediaPlayback", fallback: "Media playback")
+  /// New Episode on %@
+  internal static func newEpisodeOn(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "newEpisodeOn", String(describing: p1), fallback: "New Episode on %@")
+  }
   /// Mbps
   internal static let megabitsPerSecond = L10n.tr("Localizable", "megabitsPerSecond", fallback: "Mbps")
   /// Menu
@@ -1204,6 +1208,8 @@ internal enum L10n {
   internal static let pinch = L10n.tr("Localizable", "pinch", fallback: "Pinch")
   /// Play
   internal static let play = L10n.tr("Localizable", "play", fallback: "Play")
+  /// Play Again
+  internal static let playAgain = L10n.tr("Localizable", "playAgain", fallback: "Play Again")
   /// Play / Pause
   internal static let playAndPause = L10n.tr("Localizable", "playAndPause", fallback: "Play / Pause")
   /// Playback quality
