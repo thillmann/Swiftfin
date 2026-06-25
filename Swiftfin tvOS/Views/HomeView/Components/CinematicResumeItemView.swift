@@ -219,16 +219,6 @@ extension HomeView {
             .accessibilityLabel(L10n.info)
         }
 
-        private var nextButton: some View {
-            Button {
-                focusedAction = .next
-                selectNextItem()
-            } label: {}
-                .buttonStyle(.borderless)
-                .accessibilityLabel(L10n.nextItem)
-                .enabled(items.count > 1)
-        }
-
         private var pageIndicators: some View {
             HStack(spacing: 12) {
                 ForEach(items.indices, id: \.self) { index in

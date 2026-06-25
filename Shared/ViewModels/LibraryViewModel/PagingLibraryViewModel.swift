@@ -416,7 +416,8 @@ class PagingLibraryViewModel<Element: Poster>: ViewModel, Eventful, Stateful {
             item.unwrappedIDHashOrZero == currentItem.unwrappedIDHashOrZero
         }) else { return }
 
-        let threshold = Swift.max(items.count - pageSize, 0)
+        let prefetchWindow = Swift.max(pageSize / 2, 1)
+        let threshold = Swift.max(items.count - prefetchWindow, 0)
         guard currentIndex >= threshold else { return }
 
         nextPageTask = Task { [weak self] in

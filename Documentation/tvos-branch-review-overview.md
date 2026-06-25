@@ -127,10 +127,10 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Shared/ViewModels/ItemViewModel/ItemViewModel.swift`                                                     | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/ItemViewModel/SeasonItemViewModel.swift`                                               | ⬜ Not reviewed | —     |
 | Modified       | `Shared/ViewModels/ItemViewModel/SeriesItemViewModel.swift`                                               | 🔁 Follow-up needed | Seerr/Jellyfin upcoming episode lookup inspected; `New Episode on ...` pill copy remains literal and should be localized. |
-| Modified       | `Shared/ViewModels/LibraryViewModel/LatestInLibraryViewModel.swift`                                       | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/LibraryViewModel/NextUpLibraryViewModel.swift`                                         | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/LibraryViewModel/PagingLibraryViewModel.swift`                                         | ⬜ Not reviewed | —     |
-| Modified       | `Shared/ViewModels/LibraryViewModel/RecentlyAddedViewModel.swift`                                         | ⬜ Not reviewed | —     |
+| Modified       | `Shared/ViewModels/LibraryViewModel/LatestInLibraryViewModel.swift`                                       | ✅ Reviewed and actioned | Reviewed tvOS retained refresh and latest-series mapping; no remaining code changes. |
+| Modified       | `Shared/ViewModels/LibraryViewModel/NextUpLibraryViewModel.swift`                                         | ✅ Reviewed and actioned | Reviewed next-up page offset and retained refresh behavior; no remaining code changes. |
+| Modified       | `Shared/ViewModels/LibraryViewModel/PagingLibraryViewModel.swift`                                         | ✅ Reviewed and actioned | Tightened tvOS auto-prefetch threshold so the first visible page does not immediately fetch another page. |
+| Modified       | `Shared/ViewModels/LibraryViewModel/RecentlyAddedViewModel.swift`                                         | ✅ Reviewed and actioned | Reviewed retained refresh and exclude-ID paging; no remaining code changes. |
 | Modified       | `Shared/ViewModels/MediaViewModel/MediaType.swift`                                                        | ✅ Reviewed and actioned | Reviewed Seerr media categories; no remaining code changes. |
 | Modified       | `Shared/ViewModels/MediaViewModel/MediaViewModel.swift`                                                   | ✅ Reviewed and actioned | Reviewed Seerr media tile image loading; no remaining code changes. |
 | Modified       | `Shared/ViewModels/ProgramsViewModel.swift`                                                               | ⬜ Not reviewed | —     |
@@ -155,17 +155,17 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Swiftfin tvOS/App/SwiftfinApp.swift`                                                                     | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin tvOS/Components/CapsuleSlider.swift`                                                            | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Components/CinematicBackgroundView.swift`                                                  | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Components/CinematicItemHeroView.swift`                                                    | ⬜ Not reviewed | —     |
+| Added          | `Swiftfin tvOS/Components/CinematicItemHeroView.swift`                                                    | ✅ Reviewed and actioned | Reviewed home hero detail composition and fallback item view model flow; no remaining code changes. |
 | Modified       | `Swiftfin tvOS/Components/CinematicItemSelector.swift`                                                    | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Components/CirclePosterButton.swift`                                                       | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Components/FeatureButton.swift`                                                            | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Components/HeroScrollView.swift`                                                           | ⬜ Not reviewed | —     |
+| Added          | `Swiftfin tvOS/Components/FeatureButton.swift`                                                            | ✅ Reviewed and actioned | Reviewed supporting feature button styles used by the hero/action controls; no remaining code changes. |
+| Added          | `Swiftfin tvOS/Components/HeroScrollView.swift`                                                           | ✅ Reviewed and actioned | Reviewed scroll reader presentation switching for home hero focus; no remaining code changes. |
 | Deleted        | `Swiftfin tvOS/Components/LandscapePosterProgressBar.swift`                                               | ⬜ Not reviewed | —     |
 | Renamed (100%) | `Swiftfin tvOS/Views/PagingLibraryView/Components/ListRow.swift → Swiftfin tvOS/Components/ListRow.swift` | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Components/ListRowMenu.swift`                                                              | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Components/PosterButton.swift`                                                             | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Components/PosterHStack.swift`                                                             | ⬜ Not reviewed | —     |
-| Added          | `Swiftfin tvOS/Components/PosterVGrid.swift`                                                              | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Components/PosterHStack.swift`                                                             | ✅ Reviewed and actioned | Reviewed home row sizing, identity, overlay forwarding, and focus section behavior; no remaining code changes. |
+| Added          | `Swiftfin tvOS/Components/PosterVGrid.swift`                                                              | ✅ Reviewed and actioned | Reviewed grid/list rendering and paging hook with the library view paging threshold fix. |
 | Modified       | `Swiftfin tvOS/Components/VideoPlayerSlider.swift`                                                        | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin tvOS/Extensions/View/View-tvOS.swift`                                                           | ⬜ Not reviewed | —     |
 | Added          | `Swiftfin tvOS/Resources/Assets.xcassets/seerr.monochrome.imageset/Contents.json`                         | ✅ Reviewed and actioned | Reviewed asset catalog metadata; no remaining code changes. |
@@ -175,12 +175,12 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Added          | `Swiftfin tvOS/Services/TopShelfDeepLinkStore.swift`                                                      | ✅ Reviewed and actioned | —     |
 | Added          | `Swiftfin tvOS/Services/TopShelfResumeCache.swift`                                                        | 🔁 Follow-up needed | Runtime app group constant is hard-coded to `group.timo.jellyfin.swiftfin`; keep in sync with the production entitlement decision. |
 | Added          | `Swiftfin tvOS/Services/TopShelfResumeCacheWriter.swift`                                                  | ✅ Reviewed and actioned | Fixed unauthenticated Top Shelf artwork URLs by including the query API key. |
-| Modified       | `Swiftfin tvOS/Views/HomeView/Components/CinematicRecentlyAddedView.swift`                                | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/HomeView/Components/CinematicResumeItemView.swift`                                   | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/HomeView/Components/LatestInLibraryView.swift`                                       | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/HomeView/Components/NextUpView.swift`                                                | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/HomeView/Components/RecentlyAddedView.swift`                                         | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/HomeView/HomeView.swift`                                                             | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Views/HomeView/Components/CinematicRecentlyAddedView.swift`                                | ✅ Reviewed and actioned | Reviewed overlay forwarding and cinematic fallback content; no remaining code changes. |
+| Modified       | `Swiftfin tvOS/Views/HomeView/Components/CinematicResumeItemView.swift`                                   | ✅ Reviewed and actioned | Removed an unused next-button helper; reviewed focus, selection, detail refresh, and hero transition flow. |
+| Modified       | `Swiftfin tvOS/Views/HomeView/Components/LatestInLibraryView.swift`                                       | ✅ Reviewed and actioned | Reviewed poster overlay forwarding and navigation action; no remaining code changes. |
+| Modified       | `Swiftfin tvOS/Views/HomeView/Components/NextUpView.swift`                                                | ✅ Reviewed and actioned | Reviewed custom poster button overlay forwarding and navigation action; no remaining code changes. |
+| Modified       | `Swiftfin tvOS/Views/HomeView/Components/RecentlyAddedView.swift`                                         | ✅ Reviewed and actioned | Reviewed poster overlay forwarding and navigation action; no remaining code changes. |
+| Modified       | `Swiftfin tvOS/Views/HomeView/HomeView.swift`                                                             | ✅ Reviewed and actioned | Reviewed hero scroll focus state, retained refresh behavior, and poster indicator environment flow; no remaining code changes. |
 | Modified       | `Swiftfin tvOS/Views/ItemView/CollectionItemContentView.swift`                                            | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ItemView/Components/AboutView/AboutView.swift`                                       | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ItemView/Components/AboutView/Components/AboutViewCard.swift`                        | ⬜ Not reviewed | —     |
@@ -210,7 +210,7 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Added          | `Swiftfin tvOS/Views/MediaView/SeerrTrendingView.swift`                                                   | ✅ Reviewed and actioned | Reviewed trending paging/filtering/request-status flow; no remaining code changes. |
 | Added          | `Swiftfin tvOS/Views/MediaView/SeerrUpcomingView.swift`                                                   | ✅ Reviewed and actioned | Kept backing Seerr results per tab so request status updates stay coherent across tab switches. |
 | Deleted        | `Swiftfin tvOS/Views/PagingLibraryView/Components/LibraryRow.swift`                                       | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin tvOS/Views/PagingLibraryView/PagingLibraryView.swift`                                           | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin tvOS/Views/PagingLibraryView/PagingLibraryView.swift`                                           | ✅ Reviewed and actioned | Reviewed PosterVGrid integration, retained content refresh, paging error, and retry flow with the view-model threshold fix. |
 | Added          | `Swiftfin tvOS/Views/ProgramsView/Components/ProgramOverlay.swift`                                        | ⬜ Not reviewed | —     |
 | Deleted        | `Swiftfin tvOS/Views/ProgramsView/Components/ProgramProgressOverlay.swift`                                | ⬜ Not reviewed | —     |
 | Modified       | `Swiftfin tvOS/Views/ProgramsView/ProgramsView.swift`                                                     | ⬜ Not reviewed | —     |
