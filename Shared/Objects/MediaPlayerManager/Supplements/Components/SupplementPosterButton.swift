@@ -60,7 +60,7 @@ struct SupplementPosterButton<Item: Poster, Label: View>: View {
                 action: action
             ) {
                 PosterFallbackContentView(
-                    title: item.showTitle ? item.displayTitle : nil,
+                    title: item.showTitle ? nil : item.displayTitle,
                     systemName: item.systemImage
                 )
             } overlay: {

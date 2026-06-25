@@ -96,24 +96,24 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | -------------- | --------------------------------------------------------------------------------------------------------- | --------------- | ----- |
 | Modified       | `Shared/App/SwiftfinApp+configure.swift`                                                                  | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Components/AttributeBadge.swift`                                                                  | ✅ Reviewed and actioned | Reviewed item-detail badge styling and rating/media attribute usage; no remaining code changes. |
-| Modified       | `Shared/Components/ButtonStyles/SupplementTitleButtonStyle.swift`                                         | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Components/PosterImage.swift`                                                                     | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Components/PosterIndicators/ProgressIndicator.swift`                                              | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Components/RotateContentView.swift`                                                               | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Components/ButtonStyles/SupplementTitleButtonStyle.swift`                                         | ✅ Reviewed and actioned | Reviewed tvOS supplement title glass/legacy styling; no remaining code changes. |
+| Modified       | `Shared/Components/PosterImage.swift`                                                                     | ✅ Reviewed and actioned | Restored blur-hash loading placeholders and corrected labeled-poster fallback title behavior. |
+| Modified       | `Shared/Components/PosterIndicators/ProgressIndicator.swift`                                              | ✅ Reviewed and actioned | Reviewed zero-progress hiding behavior and poster overlay call sites; no remaining code changes. |
+| Modified       | `Shared/Components/RotateContentView.swift`                                                               | ✅ Reviewed and actioned | Fixed overlapping transition cleanup so rapid background changes do not leave stale hosted views or stale completions. |
 | Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Media.swift`                              | ✅ Reviewed and actioned | Reviewed Seerr media routes; no remaining code changes. |
 | Modified       | `Shared/Coordinators/Navigation/NavigationRoute/NavigationRoute+Settings.swift`                           | ✅ Reviewed and actioned | Reviewed Seerr settings route; no remaining code changes. |
 | Modified       | `Shared/Coordinators/Tabs/MainTabView.swift`                                                              | ✅ Reviewed and actioned | Top Shelf routing path inspected; no remaining code changes. |
-| Modified       | `Shared/Extensions/EdgeInsets.swift`                                                                      | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Extensions/EdgeInsets.swift`                                                                      | ✅ Reviewed and actioned | Reviewed tvOS edge padding increase across poster, library, and player surfaces; no remaining code changes. |
 | Modified       | `Shared/Extensions/JellyfinAPI/BaseItemDto/BaseItemDto+Poster.swift`                                      | ✅ Reviewed and actioned | Reviewed poster/now-playing image transform changes used by item detail artwork; no remaining code changes. |
 | Modified       | `Shared/Extensions/JellyfinAPI/BaseItemDto/BaseItemDto.swift`                                             | ✅ Reviewed and actioned | Reviewed item playback helpers and program channel provider change; no remaining code changes. |
-| Modified       | `Shared/Extensions/UIImage.swift`                                                                         | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Extensions/ViewExtensions/TypeViewRegistry/PosterOverlayRegistry.swift`                           | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Extensions/ViewExtensions/ViewExtensions.swift`                                                   | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Extensions/UIImage.swift`                                                                         | ✅ Reviewed and actioned | Reviewed opaque-pixel sampling used by tvOS program channel artwork treatment; no remaining code changes. |
+| Modified       | `Shared/Extensions/ViewExtensions/TypeViewRegistry/PosterOverlayRegistry.swift`                           | ✅ Reviewed and actioned | Reviewed poster overlay registry and focused-poster environment usage; no remaining code changes. |
+| Modified       | `Shared/Extensions/ViewExtensions/ViewExtensions.swift`                                                   | ✅ Reviewed and actioned | Reviewed video-player action button transition scale adjustment; no remaining code changes. |
 | Modified       | `Shared/Objects/MediaPlayerManager/MediaPlayerItem/MediaPlayerItem+Build.swift`                           | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/MediaPlayerItem/MediaPlayerItem.swift`                                 | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/MediaPlayerManager.swift`                                              | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+VLC.swift`                           | ⬜ Not reviewed | —     |
-| Modified       | `Shared/Objects/MediaPlayerManager/Supplements/Components/SupplementPosterButton.swift`                   | ⬜ Not reviewed | —     |
+| Modified       | `Shared/Objects/MediaPlayerManager/Supplements/Components/SupplementPosterButton.swift`                   | ✅ Reviewed and actioned | Reviewed tvOS supplement poster wrapper and corrected labeled fallback title behavior. |
 | Modified       | `Shared/Objects/MediaPlayerManager/Supplements/EpisodeMediaPlayerQueue.swift`                             | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/Supplements/MediaChaptersSupplement.swift`                             | ⬜ Not reviewed | —     |
 | Modified       | `Shared/Objects/MediaPlayerManager/Supplements/MediaInfoSupplement.swift`                                 | ⬜ Not reviewed | —     |

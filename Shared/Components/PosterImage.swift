@@ -6,6 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import BlurHashKit
 import SwiftUI
 
 /// Retrieving images by exact pixel dimensions is a bit
@@ -54,11 +55,15 @@ struct PosterImage<Item: Poster, Fallback: View>: View {
     }
 
     @ViewBuilder
-    private var placeholderContent: some View {
-        PosterFallbackContentView(
-            title: nil,
-            systemName: item.systemImage
-        )
+    private func placeholderContent(for imageSource: ImageSource) -> some View {
+        if let blurHash = imageSource.blurHash {
+            BlurHashView(blurHash: blurHash)
+        } else {
+            PosterFallbackContentView(
+                title: nil,
+                systemName: item.systemImage
+            )
+        }
     }
 
     @ViewBuilder
@@ -69,8 +74,8 @@ struct PosterImage<Item: Poster, Fallback: View>: View {
     var body: some View {
         ImageView(imageSources)
             .image(item.transform)
-            .placeholder { _ in
-                placeholderContent
+            .placeholder { imageSource in
+                placeholderContent(for: imageSource)
             }
             .failure {
                 fallbackContent
@@ -99,7 +104,7 @@ extension PosterImage where Fallback == PosterFallbackContentView {
             imageSources: imageSources
         ) {
             PosterFallbackContentView(
-                title: item.showTitle ? item.displayTitle : nil,
+                title: item.showTitle ? nil : item.displayTitle,
                 systemName: item.systemImage
             )
         }

@@ -52,6 +52,7 @@ class UIRotateContentView: UIView {
 
     private(set) var currentView: UIView?
     private var parallaxAnimator: UIViewPropertyAnimator?
+    private var updateGeneration = 0
     var proxy: RotateContentView.Proxy
 
     init(initialView: UIView?, proxy: RotateContentView.Proxy) {
@@ -86,13 +87,21 @@ class UIRotateContentView: UIView {
         with newView: UIView?,
         transition: RotateContentView.Transition = .fade
     ) {
+        updateGeneration += 1
+        let generation = updateGeneration
+
+        prepareForTransition()
 
         guard let newView else {
+            let outgoingView = currentView
+            currentView = nil
+
             UIView.animate(withDuration: 0.3) {
-                self.currentView?.alpha = 0
+                outgoingView?.alpha = 0
             } completion: { _ in
-                self.currentView?.removeFromSuperview()
-                self.currentView = newView
+                guard self.updateGeneration == generation else { return }
+
+                outgoingView?.removeFromSuperview()
             }
             return
         }
@@ -108,40 +117,65 @@ class UIRotateContentView: UIView {
             newView.rightAnchor.constraint(equalTo: rightAnchor),
         ])
 
-        guard currentView != nil else {
+        guard let outgoingView = currentView else {
+            currentView = newView
+
             UIView.animate(withDuration: 0.3) {
                 newView.alpha = 1
             } completion: { _ in
-                self.currentView = newView
+                guard self.updateGeneration == generation else { return }
+
+                newView.alpha = 1
             }
             return
         }
 
+        currentView = newView
+
         switch transition {
         case .fade:
-            updateWithFade(newView)
+            updateWithFade(newView, outgoingView: outgoingView, generation: generation)
         case .slideFromLeading:
-            updateWithSlide(newView, direction: -1)
+            updateWithSlide(newView, outgoingView: outgoingView, direction: -1, generation: generation)
         case .slideFromTrailing:
-            updateWithSlide(newView, direction: 1)
+            updateWithSlide(newView, outgoingView: outgoingView, direction: 1, generation: generation)
         case .parallaxFromLeading:
-            updateWithParallax(newView, direction: -1)
+            updateWithParallax(newView, outgoingView: outgoingView, direction: -1, generation: generation)
         case .parallaxFromTrailing:
-            updateWithParallax(newView, direction: 1)
+            updateWithParallax(newView, outgoingView: outgoingView, direction: 1, generation: generation)
         }
     }
 
-    private func updateWithFade(_ newView: UIView) {
+    private func prepareForTransition() {
+        parallaxAnimator?.stopAnimation(true)
+        parallaxAnimator = nil
+
+        subviews
+            .filter { $0 !== currentView }
+            .forEach { $0.removeFromSuperview() }
+
+        currentView?.alpha = 1
+        currentView?.transform = .identity
+        currentView?.mask = nil
+    }
+
+    private func updateWithFade(_ newView: UIView, outgoingView: UIView, generation: Int) {
         UIView.animate(withDuration: 0.3) {
             newView.alpha = 1
-            self.currentView?.alpha = 0
+            outgoingView.alpha = 0
         } completion: { _ in
-            self.currentView?.removeFromSuperview()
-            self.currentView = newView
+            guard self.updateGeneration == generation else { return }
+
+            outgoingView.removeFromSuperview()
         }
     }
 
-    private func updateWithSlide(_ newView: UIView, direction: CGFloat) {
+    private func updateWithSlide(
+        _ newView: UIView,
+        outgoingView: UIView,
+        direction: CGFloat,
+        generation: Int
+    ) {
         let incomingOffset = max(bounds.width * 0.12, 120) * direction
         let outgoingOffset = max(bounds.width * 0.05, 60) * -direction
 
@@ -157,17 +191,21 @@ class UIRotateContentView: UIView {
             options: [.curveEaseOut, .beginFromCurrentState]
         ) {
             newView.transform = .identity
-            self.currentView?.transform = CGAffineTransform(translationX: outgoingOffset, y: 0)
+            outgoingView.transform = CGAffineTransform(translationX: outgoingOffset, y: 0)
                 .scaledBy(x: 1.02, y: 1.02)
         } completion: { _ in
-            self.currentView?.removeFromSuperview()
-            self.currentView = newView
+            guard self.updateGeneration == generation else { return }
+
+            outgoingView.removeFromSuperview()
         }
     }
 
-    private func updateWithParallax(_ newView: UIView, direction: CGFloat) {
-        guard let outgoingView = currentView else { return }
-
+    private func updateWithParallax(
+        _ newView: UIView,
+        outgoingView: UIView,
+        direction: CGFloat,
+        generation: Int
+    ) {
         layoutIfNeeded()
 
         let imageTravel = bounds.width * 0.08
@@ -204,14 +242,13 @@ class UIRotateContentView: UIView {
                 y: 0
             )
         }
-        animator.addCompletion { [weak self, weak outgoingView] position in
+        animator.addCompletion { [weak self, weak outgoingView] _ in
             guard let self else { return }
 
-            if position == .end {
-                outgoingView?.removeFromSuperview()
-                newView.mask = nil
-                self.currentView = newView
-            }
+            guard self.updateGeneration == generation else { return }
+
+            outgoingView?.removeFromSuperview()
+            newView.mask = nil
 
             self.parallaxAnimator = nil
         }
