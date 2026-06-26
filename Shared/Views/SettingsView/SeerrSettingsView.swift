@@ -60,13 +60,13 @@ struct SeerrSettingsView: View {
                     #endif
 
                 case .loading:
-                    LabeledContent(L10n.status, value: "Checking...")
+                    LabeledContent(L10n.status, value: L10n.checking)
                     #if os(tvOS)
                         .focusable(false)
                     #endif
 
                 case .failed:
-                    LabeledContent(L10n.status, value: "Unavailable")
+                    LabeledContent(L10n.status, value: L10n.unavailable)
                     #if os(tvOS)
                         .focusable(false)
                     #endif
@@ -87,15 +87,15 @@ struct SeerrSettingsView: View {
             }
 
             Section {
-                ChevronButton("API key", content: apiKeyDisplay, action: presentAPIKeyEditor)
+                ChevronButton(L10n.apiKey, content: apiKeyDisplay, action: presentAPIKeyEditor)
             } header: {
-                Text("Authentication")
+                Text(L10n.authentication)
             } footer: {
                 Text(probeFooter)
             }
 
             Section {
-                Toggle("Enable Seerr", isOn: integrationBinding)
+                Toggle(L10n.enableSeerr, isOn: integrationBinding)
                     .disabled(!canValidate || probeState == .validating)
             }
         }
@@ -115,10 +115,10 @@ struct SeerrSettingsView: View {
 
             Button(L10n.cancel, role: .cancel) {}
         } message: {
-            Text("Enter the Seerr server URL.")
+            Text(L10n.enterSeerrServerURL)
         }
-        .alert("API key", isPresented: $isPresentingAPIKeyEditor) {
-            SecureField("API key", text: $editableAPIKey)
+        .alert(L10n.apiKey, isPresented: $isPresentingAPIKeyEditor) {
+            SecureField(L10n.apiKey, text: $editableAPIKey)
 
             Button(L10n.save) {
                 apiKey = editableAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -126,7 +126,7 @@ struct SeerrSettingsView: View {
 
             Button(L10n.cancel, role: .cancel) {}
         } message: {
-            Text("Enter the Seerr API key.")
+            Text(L10n.enterSeerrAPIKey)
         }
     }
 
@@ -158,7 +158,7 @@ struct SeerrSettingsView: View {
     }
 
     private var apiKeyDisplay: String {
-        apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.none : "Configured"
+        apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.none : L10n.configured
     }
 
     private var seerVersion: String? {
@@ -172,14 +172,14 @@ struct SeerrSettingsView: View {
     private var probeFooter: String {
         switch probeState {
         case .idle:
-            "Provide a Seerr server URL and API key to enable the integration."
+            L10n.provideSeerrServerURLAndAPIKey
         case .validating:
-            "Validating the Seerr connection..."
+            L10n.validatingSeerrConnection
         case .succeeded:
             if let seerVersion {
-                "Seerr \(seerVersion) is enabled and the connection was validated."
+                L10n.seerrVersionEnabledAndValidated(seerVersion)
             } else {
-                "Seerr is enabled and the connection was validated."
+                L10n.seerrEnabledAndValidated
             }
         case let .failed(message):
             message
@@ -283,11 +283,8 @@ struct SeerrSettingsView: View {
 
                 case let .failure(error):
                     isEnabled = false
-                    let errorMessage: String = if error.message.hasPrefix("Seerr status failed with HTTP ") {
-                        error.message.replacingOccurrences(
-                            of: "Seerr status failed",
-                            with: "Seerr connection failed"
-                        )
+                    let errorMessage: String = if let statusCode = error.seerrStatusFailureCode {
+                        L10n.seerrConnectionFailedWithHTTP(statusCode)
                     } else {
                         error.localizedDescription
                     }
@@ -316,6 +313,18 @@ private extension SeerrClient.Status {
 
     var displayVersion: String {
         version ?? appData?.version ?? L10n.unknown
+    }
+}
+
+private extension SeerrClient.ProbeError {
+
+    var seerrStatusFailureCode: String? {
+        let prefix = "Seerr status failed with HTTP "
+        guard message.hasPrefix(prefix) else { return nil }
+
+        return message
+            .dropFirst(prefix.count)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
     }
 }
 #endif

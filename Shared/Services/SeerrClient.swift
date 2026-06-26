@@ -19,15 +19,15 @@ enum SeerrClient {
         var displayText: String {
             switch self {
             case .unknown:
-                "Unknown"
+                L10n.unknown
             case .pending:
-                "Requested (Pending)"
+                L10n.seerrStatusPending
             case .processing:
-                "Requested (Processing)"
+                L10n.seerrStatusProcessing
             case .partiallyAvailable:
-                "Partially Available"
+                L10n.seerrStatusPartiallyAvailable
             case .available:
-                "Available"
+                L10n.seerrStatusAvailable
             }
         }
     }

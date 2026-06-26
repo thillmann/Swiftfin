@@ -59,7 +59,7 @@ struct SeerrRequestView: View {
                         await viewModel.load()
                     }
                     .alert(
-                        "Request Failed",
+                        L10n.requestFailed,
                         isPresented: Binding(
                             get: { viewModel.errorMessage != nil },
                             set: { if !$0 { viewModel.errorMessage = nil } }
@@ -178,10 +178,10 @@ struct SeerrRequestView: View {
                 .font(.headline)
 
             Menu {
-                Button("All seasons") {
+                Button(L10n.allSeasons) {
                     allSeasonsBinding.wrappedValue = true
                 }
-                Button("No seasons") {
+                Button(L10n.noSeasons) {
                     allSeasonsBinding.wrappedValue = false
                 }
                 Divider()
@@ -198,7 +198,7 @@ struct SeerrRequestView: View {
                         }
                     } label: {
                         HStack {
-                            Text(season.name ?? "Season \(season.seasonNumber ?? 0)")
+                            Text(season.displayName)
                             Spacer()
                             if isSelected {
                                 Image(systemName: "checkmark")
@@ -208,9 +208,12 @@ struct SeerrRequestView: View {
                 }
             } label: {
                 HStack(spacing: 12) {
-                    Text("Season Selection")
+                    Text(L10n.seasonSelection)
                     Spacer()
-                    Text("\(viewModel.selectedSeasonNumbers.count) of \(viewModel.seasons.count) selected")
+                    Text(L10n.selectedCountOfTotal(
+                        viewModel.selectedSeasonNumbers.count,
+                        viewModel.selectableSeasonNumbers.count
+                    ))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Image(systemName: "chevron.up.chevron.down")
@@ -225,11 +228,12 @@ struct SeerrRequestView: View {
     private var allSeasonsBinding: Binding<Bool> {
         Binding(
             get: {
-                !viewModel.seasons.isEmpty && viewModel.selectedSeasonNumbers.count == viewModel.seasons.count
+                viewModel.selectableSeasonNumbers.isNotEmpty &&
+                    viewModel.selectedSeasonNumbers.count == viewModel.selectableSeasonNumbers.count
             },
             set: { enabled in
                 if enabled {
-                    viewModel.selectedSeasonNumbers = Set(viewModel.seasons.compactMap(\.seasonNumber))
+                    viewModel.selectedSeasonNumbers = Set(viewModel.selectableSeasonNumbers)
                 } else {
                     viewModel.selectedSeasonNumbers.removeAll()
                 }
@@ -245,13 +249,13 @@ struct SeerrRequestView: View {
             if viewModel.profiles.isNotEmpty {
                 Menu {
                     ForEach(viewModel.profiles) { profile in
-                        Button(profile.name ?? "Profile \(profile.id)") {
+                        Button(profile.displayName) {
                             viewModel.selectedProfileID = profile.id
                         }
                     }
                 } label: {
                     HStack(spacing: 12) {
-                        Text("Quality Profile")
+                        Text(L10n.qualityProfile)
                         Spacer()
                         Text(viewModel.selectedProfileName)
                             .foregroundStyle(.secondary)
@@ -265,7 +269,7 @@ struct SeerrRequestView: View {
             }
 
             if viewModel.rootFolders.isNotEmpty {
-                Picker("Root Folder", selection: $viewModel.selectedRootFolder) {
+                Picker(L10n.rootFolder, selection: $viewModel.selectedRootFolder) {
                     ForEach(viewModel.rootFolders) { folder in
                         Text(folder.path).tag(Optional(folder.path))
                     }
@@ -273,14 +277,14 @@ struct SeerrRequestView: View {
             }
 
             if viewModel.languageProfiles.isNotEmpty {
-                Picker("Language Profile", selection: $viewModel.selectedLanguageProfileID) {
+                Picker(L10n.languageProfile, selection: $viewModel.selectedLanguageProfileID) {
                     ForEach(viewModel.languageProfiles) { profile in
-                        Text(profile.name ?? "Language \(profile.id)").tag(Optional(profile.id))
+                        Text(profile.languageDisplayName).tag(Optional(profile.id))
                     }
                 }
             }
 
-            Toggle("Request in 4K", isOn: $viewModel.is4K)
+            Toggle(L10n.requestIn4K, isOn: $viewModel.is4K)
         }
     }
 }
@@ -391,9 +395,13 @@ final class SeerrRequestViewModel: ObservableObject {
         return requestStatus.displayText
     }
 
+    var selectableSeasonNumbers: [Int] {
+        seasons.compactMap(\.seasonNumber)
+    }
+
     var isAlreadyRequested: Bool {
         switch requestStatus {
-        case .pending, .processing, .partiallyAvailable, .available:
+        case .pending, .processing, .available:
             true
         default:
             false
@@ -401,7 +409,7 @@ final class SeerrRequestViewModel: ObservableObject {
     }
 
     var requestButtonTitle: String {
-        isAlreadyRequested ? L10n.seerrStatusRequested : "Request"
+        isAlreadyRequested ? L10n.seerrStatusRequested : L10n.request
     }
 
     var canSubmit: Bool {
@@ -419,10 +427,10 @@ final class SeerrRequestViewModel: ObservableObject {
         guard let selectedProfileID,
               let profile = profiles.first(where: { $0.id == selectedProfileID })
         else {
-            return "Select profile"
+            return L10n.selectProfile
         }
 
-        return profile.name ?? "Profile \(profile.id)"
+        return profile.displayName
     }
 
     func load() async {
@@ -438,7 +446,7 @@ final class SeerrRequestViewModel: ObservableObject {
             let serviceResult = await SeerrClient.sonarrServices()
             apply(detailsResult: detailsResult, serviceResult: serviceResult)
         default:
-            loadState = .failed("Unsupported media type for Seerr request.")
+            loadState = .failed(L10n.unsupportedMediaTypeForSeerrRequest)
         }
     }
 
@@ -492,7 +500,7 @@ final class SeerrRequestViewModel: ObservableObject {
         if profiles.isEmpty,
            let activeProfileID = selectedService.activeProfileId
         {
-            profiles = [.init(id: activeProfileID, name: selectedService.activeProfileName ?? "Default")]
+            profiles = [.init(id: activeProfileID, name: selectedService.activeProfileName ?? L10n.default)]
             if selectedProfileID == nil {
                 selectedProfileID = activeProfileID
             }
@@ -501,7 +509,7 @@ final class SeerrRequestViewModel: ObservableObject {
 
     func submit() async -> Result<Void, SeerrClient.ProbeError> {
         guard let mediaType = item.mediaType else {
-            return .failure(.init(message: "Unsupported media type."))
+            return .failure(.init(message: L10n.unsupportedMediaType))
         }
 
         let requestMediaType: SeerrClient.RequestMediaType
@@ -511,7 +519,7 @@ final class SeerrRequestViewModel: ObservableObject {
         case .tv:
             requestMediaType = .tv
         case .person:
-            return .failure(.init(message: "Person requests are not supported."))
+            return .failure(.init(message: L10n.personRequestsNotSupported))
         }
 
         isSubmitting = true
@@ -635,5 +643,23 @@ final class SeerrRequestViewModel: ObservableObject {
         if selectedLanguageProfileID == nil {
             selectedLanguageProfileID = self.languageProfiles.first?.id
         }
+    }
+}
+
+private extension SeerrClient.Season {
+
+    var displayName: String {
+        name ?? L10n.seasonNumber(seasonNumber ?? 0)
+    }
+}
+
+private extension SeerrClient.ServiceProfile {
+
+    var displayName: String {
+        name ?? L10n.profileNumber(id)
+    }
+
+    var languageDisplayName: String {
+        name ?? L10n.languageNumber(id)
     }
 }

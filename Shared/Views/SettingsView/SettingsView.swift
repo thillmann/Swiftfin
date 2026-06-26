@@ -159,7 +159,7 @@ struct SettingsView: View {
                 .labelStyle(.sectionFooterWithImage(imageStyle: .green))
             }
         } header: {
-            Text("Integrations")
+            Text(L10n.integrations)
         }
     }
 
@@ -169,7 +169,7 @@ struct SettingsView: View {
         guard !storedServerURL.isEmpty,
               SeerrIntegration.isConfigured
         else {
-            return "Not configured"
+            return L10n.notConfigured
         }
 
         return isSeerrIntegrationEnabled ? L10n.enabled : L10n.disabled
