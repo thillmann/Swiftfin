@@ -10,7 +10,7 @@ import Foundation
 
 enum TopShelfResumeCache {
 
-    static let appGroupIdentifier = "group.timo.jellyfin.swiftfin"
+    static let appGroupIdentifier = "group.org.jellyfin.swiftfin"
 
     private static let fileName = "top-shelf-resume-items.json"
 
