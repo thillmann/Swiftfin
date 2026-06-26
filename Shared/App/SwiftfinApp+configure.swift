@@ -7,7 +7,6 @@
 //
 
 import CoreStore
-import Defaults
 import Factory
 import Logging
 import Nuke

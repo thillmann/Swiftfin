@@ -94,7 +94,7 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 
 | Change         | File                                                                                                      | Review status   | Notes |
 | -------------- | --------------------------------------------------------------------------------------------------------- | --------------- | ----- |
-| Modified       | `Shared/App/SwiftfinApp+configure.swift`                                                                  | ⬜ Not reviewed | —     |
+| Modified       | `Shared/App/SwiftfinApp+configure.swift`                                                                  | ✅ Reviewed and actioned | Reviewed startup Liquid Glass override behavior and removed the unused retired debug defaults key/import. |
 | Modified       | `Shared/Components/AttributeBadge.swift`                                                                  | ✅ Reviewed and actioned | Reviewed item-detail badge styling and rating/media attribute usage; no remaining code changes. |
 | Modified       | `Shared/Components/ButtonStyles/SupplementTitleButtonStyle.swift`                                         | ✅ Reviewed and actioned | Reviewed tvOS supplement title glass/legacy styling; no remaining code changes. |
 | Modified       | `Shared/Components/PosterImage.swift`                                                                     | ✅ Reviewed and actioned | Reviewed lightweight placeholder path after intentional BlurHash loading-placeholder retirement and corrected labeled-poster fallback title behavior. |
@@ -220,6 +220,6 @@ Leave **Notes** empty when everything found was resolved during review. Use it o
 | Modified       | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift`                                 | ✅ Reviewed and actioned | —     |
 | Modified       | `Swiftfin.xcodeproj/project.pbxproj`                                                                      | 🔁 Follow-up needed | Top Shelf target/embed wiring reviewed; extension bundle id is hard-coded to `timo.jellyfin.swiftfin.TopShelf`, which only matches local ignored signing overrides. Confirm production bundle-id strategy. |
 | Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin tvOS.xcscheme`                                        | ✅ Reviewed and actioned | Only Xcode upgrade metadata changed. |
-| Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin.xcscheme`                                             | ⬜ Not reviewed | —     |
-| Modified       | `Swiftfin/Views/SearchView.swift`                                                                         | ⬜ Not reviewed | —     |
+| Modified       | `Swiftfin.xcodeproj/xcshareddata/xcschemes/Swiftfin.xcscheme`                                             | ✅ Reviewed and actioned | iOS scheme only; metadata upgrade version change matches the tvOS scheme change and has no tvOS runtime impact. |
+| Modified       | `Swiftfin/Views/SearchView.swift`                                                                         | ⏭️ Skipped / not applicable | iOS-only search view change; outside this tvOS-focused review pass. |
 | Modified       | `Translations/en.lproj/Localizable.strings`                                                               | ✅ Reviewed and actioned | Added Seerr/settings request-flow localization keys and verified no unused localization strings. |
