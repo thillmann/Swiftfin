@@ -77,16 +77,6 @@ extension MediaChaptersSupplement {
             return chapters.first { $0.id == id }
         }
 
-        private var itemLandscapeImageSources: [ImageSource] {
-            if manager.item.type == .episode {
-                return [manager.item.imageSource(.primary, maxWidth: 300, quality: 90)]
-            }
-
-            return manager.item.landscapeImageSources(maxWidth: 300, quality: 90) + [
-                manager.item.imageSource(.primary, maxWidth: 300, quality: 90),
-            ]
-        }
-
         private func updateActiveChapter(for seconds: Duration) {
             let newID = supplement.chapterID(at: seconds)
             if newID != supplement.activeChapterID {
@@ -164,8 +154,7 @@ extension MediaChaptersSupplement {
                 ForEach(chapters, id: \.unwrappedIDHashOrZero) { chapter in
                     ChapterButton(
                         supplement: supplement,
-                        chapter: chapter,
-                        imageSources: itemLandscapeImageSources
+                        chapter: chapter
                     ) {
                         guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
                         manager.proxy?.setSeconds(startSeconds)
@@ -282,18 +271,15 @@ extension MediaChaptersSupplement {
             var supplement: MediaChaptersSupplement
 
             let chapter: ChapterInfo.FullInfo
-            let imageSources: [ImageSource]?
             let action: () -> Void
 
             init(
                 supplement: MediaChaptersSupplement,
                 chapter: ChapterInfo.FullInfo,
-                imageSources: [ImageSource]? = nil,
                 action: @escaping () -> Void
             ) {
                 self.supplement = supplement
                 self.chapter = chapter
-                self.imageSources = imageSources
                 self.action = action
             }
 
@@ -307,7 +293,6 @@ extension MediaChaptersSupplement {
                     PosterButton(
                         item: chapter,
                         type: .landscape,
-                        imageSources: imageSources,
                         usesContextMenu: false,
                         action: action
                     ) {

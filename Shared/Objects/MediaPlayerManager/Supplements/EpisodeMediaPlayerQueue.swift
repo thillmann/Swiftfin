@@ -168,12 +168,7 @@ extension EpisodeMediaPlayerQueue {
 
         private func select(episode: BaseItemDto) {
             let provider = MediaPlayerItemProvider(item: episode) { item in
-                let mediaSource = item.mediaSources?.first
-
-                return try await MediaPlayerItem.build(
-                    for: item,
-                    mediaSource: mediaSource!
-                )
+                try await MediaPlayerItem.build(for: item)
             }
 
             manager.playNewItem(provider: provider)
@@ -224,6 +219,9 @@ extension EpisodeMediaPlayerQueue {
             )
             .environmentObject(viewModel)
             .onFirstAppear {
+                selectInitialSeason()
+            }
+            .onChange(of: manager.item.seasonID) { _, _ in
                 selectInitialSeason()
             }
             .onReceive(viewModel.$seasons) { newSeasons in
