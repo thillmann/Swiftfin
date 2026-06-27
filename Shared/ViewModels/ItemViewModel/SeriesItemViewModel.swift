@@ -21,6 +21,8 @@ final class SeriesItemViewModel: ItemViewModel {
     @Published
     private(set) var upcomingEpisodePillLabel: String?
 
+    private var upcomingEpisodePillTask: AnyCancellable?
+
     // MARK: - Override Response
 
     override func respond(to action: ItemViewModel.Action) -> ItemViewModel.State {
@@ -38,12 +40,13 @@ final class SeriesItemViewModel: ItemViewModel {
                     self.upcomingEpisodePillLabel = nil
                 }
 
+                self.refreshUpcomingEpisodePillLabel()
+
                 do {
                     async let nextUp = getNextUp()
                     async let resume = getResumeItem()
                     async let firstAvailable = getFirstAvailableItem()
                     async let seasons = getSeasons()
-                    async let upcomingEpisodePillLabel = getUpcomingEpisodePillLabel()
 
                     let newSeasons = try await seasons
                         .sorted { ($0.indexNumber ?? -1) < ($1.indexNumber ?? -1) }
@@ -56,7 +59,6 @@ final class SeriesItemViewModel: ItemViewModel {
                     let nextUpItem = try await nextUp
                     let resumeItem = try await resume
                     let firstAvailableItem = try await firstAvailable
-                    let newUpcomingEpisodePillLabel = await upcomingEpisodePillLabel
                     let playButtonItem = [nextUpItem, resumeItem, firstAvailableItem].compacted().first
                     let episodeOverviewItem = featuredEpisodeOverviewItem(
                         for: playButtonItem,
@@ -76,10 +78,6 @@ final class SeriesItemViewModel: ItemViewModel {
                             self.episodeOverviewItem = episodeOverviewItem
                         }
                     }
-
-                    await MainActor.run {
-                        self.upcomingEpisodePillLabel = newUpcomingEpisodePillLabel
-                    }
                 }
             }
             .store(in: &cancellables)
@@ -88,6 +86,23 @@ final class SeriesItemViewModel: ItemViewModel {
         }
 
         return super.respond(to: action)
+    }
+
+    private func refreshUpcomingEpisodePillLabel() {
+        upcomingEpisodePillTask?.cancel()
+
+        upcomingEpisodePillTask = Task { [weak self] in
+            guard let self else { return }
+
+            let label = await self.getUpcomingEpisodePillLabel()
+
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                self.upcomingEpisodePillLabel = label
+            }
+        }
+        .asAnyCancellable()
     }
 
     private func featuredEpisodeOverviewItem(
@@ -165,111 +180,11 @@ final class SeriesItemViewModel: ItemViewModel {
     // MARK: - Get Upcoming Episode
 
     private func getUpcomingEpisodePillLabel() async -> String? {
-        if let jellyfinUpcomingEpisode = await getJellyfinUpcomingEpisode() {
-            if let label = jellyfinUpcomingEpisode.upcomingEpisodePillLabel {
-                return label
-            }
-        }
-
-        return await getSeerrUpcomingEpisodePillLabel()
-    }
-
-    private func getJellyfinUpcomingEpisode() async -> BaseItemDto? {
-
-        let startOfToday = Calendar.current.startOfDay(for: Date())
-        let attempts: [(isMissing: Bool?, isUnaired: Bool?)] = [
-            (nil, true),
-            (true, nil),
-            (nil, nil),
-        ]
-
-        for attempt in attempts {
-            if let item = await getUpcomingEpisode(
-                isMissing: attempt.isMissing,
-                isUnaired: attempt.isUnaired,
-                minPremiereDate: startOfToday
-            ) {
-                return item
-            }
-        }
-
-        return nil
-    }
-
-    private func getSeerrUpcomingEpisodePillLabel() async -> String? {
-        guard SeerrIntegration.isAvailable else {
+        guard let userSession else {
             return nil
         }
 
-        let providerItem = await itemWithProviderIDs()
-
-        guard let tmdbID = providerItem.tmdbProviderID else {
-            return nil
-        }
-
-        let result = await SeerrClient.tvDetails(id: tmdbID)
-
-        switch result {
-        case let .success(details):
-            guard let nextEpisode = details.nextEpisodeToAir else {
-                return nil
-            }
-
-            guard let label = nextEpisode.upcomingEpisodePillLabel else {
-                return nil
-            }
-
-            return label
-        case .failure:
-            return nil
-        }
-    }
-
-    private func itemWithProviderIDs() async -> BaseItemDto {
-        if item.tmdbProviderID != nil {
-            return item
-        }
-
-        do {
-            return try await item.getFullItem(userSession: requireUserSession())
-        } catch {
-            return item
-        }
-    }
-
-    private func getUpcomingEpisode(
-        isMissing: Bool?,
-        isUnaired: Bool?,
-        minPremiereDate: Date
-    ) async -> BaseItemDto? {
-
-        var parameters = Paths.GetItemsParameters()
-        parameters.enableTotalRecordCount = true
-        parameters.fields = .MinimumFields
-        parameters.includeItemTypes = [.episode]
-        parameters.isRecursive = true
-        parameters.isMissing = isMissing
-        parameters.isUnaired = isUnaired
-        parameters.limit = 1
-        parameters.minPremiereDate = minPremiereDate
-        parameters.parentID = item.id
-        parameters.sortBy = [.premiereDate]
-        parameters.sortOrder = [.ascending]
-
-        let request = Paths.getItems(parameters: parameters)
-
-        do {
-            let response = try await authenticatedClient.send(request)
-            let items = response.value.items ?? []
-
-            guard let firstItem = items.first else {
-                return nil
-            }
-
-            return firstItem
-        } catch {
-            return nil
-        }
+        return await SeerrIntegration.upcomingEpisodePillLabel(for: item, userSession: userSession)
     }
 
     // MARK: - Get First Item Seasons
@@ -300,45 +215,5 @@ private extension BaseItemDto {
         }
 
         return parentIndexNumber == other.parentIndexNumber && indexNumber == other.indexNumber
-    }
-
-    var tmdbProviderID: Int? {
-        guard let providerID = providerIDs?.first(where: { providerID in
-            providerID.key.compare("Tmdb", options: .caseInsensitive) == .orderedSame
-        }) else {
-            return nil
-        }
-
-        return Int(providerID.value)
-    }
-
-    var upcomingEpisodePillLabel: String? {
-        guard let premiereDate else { return nil }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMMM"
-
-        return L10n.newEpisodeOn(formatter.string(from: premiereDate))
-    }
-}
-
-private extension SeerrClient.TVDetails.Episode {
-
-    var upcomingEpisodePillLabel: String? {
-        guard let airDate else { return nil }
-
-        let parser = DateFormatter()
-        parser.calendar = Calendar(identifier: .gregorian)
-        parser.locale = Locale(identifier: "en_US_POSIX")
-        parser.dateFormat = "yyyy-MM-dd"
-
-        guard let date = parser.date(from: airDate) else {
-            return L10n.newEpisodeOn(airDate)
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMMM"
-
-        return L10n.newEpisodeOn(formatter.string(from: date))
     }
 }
