@@ -57,39 +57,19 @@ final class SeriesItemViewModel: ItemViewModel {
                     let resumeItem = try await resume
                     let firstAvailableItem = try await firstAvailable
                     let newUpcomingEpisodePillLabel = await upcomingEpisodePillLabel
+                    let playButtonItem = [nextUpItem, resumeItem, firstAvailableItem].compacted().first
+                    let episodeOverviewItem = featuredEpisodeOverviewItem(
+                        for: playButtonItem,
+                        nextUpItem: nextUpItem,
+                        resumeItem: resumeItem,
+                        firstAvailableItem: firstAvailableItem
+                    )
 
-                    if let playButtonItem = [nextUpItem, resumeItem, firstAvailableItem].compacted().first {
+                    if let playButtonItem {
                         await MainActor.run {
                             self.playButtonItem = playButtonItem
                         }
                     }
-
-                    let episodeOverviewItem: BaseItemDto? = {
-                        if let resumeItem {
-                            return resumeItem
-                        }
-
-                        guard let nextUpItem else { return nil }
-
-                        guard let firstAvailableItem else {
-                            return nextUpItem
-                        }
-
-                        if let nextUpID = nextUpItem.id,
-                           let firstAvailableID = firstAvailableItem.id,
-                           nextUpID == firstAvailableID
-                        {
-                            return nil
-                        }
-
-                        if nextUpItem.parentIndexNumber == firstAvailableItem.parentIndexNumber,
-                           nextUpItem.indexNumber == firstAvailableItem.indexNumber
-                        {
-                            return nil
-                        }
-
-                        return nextUpItem
-                    }()
 
                     if let episodeOverviewItem {
                         await MainActor.run {
@@ -108,6 +88,27 @@ final class SeriesItemViewModel: ItemViewModel {
         }
 
         return super.respond(to: action)
+    }
+
+    private func featuredEpisodeOverviewItem(
+        for playButtonItem: BaseItemDto?,
+        nextUpItem: BaseItemDto?,
+        resumeItem: BaseItemDto?,
+        firstAvailableItem: BaseItemDto?
+    ) -> BaseItemDto? {
+        guard let playButtonItem else { return nil }
+
+        if playButtonItem.isSameItem(as: resumeItem) {
+            return playButtonItem
+        }
+
+        guard playButtonItem.isSameItem(as: nextUpItem) else { return nil }
+
+        if playButtonItem.isSameItem(as: firstAvailableItem) {
+            return nil
+        }
+
+        return playButtonItem
     }
 
     // MARK: - Get Next Up Item
@@ -290,6 +291,16 @@ final class SeriesItemViewModel: ItemViewModel {
 }
 
 private extension BaseItemDto {
+
+    func isSameItem(as other: BaseItemDto?) -> Bool {
+        guard let other else { return false }
+
+        if let id, let otherID = other.id {
+            return id == otherID
+        }
+
+        return parentIndexNumber == other.parentIndexNumber && indexNumber == other.indexNumber
+    }
 
     var tmdbProviderID: Int? {
         guard let providerID = providerIDs?.first(where: { providerID in
