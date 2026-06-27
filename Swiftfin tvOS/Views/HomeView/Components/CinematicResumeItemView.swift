@@ -97,8 +97,8 @@ extension HomeView {
                 )
                 .frame(height: UIScreen.main.bounds.height)
 
-                if let heroItem {
-                    heroContent(for: heroItem)
+                if let heroItem, let selectedItem {
+                    heroContent(for: heroItem, actionItem: selectedItem)
                         .opacity(headerOpacity)
                         .padding(.leading, 80)
                         .padding(.trailing, 50)
@@ -151,7 +151,7 @@ extension HomeView {
             }
         }
 
-        private func heroContent(for item: BaseItemDto) -> some View {
+        private func heroContent(for item: BaseItemDto, actionItem: BaseItemDto) -> some View {
             CinematicItemHeroView(item: item) { itemViewModel in
                 ItemView.PlayButton(viewModel: itemViewModel, showsProgressBar: false)
                     .focused($focusedAction, equals: .play)
@@ -162,10 +162,10 @@ extension HomeView {
                         }
                     }
 
-                favoriteButton(for: item)
+                favoriteButton(for: actionItem)
                     .focused($focusedAction, equals: .favorite)
 
-                infoButton(for: item)
+                infoButton(for: actionItem)
                     .focused($focusedAction, equals: .info)
 
                 if items.count > 1 {
@@ -210,7 +210,7 @@ extension HomeView {
 
         private func infoButton(for item: BaseItemDto) -> some View {
             Button {
-                router.route(to: .item(item: detailItem(for: item)))
+                router.route(to: .item(item: item))
             } label: {
                 Image(systemName: "info.circle")
                     .font(iconFont)
@@ -239,16 +239,6 @@ extension HomeView {
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .animation(.easeOut(duration: 0.2), value: indicatedIndex)
-        }
-
-        private func detailItem(for item: BaseItemDto) -> BaseItemDto {
-            guard item.type == .episode, let seriesID = item.seriesID else { return item }
-
-            return BaseItemDto(
-                id: seriesID,
-                name: item.seriesName,
-                type: .series
-            )
         }
 
         private func selectPreviousItem() {

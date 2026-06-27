@@ -67,11 +67,12 @@ final class HomeViewModel: ViewModel, Stateful {
 
         Notifications[.itemMetadataDidChange]
             .publisher
-            .sink { _ in
+            .sink { item in
                 // Necessary because when this notification is posted, even with asyncAfter,
                 // the view will cause layout issues since it will redraw while in landscape.
                 // TODO: look for better solution
                 DispatchQueue.main.async {
+                    self.updateResumeItem(with: item)
                     self.notificationsReceived.insert(.itemMetadataDidChange)
                 }
             }
@@ -171,16 +172,14 @@ final class HomeViewModel: ViewModel, Stateful {
                 let beforeIsFavorite = item.userData?.isFavorite ?? false
 
                 await MainActor.run {
-                    guard let index = resumeItems.elements.firstIndex(where: { $0.id == item.id }) else { return }
-                    resumeItems.elements[index].userData?.isFavorite = !beforeIsFavorite
+                    setResumeItem(item.id, isFavorite: !beforeIsFavorite)
                 }
 
                 do {
                     try await setIsFavorite(!beforeIsFavorite, for: item)
                 } catch {
                     await MainActor.run {
-                        guard let index = resumeItems.elements.firstIndex(where: { $0.id == item.id }) else { return }
-                        resumeItems.elements[index].userData?.isFavorite = beforeIsFavorite
+                        setResumeItem(item.id, isFavorite: beforeIsFavorite)
                     }
                 }
             }
@@ -245,6 +244,26 @@ final class HomeViewModel: ViewModel, Stateful {
         #else
         return items
         #endif
+    }
+
+    private func setResumeItem(_ itemID: String?, isFavorite: Bool) {
+        guard let itemID,
+              let index = resumeItems.elements.firstIndex(where: { $0.id == itemID })
+        else { return }
+
+        var elements = resumeItems.elements
+        elements[index].userData?.isFavorite = isFavorite
+        resumeItems.elements = elements
+    }
+
+    private func updateResumeItem(with item: BaseItemDto) {
+        guard let itemID = item.id,
+              let index = resumeItems.elements.firstIndex(where: { $0.id == itemID })
+        else { return }
+
+        var elements = resumeItems.elements
+        elements[index] = item
+        resumeItems.elements = elements
     }
 
     #if os(tvOS)
