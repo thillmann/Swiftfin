@@ -10,6 +10,66 @@ import UIKit
 
 extension UIImage {
 
+    func trimmedTransparentPixels(alphaThreshold: UInt8 = 16) -> UIImage {
+        guard let cgImage else { return self }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
+
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: &pixels,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 8,
+                  bytesPerRow: bytesPerRow,
+                  space: colorSpace,
+                  bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else {
+            return self
+        }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        var minX = width
+        var minY = height
+        var maxX = -1
+        var maxY = -1
+
+        for y in 0 ..< height {
+            let rowStart = y * bytesPerRow
+
+            for x in 0 ..< width {
+                let alphaIndex = rowStart + x * bytesPerPixel + 3
+
+                guard pixels[alphaIndex] > alphaThreshold else { continue }
+
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+            }
+        }
+
+        guard maxX >= minX, maxY >= minY else { return self }
+        guard minX > 0 || minY > 0 || maxX < width - 1 || maxY < height - 1 else { return self }
+
+        let cropRect = CGRect(
+            x: minX,
+            y: minY,
+            width: maxX - minX + 1,
+            height: maxY - minY + 1
+        )
+
+        guard let croppedImage = cgImage.cropping(to: cropRect) else { return self }
+
+        return UIImage(cgImage: croppedImage, scale: scale, orientation: imageOrientation)
+    }
+
     func opaquePixelRatio(
         sampleSize: CGSize = CGSize(width: 32, height: 32),
         alphaThreshold: UInt8 = 230

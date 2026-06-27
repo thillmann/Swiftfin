@@ -42,7 +42,7 @@ struct ImageView<Failure: View>: View {
 
     var body: some View {
         if let currentSource = sources.first {
-            LazyImage(url: currentSource.url, transaction: .init(animation: .linear)) { state in
+            LazyImage(request: imageRequest(for: currentSource), transaction: .init(animation: .linear)) { state in
                 if state.isLoading {
                     _placeholder(currentSource)
                 } else if let _image = state.image {
@@ -64,6 +64,20 @@ struct ImageView<Failure: View>: View {
         } else {
             failure
         }
+    }
+
+    private func imageRequest(for source: ImageSource) -> ImageRequest? {
+        guard let url = source.url else { return nil }
+
+        var request = ImageRequest(url: url)
+
+        #if os(tvOS)
+        if source.trimsTransparentPixels {
+            request.processors = [ImageProcessors.TrimTransparentPixels()]
+        }
+        #endif
+
+        return request
     }
 }
 

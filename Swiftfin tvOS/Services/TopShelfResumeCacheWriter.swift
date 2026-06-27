@@ -217,7 +217,7 @@ enum TopShelfResumeCacheWriter {
             return nil
         }
 
-        let logo = await request.logoURL.asyncFlatMap(loadImage)
+        let logo = await request.logoURL.asyncFlatMap(loadImage)?.trimmedTransparentPixels()
         let size = CGSize(width: 1920, height: 1080)
         let format = UIGraphicsImageRendererFormat()
         format.opaque = true

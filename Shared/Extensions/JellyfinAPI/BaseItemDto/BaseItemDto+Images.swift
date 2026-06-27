@@ -123,7 +123,8 @@ extension BaseItemDto {
 
         return ImageSource(
             url: url,
-            blurHash: nil
+            blurHash: nil,
+            trimsTransparentPixels: trimsTransparentPixels(for: type)
         )
     }
 
@@ -140,7 +141,7 @@ extension BaseItemDto {
         requireTag: Bool = true
     ) -> URL? {
         let scaleWidth = maxWidth.map { UIScreen.main.scale($0) }
-        let scaleHeight = maxWidth.map { UIScreen.main.scale($0) }
+        let scaleHeight = maxHeight.map { UIScreen.main.scale($0) }
         let validQuality = quality.map { clamp($0, min: 1, max: 100) }
 
         let tag = tag ?? getImageTag(for: type)
@@ -199,7 +200,16 @@ extension BaseItemDto {
 
         return ImageSource(
             url: url,
-            blurHash: blurHash
+            blurHash: blurHash,
+            trimsTransparentPixels: trimsTransparentPixels(for: type)
         )
+    }
+
+    private func trimsTransparentPixels(for type: ImageType) -> Bool {
+        #if os(tvOS)
+        return type == .logo
+        #else
+        return false
+        #endif
     }
 }
