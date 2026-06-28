@@ -6,7 +6,9 @@
 // Copyright (c) 2025 Jellyfin & Jellyfin Contributors
 //
 
-DEVELOPMENT_TEAM = 
-PRODUCT_BUNDLE_IDENTIFIER = org.jellyfin.swiftfin
+DEVELOPMENT_TEAM =
+SWIFTFIN_BUNDLE_IDENTIFIER = org.jellyfin.swiftfin
+PRODUCT_BUNDLE_IDENTIFIER = $(SWIFTFIN_BUNDLE_IDENTIFIER)
+APP_GROUP_IDENTIFIER = group.$(SWIFTFIN_BUNDLE_IDENTIFIER)
 
 #include? "DevelopmentTeam.xcconfig"

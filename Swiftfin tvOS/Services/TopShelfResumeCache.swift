@@ -10,7 +10,9 @@ import Foundation
 
 enum TopShelfResumeCache {
 
-    static let appGroupIdentifier = "group.org.jellyfin.swiftfin"
+    static let appGroupIdentifier = Bundle.main.object(
+        forInfoDictionaryKey: "SwiftfinAppGroupIdentifier"
+    ) as? String ?? "group.org.jellyfin.swiftfin"
 
     private static let fileName = "top-shelf-resume-items.json"
 
