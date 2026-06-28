@@ -214,8 +214,8 @@ struct SeerrRequestView: View {
                         viewModel.selectedSeasonNumbers.count,
                         viewModel.selectableSeasonNumbers.count
                     ))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                     Image(systemName: "chevron.up.chevron.down")
                         .foregroundStyle(.secondary)
                 }

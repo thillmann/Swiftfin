@@ -1317,13 +1317,14 @@
 		};
 		E20000002FCF000000000012 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */;
+			baseConfigurationReferenceRelativePath = Shared.xcconfig;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 70;
-				DEVELOPMENT_TEAM = S77VC3X88P;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Swiftfin tvOS Top Shelf/Resources/Info.plist";
@@ -1333,7 +1334,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.4.1;
-				PRODUCT_BUNDLE_IDENTIFIER = org.jellyfin.swiftfin.TopShelf;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).TopShelf";
 				PRODUCT_MODULE_NAME = SwiftfinTopShelf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -1348,13 +1349,14 @@
 		};
 		E20000002FCF000000000013 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */;
+			baseConfigurationReferenceRelativePath = Shared.xcconfig;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Swiftfin tvOS Top Shelf/Resources/Swiftfin-tvOS-Top-Shelf.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 70;
-				DEVELOPMENT_TEAM = S77VC3X88P;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Swiftfin tvOS Top Shelf/Resources/Info.plist";
@@ -1364,7 +1366,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.4.1;
-				PRODUCT_BUNDLE_IDENTIFIER = org.jellyfin.swiftfin.TopShelf;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).TopShelf";
 				PRODUCT_MODULE_NAME = SwiftfinTopShelf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
