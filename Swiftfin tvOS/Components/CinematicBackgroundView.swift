@@ -78,6 +78,8 @@ private extension CinematicBackgroundView {
 
         @StateObject
         private var proxy: RotateContentView.Proxy = .init()
+        @State
+        private var currentImageSources: [ImageSource]?
 
         var body: some View {
             RotateContentView(proxy: proxy)
@@ -87,17 +89,15 @@ private extension CinematicBackgroundView {
                     }
                 }
                 .onAppear {
-                    updateCinematicBackground(
+                    updateBackground(
                         for: item?._poster,
-                        transition: .fade,
-                        proxy: proxy
+                        transition: .fade
                     )
                 }
                 .onChange(of: item) { _, newItem in
-                    updateCinematicBackground(
+                    updateBackground(
                         for: newItem?._poster,
-                        transition: .fade,
-                        proxy: proxy
+                        transition: .fade
                     )
                 }
                 .overlay {
@@ -105,6 +105,22 @@ private extension CinematicBackgroundView {
                         cinematicBackgroundShadowGradient
                     }
                 }
+        }
+
+        private func updateBackground(
+            for item: (any Poster)?,
+            transition: RotateContentView.Transition
+        ) {
+            let imageSources = CinematicBackgroundImageProvider.imageSources(for: item)
+
+            guard imageSources != currentImageSources else { return }
+
+            currentImageSources = imageSources
+            updateCinematicBackground(
+                with: imageSources,
+                transition: transition,
+                proxy: proxy
+            )
         }
     }
 
@@ -217,8 +233,18 @@ private func updateCinematicBackground(
     transition: RotateContentView.Transition,
     proxy: RotateContentView.Proxy
 ) {
-    let imageSources = CinematicBackgroundImageProvider.imageSources(for: item)
+    updateCinematicBackground(
+        with: CinematicBackgroundImageProvider.imageSources(for: item),
+        transition: transition,
+        proxy: proxy
+    )
+}
 
+private func updateCinematicBackground(
+    with imageSources: [ImageSource],
+    transition: RotateContentView.Transition,
+    proxy: RotateContentView.Proxy
+) {
     guard imageSources.isNotEmpty else {
         proxy.update(transition: transition) {
             Color.clear
