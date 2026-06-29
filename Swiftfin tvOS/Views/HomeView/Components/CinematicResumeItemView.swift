@@ -122,6 +122,7 @@ extension HomeView {
             }
             .frame(height: UIScreen.main.bounds.height, alignment: .topLeading)
             .offset(y: contentOffset)
+            .animation(.easeOut(duration: 0.6), value: contentOffset)
             .frame(maxWidth: .infinity)
             .frame(
                 height: UIScreen.main.bounds.height - nextSectionRevealHeight,

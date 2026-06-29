@@ -15,6 +15,7 @@ struct HomeView: View {
 
     private enum HomeFocusSection: Hashable {
         case cinematicResume
+        case cinematicRecentlyAdded
         case nextUp
         case recentlyAdded
         case library(ObjectIdentifier)
@@ -31,6 +32,9 @@ struct HomeView: View {
 
     @State
     private var heroPresentation: HeroScrollPresentation = .hero
+
+    @State
+    private var focusExitResetTask: Task<Void, Never>?
 
     @StateObject
     private var viewModel = HomeViewModel()
@@ -83,13 +87,20 @@ struct HomeView: View {
                     }
                 } else {
                     if showRecentlyAdded {
-                        CinematicRecentlyAddedView(viewModel: viewModel.recentlyAddedViewModel)
-                            .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
+                        CinematicRecentlyAddedView(
+                            viewModel: viewModel.recentlyAddedViewModel,
+                            presentation: heroPresentation
+                        )
+                        .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
+                        .id(HeroScrollPresentation.hero)
+                        .focused($focusedSection, equals: .cinematicRecentlyAdded)
                     }
 
                     NextUpView(viewModel: viewModel.nextUpViewModel)
                         .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
-                        .safeAreaPadding(.top, 150)
+                        .id(HeroScrollPresentation.belowHero)
+                        .focused($focusedSection, equals: .nextUp)
+                        .safeAreaPadding(.top, showRecentlyAdded ? 0 : 150)
                 }
 
                 ForEach(viewModel.libraries) { viewModel in
@@ -120,19 +131,15 @@ struct HomeView: View {
         }
         .animation(.linear(duration: 0.1), value: viewModel.state)
         .onChange(of: focusedSection) { _, section in
-            guard viewModel.resumeItems.isNotEmpty else { return }
+            focusExitResetTask?.cancel()
 
             switch section {
-            case .cinematicResume:
-                withAnimation(.easeOut(duration: 0.6)) {
-                    heroPresentation = .hero
-                }
+            case .cinematicResume, .cinematicRecentlyAdded:
+                updateHeroPresentation(.hero)
             case .nextUp, .recentlyAdded, .library:
-                withAnimation(.easeOut(duration: 0.6)) {
-                    heroPresentation = .belowHero
-                }
+                updateHeroPresentation(.belowHero)
             case nil:
-                break
+                scheduleFocusExitReset()
             }
         }
         .refreshable {
@@ -141,6 +148,29 @@ struct HomeView: View {
         .onAppear {
             viewModel.send(.refresh)
         }
+        .onDisappear {
+            focusExitResetTask?.cancel()
+        }
         .ignoresSafeArea()
+    }
+
+    private func updateHeroPresentation(_ presentation: HeroScrollPresentation) {
+        withAnimation(.easeOut(duration: 0.6)) {
+            heroPresentation = presentation
+        }
+    }
+
+    private func scheduleFocusExitReset() {
+        focusExitResetTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: .milliseconds(250))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled, focusedSection == nil else { return }
+
+            updateHeroPresentation(.hero)
+        }
     }
 }
