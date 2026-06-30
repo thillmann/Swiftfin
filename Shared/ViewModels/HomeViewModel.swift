@@ -16,6 +16,22 @@ import OrderedCollections
 @MainActor
 final class HomeViewModel: ViewModel, Stateful {
 
+    #if os(tvOS)
+    struct Genre: Hashable, Identifiable {
+        let genre: ItemGenre
+        let itemCount: Int
+        let posterItem: BaseItemDto
+
+        var id: String {
+            genre.id ?? genre.value
+        }
+
+        var displayTitle: String {
+            genre.displayTitle
+        }
+    }
+    #endif
+
     // MARK: Action
 
     enum Action: Equatable {
@@ -43,6 +59,10 @@ final class HomeViewModel: ViewModel, Stateful {
 
     @Published
     private(set) var libraries: [LatestInLibraryViewModel] = []
+    #if os(tvOS)
+    @Published
+    private(set) var genres: [Genre] = []
+    #endif
     @Published
     var resumeItems: OrderedSet<BaseItemDto> = []
 
@@ -58,6 +78,9 @@ final class HomeViewModel: ViewModel, Stateful {
 
     private var backgroundRefreshTask: AnyCancellable?
     private var refreshTask: AnyCancellable?
+    #if os(tvOS)
+    private var genresTask: AnyCancellable?
+    #endif
 
     var nextUpViewModel: NextUpLibraryViewModel = .init()
     var recentlyAddedViewModel: RecentlyAddedLibraryViewModel = .init()
@@ -137,6 +160,9 @@ final class HomeViewModel: ViewModel, Stateful {
         case .refresh:
             backgroundRefreshTask?.cancel()
             refreshTask?.cancel()
+            #if os(tvOS)
+            genresTask?.cancel()
+            #endif
 
             refreshTask = Task { [weak self] in
                 do {
@@ -210,6 +236,8 @@ final class HomeViewModel: ViewModel, Stateful {
             await library.send(.refresh)
         }
 
+        try Task.checkCancellation()
+
         await MainActor.run {
             self.resumeItems.elements = resumeItems
             #if os(tvOS)
@@ -222,6 +250,12 @@ final class HomeViewModel: ViewModel, Stateful {
             #endif
             self.libraries = libraries
         }
+
+        try Task.checkCancellation()
+
+        #if os(tvOS)
+        loadGenres(in: libraries)
+        #endif
     }
 
     private func getResumeItems() async throws -> [BaseItemDto] {
@@ -304,6 +338,84 @@ final class HomeViewModel: ViewModel, Stateful {
             .subtracting(excludedLibraryIDs, using: \.id)
             .map { LatestInLibraryViewModel(parent: $0) }
     }
+
+    #if os(tvOS)
+    private func loadGenres(in libraries: [LatestInLibraryViewModel]) {
+        genresTask?.cancel()
+
+        genresTask = Task { [weak self] in
+            guard let self else { return }
+
+            let genres = await (try? self.getGenres(in: libraries)) ?? []
+            guard !Task.isCancelled else { return }
+
+            self.genres = genres
+        }
+        .asAnyCancellable()
+    }
+
+    private func getGenres(in libraries: [LatestInLibraryViewModel]) async throws -> [Genre] {
+        let userID = try authenticatedUser.id
+        var genresByID: [String: Genre] = [:]
+
+        for library in libraries {
+            guard let parent = library.parent as? BaseItemDto else { continue }
+
+            let parameters = Paths.GetQueryFiltersParameters(
+                userID: userID,
+                parentID: parent.id,
+                includeItemTypes: parent.supportedItemTypes,
+                isRecursive: parent.isRecursiveCollection
+            )
+
+            let request = Paths.getQueryFilters(parameters: parameters)
+            let response = try await send(request)
+
+            for genre in response.value.genres ?? [] {
+                guard let name = genre.name else { continue }
+                let itemGenre = ItemGenre(name, id: genre.id)
+                let key = itemGenre.id ?? itemGenre.value
+
+                guard genresByID[key] == nil else { continue }
+
+                let preview = try? await preview(for: itemGenre)
+
+                guard let preview else { continue }
+
+                genresByID[key] = Genre(
+                    genre: itemGenre,
+                    itemCount: preview.itemCount,
+                    posterItem: preview.posterItem
+                )
+            }
+        }
+
+        return genresByID.values
+            .sorted { lhs, rhs in
+                lhs.displayTitle.localizedStandardCompare(rhs.displayTitle) == .orderedAscending
+            }
+    }
+
+    private func preview(for genre: ItemGenre) async throws -> (itemCount: Int, posterItem: BaseItemDto)? {
+        let parent = TitledLibraryParent(
+            displayTitle: genre.displayTitle,
+            id: genre.id ?? genre.value
+        )
+        let viewModel = ItemLibraryViewModel(
+            parent: parent,
+            filters: .init(
+                genres: [genre],
+                itemTypes: [.movie, .series],
+                sortBy: [.random]
+            )
+        )
+
+        let items = try await viewModel.get(page: 0)
+        guard let posterItem = items.randomElement() else { return nil }
+
+        return (items.count, posterItem)
+    }
+    #endif
 
     // TODO: use the more updated server/user data when implemented
     private func getExcludedLibraries() async throws -> [String] {

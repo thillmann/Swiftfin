@@ -33,4 +33,15 @@ extension NavigationRoute {
             PagingLibraryView(viewModel: viewModel)
         }
     }
+
+    #if os(tvOS)
+    static func genreLibrary(genre: ItemGenre) -> NavigationRoute {
+        NavigationRoute(
+            id: "genre-library-(\(genre.id ?? genre.value))",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            GenreLibraryView(genre: genre)
+        }
+    }
+    #endif
 }

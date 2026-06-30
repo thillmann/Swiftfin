@@ -11,6 +11,7 @@ import Foundation
 struct ItemGenre: Codable, ExpressibleByStringLiteral, Hashable, ItemFilter {
 
     let value: String
+    let id: String?
 
     var displayTitle: String {
         value
@@ -18,9 +19,16 @@ struct ItemGenre: Codable, ExpressibleByStringLiteral, Hashable, ItemFilter {
 
     init(stringLiteral value: String) {
         self.value = value
+        self.id = nil
+    }
+
+    init(_ value: String, id: String? = nil) {
+        self.value = value
+        self.id = id
     }
 
     init(from anyFilter: AnyItemFilter) {
         self.value = anyFilter.value
+        self.id = nil
     }
 }

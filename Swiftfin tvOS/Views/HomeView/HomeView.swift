@@ -18,6 +18,7 @@ struct HomeView: View {
         case cinematicRecentlyAdded
         case nextUp
         case recentlyAdded
+        case genres
         case library(ObjectIdentifier)
     }
 
@@ -35,6 +36,9 @@ struct HomeView: View {
 
     @State
     private var focusExitResetTask: Task<Void, Never>?
+
+    @State
+    private var suppressFocusExitReset = false
 
     @StateObject
     private var viewModel = HomeViewModel()
@@ -111,6 +115,10 @@ struct HomeView: View {
                             equals: .library(ObjectIdentifier(viewModel))
                         )
                 }
+
+                GenresView(genres: viewModel.genres)
+                    .onSelectGenre(prepareForGenreNavigation)
+                    .focused($focusedSection, equals: .genres)
             }
             .padding(.bottom, bottomPadding)
         }
@@ -135,10 +143,13 @@ struct HomeView: View {
 
             switch section {
             case .cinematicResume, .cinematicRecentlyAdded:
+                suppressFocusExitReset = false
                 updateHeroPresentation(.hero)
-            case .nextUp, .recentlyAdded, .library:
+            case .nextUp, .recentlyAdded, .genres, .library:
+                suppressFocusExitReset = false
                 updateHeroPresentation(.belowHero)
             case nil:
+                guard !suppressFocusExitReset else { return }
                 scheduleFocusExitReset()
             }
         }
@@ -150,6 +161,7 @@ struct HomeView: View {
         }
         .onDisappear {
             focusExitResetTask?.cancel()
+            suppressFocusExitReset = false
         }
         .ignoresSafeArea()
     }
@@ -172,5 +184,10 @@ struct HomeView: View {
 
             updateHeroPresentation(.hero)
         }
+    }
+
+    private func prepareForGenreNavigation() {
+        focusExitResetTask?.cancel()
+        suppressFocusExitReset = true
     }
 }

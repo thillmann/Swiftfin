@@ -78,7 +78,11 @@ final class ItemLibraryViewModel: PagingLibraryViewModel<BaseItemDto> {
         if let filterViewModel {
             let filters = filterViewModel.currentFilters
             parameters.filters = filters.traits
-            parameters.genres = filters.genres.map(\.value)
+            if filters.genres.isNotEmpty, filters.genres.allSatisfy({ $0.id != nil }) {
+                parameters.genreIDs = filters.genres.compactMap(\.id)
+            } else {
+                parameters.genres = filters.genres.map(\.value)
+            }
             parameters.sortBy = filters.sortBy
             parameters.sortOrder = filters.sortOrder
             parameters.tags = filters.tags.map(\.value)

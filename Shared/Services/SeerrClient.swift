@@ -378,13 +378,15 @@ enum SeerrClient {
 
     static func discoverMovies(
         page: Int = 1,
-        language: String? = nil
+        language: String? = nil,
+        genreID: Int? = nil
     ) async -> Result<Page<MediaResult>, ProbeError> {
         await decode(
             path: "discover/movies",
             queryItems: [
                 URLQueryItem(name: "page", value: String(page)),
                 URLQueryItem(name: "language", value: language),
+                URLQueryItem(name: "genre", value: genreID.map(String.init)),
             ],
             failurePrefix: "Seerr discover movies failed"
         )
@@ -392,13 +394,15 @@ enum SeerrClient {
 
     static func discoverTV(
         page: Int = 1,
-        language: String? = nil
+        language: String? = nil,
+        genreID: Int? = nil
     ) async -> Result<Page<MediaResult>, ProbeError> {
         await decode(
             path: "discover/tv",
             queryItems: [
                 URLQueryItem(name: "page", value: String(page)),
                 URLQueryItem(name: "language", value: language),
+                URLQueryItem(name: "genre", value: genreID.map(String.init)),
             ],
             failurePrefix: "Seerr discover TV failed"
         )
