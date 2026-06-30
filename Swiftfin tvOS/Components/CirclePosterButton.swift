@@ -123,7 +123,7 @@ extension BaseItemPerson: CirclePosterRepresentable {
     }
 }
 
-extension UnifiedSearchResult: CirclePosterRepresentable {
+extension UnifiedMediaResult: CirclePosterRepresentable {
 
     var circlePoster: AnyPoster {
         AnyPoster(CircleSearchResultPoster(item: self))
@@ -216,7 +216,7 @@ private struct CirclePersonPoster: Poster {
 
 private struct CircleSearchResultPoster: Poster {
 
-    let item: UnifiedSearchResult
+    let item: UnifiedMediaResult
 
     var id: String {
         item.id

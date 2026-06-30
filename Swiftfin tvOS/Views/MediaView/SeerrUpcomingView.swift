@@ -30,7 +30,7 @@ struct SeerrUpcomingView: View {
             posterType: .portrait,
             columnCount: 6
         ) { item in
-            if case let .seer(seerrItem) = item {
+            if case let .seerr(seerrItem) = item {
                 pendingRequestItem = seerrItem
             }
         }
@@ -88,7 +88,7 @@ extension SeerrUpcomingView {
     final class ViewModel: ObservableObject {
 
         @Published
-        private(set) var items: [UnifiedSearchResult] = []
+        private(set) var items: [UnifiedMediaResult] = []
 
         @Published
         private(set) var error: SeerrClient.ProbeError?
@@ -175,7 +175,7 @@ extension SeerrUpcomingView {
             var seenIDs = Set<String>()
 
             return results.filter { item in
-                seenIDs.insert("\(item.mediaType?.rawValue ?? "unknown")-\(item.id)").inserted
+                seenIDs.insert(SeerrLibraryMatcher.key(for: item)).inserted
             }
         }
 
@@ -191,7 +191,7 @@ extension SeerrUpcomingView {
             }
         }
 
-        private func sortByReleaseDate(_ items: [UnifiedSearchResult]) -> [UnifiedSearchResult] {
+        private func sortByReleaseDate(_ items: [UnifiedMediaResult]) -> [UnifiedMediaResult] {
             items.sorted { lhs, rhs in
                 let lhsDate = releaseDate(for: lhs)
                 let rhsDate = releaseDate(for: rhs)
@@ -209,8 +209,8 @@ extension SeerrUpcomingView {
             }
         }
 
-        private func releaseDate(for item: UnifiedSearchResult) -> String? {
-            guard case let .seer(item) = item else { return nil }
+        private func releaseDate(for item: UnifiedMediaResult) -> String? {
+            guard case let .seerr(item) = item else { return nil }
             guard let date = item.releaseDate ?? item.firstAirDate, date.isNotEmpty else { return nil }
             return date
         }
@@ -218,7 +218,7 @@ extension SeerrUpcomingView {
         private func updateItems() {
             items = sortByReleaseDate(
                 (results[mediaType] ?? [])
-                    .map(UnifiedSearchResult.seer)
+                    .map(UnifiedMediaResult.seerr)
             )
         }
     }

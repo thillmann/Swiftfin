@@ -145,11 +145,11 @@ struct SearchView: View {
         }
     }
 
-    private func select(_ item: UnifiedSearchResult) {
+    private func select(_ item: UnifiedMediaResult) {
         switch item {
         case let .jellyfin(baseItem):
             select(baseItem)
-        case let .seer(seerItem):
+        case let .seerr(seerItem):
             pendingSeerRequestItem = seerItem
         }
     }
@@ -194,7 +194,7 @@ struct SearchView: View {
     private func unifiedItemsSection(
         title: String,
         type: BaseItemKind,
-        items: [UnifiedSearchResult],
+        items: [UnifiedMediaResult],
         posterType: PosterDisplayType
     ) -> some View {
         PosterHStack(
@@ -205,7 +205,7 @@ struct SearchView: View {
                 PosterButton(item: item, type: posterType) {
                     select(item)
                 } overlay: {
-                    UnifiedSearchResultPosterOverlay(item: item)
+                    UnifiedMediaResultPosterOverlay(item: item)
                 }
             }
         )
@@ -214,7 +214,7 @@ struct SearchView: View {
     @ViewBuilder
     private func circleUnifiedItemsSection(
         title: String,
-        items: [UnifiedSearchResult]
+        items: [UnifiedMediaResult]
     ) -> some View {
         PosterHStack(
             title: title,

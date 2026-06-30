@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import JellyfinAPI
 import SwiftUI
 
 struct SeerrTrendingView: View {
@@ -17,7 +18,10 @@ struct SeerrTrendingView: View {
     }
 
     @StateObject
-    private var viewModel = ViewModel()
+    private var viewModel = TrendingViewModel()
+
+    @Router
+    private var router
 
     @State
     private var pendingRequestItem: SeerrClient.MediaResult?
@@ -25,28 +29,20 @@ struct SeerrTrendingView: View {
     @State
     private var selectedMediaType = MediaType.movies
 
-    private var content: some View {
-        PosterVGrid(
-            data: viewModel.items,
-            posterType: .portrait,
-            columnCount: 6
-        ) { item in
-            if case let .seer(seerrItem) = item {
-                pendingRequestItem = seerrItem
-            }
-        }
+    private var hasNoItems: Bool {
+        viewModel.inLibraryItems.isEmpty && viewModel.availableItems.isEmpty
     }
 
     private var tabContent: some View {
         ZStack {
-            if let error = viewModel.error, viewModel.items.isEmpty {
+            if let error = viewModel.error, hasNoItems {
                 ErrorView(error: error)
-            } else if viewModel.isLoading, viewModel.items.isEmpty {
+            } else if viewModel.isLoading, hasNoItems {
                 ProgressView()
-            } else if viewModel.items.isEmpty {
+            } else if hasNoItems {
                 ContentUnavailableView(L10n.noItems, systemImage: "chart.line.uptrend.xyaxis")
             } else {
-                content
+                contentView
             }
         }
         .ignoresSafeArea()
@@ -81,15 +77,51 @@ struct SeerrTrendingView: View {
             }
         }
     }
+
+    private var contentView: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 64) {
+                    UnifiedMediaGridSection(
+                        title: "In Library",
+                        items: viewModel.inLibraryItems,
+                        containerWidth: proxy.size.width,
+                        onSelect: select
+                    )
+
+                    UnifiedMediaGridSection(
+                        title: "Available",
+                        items: viewModel.availableItems,
+                        containerWidth: proxy.size.width,
+                        onSelect: select
+                    )
+                }
+                .padding(.top, 120)
+                .padding(.bottom, 80)
+            }
+        }
+    }
+
+    private func select(_ item: UnifiedMediaResult) {
+        switch item {
+        case let .jellyfin(baseItem):
+            router.route(to: .item(item: baseItem))
+        case let .seerr(seerrItem):
+            pendingRequestItem = seerrItem
+        }
+    }
 }
 
 extension SeerrTrendingView {
 
     @MainActor
-    final class ViewModel: ObservableObject {
+    final class TrendingViewModel: ViewModel {
 
         @Published
-        private(set) var items: [UnifiedSearchResult] = []
+        private(set) var inLibraryItems: [UnifiedMediaResult] = []
+
+        @Published
+        private(set) var availableItems: [UnifiedMediaResult] = []
 
         @Published
         private(set) var error: SeerrClient.ProbeError?
@@ -98,9 +130,10 @@ extension SeerrTrendingView {
         private(set) var isLoading = false
 
         private var results: [SeerrClient.MediaResult] = []
+        private var libraryMatches: [String: BaseItemDto] = [:]
         private var mediaType = MediaType.movies
 
-        private let pageLimit = 10
+        private let resultLimit = 50
         private let releaseDateParser: DateFormatter = {
             let formatter = DateFormatter()
             formatter.calendar = Calendar(identifier: .gregorian)
@@ -137,34 +170,47 @@ extension SeerrTrendingView {
             error = nil
             defer { isLoading = false }
 
-            let firstPageResult = await SeerrClient.discoverTrending(page: 1, language: "en")
+            let resultsPageResult = await getResultsPage()
 
-            guard case let .success(firstPage) = firstPageResult else {
-                if case let .failure(error) = firstPageResult {
-                    self.error = error
-                }
+            guard case let .success(pageResults) = resultsPageResult else {
+                if case let .failure(error) = resultsPageResult { self.error = error }
                 return
             }
 
-            var newResults = firstPage.results
-            let lastPage = min(firstPage.totalPages ?? 1, pageLimit)
+            let filteredResults = filteredResults(pageResults)
+            results = filteredResults
+            libraryMatches = await libraryMatches(for: filteredResults)
+            updateItems()
+        }
 
-            if lastPage > 1 {
-                for page in 2 ... lastPage {
-                    let result = await SeerrClient.discoverTrending(page: page, language: "en")
+        private func getResultsPage() async -> Result<[SeerrClient.MediaResult], SeerrClient.ProbeError> {
+            let firstPageResult = await SeerrClient.discoverTrending(page: 1, language: "en")
+            guard case let .success(firstPage) = firstPageResult else {
+                if case let .failure(error) = firstPageResult { return .failure(error) }
+                return .success([])
+            }
 
-                    switch result {
-                    case let .success(response):
-                        newResults.append(contentsOf: response.results)
-                    case let .failure(error):
-                        self.error = error
-                        return
+            var results = Array(firstPage.results.prefix(resultLimit))
+            let totalPages = firstPage.totalPages ?? 1
+
+            guard totalPages > 1, results.count < resultLimit else { return .success(results) }
+
+            for page in 2 ... totalPages {
+                let pageResult = await SeerrClient.discoverTrending(page: page, language: "en")
+
+                switch pageResult {
+                case let .success(response):
+                    results.append(contentsOf: response.results.prefix(resultLimit - results.count))
+
+                    if results.count >= resultLimit {
+                        return .success(results)
                     }
+                case let .failure(error):
+                    return .failure(error)
                 }
             }
 
-            results = filteredResults(newResults)
-            updateItems()
+            return .success(results)
         }
 
         private func filteredResults(_ results: [SeerrClient.MediaResult]) -> [SeerrClient.MediaResult] {
@@ -174,7 +220,7 @@ extension SeerrTrendingView {
                 guard item.originalLanguage == "en", isReleased(item) else { return false }
                 guard let mediaType = item.mediaType, mediaType != .person else { return false }
 
-                return seenIDs.insert("\(mediaType.rawValue)-\(item.id)").inserted
+                return seenIDs.insert(SeerrLibraryMatcher.key(for: item)).inserted
             }
         }
 
@@ -196,9 +242,36 @@ extension SeerrTrendingView {
                 .tv
             }
 
-            items = results
+            let typedResults = results
                 .filter { $0.mediaType == seerrMediaType }
-                .map(UnifiedSearchResult.seer)
+
+            inLibraryItems = typedResults.compactMap { item in
+                libraryMatches[SeerrLibraryMatcher.key(for: item)]
+                    .map(UnifiedMediaResult.jellyfin)
+            }
+
+            availableItems = typedResults
+                .filter { libraryMatches[SeerrLibraryMatcher.key(for: $0)] == nil }
+                .map(UnifiedMediaResult.seerr)
+        }
+
+        private func libraryMatches(for results: [SeerrClient.MediaResult]) async -> [String: BaseItemDto] {
+            var matches: [String: BaseItemDto] = [:]
+
+            for result in results {
+                guard let match = await libraryMatch(for: result) else { continue }
+                matches[SeerrLibraryMatcher.key(for: result)] = match
+            }
+
+            return matches
+        }
+
+        private func libraryMatch(for result: SeerrClient.MediaResult) async -> BaseItemDto? {
+            do {
+                return try await SeerrLibraryMatcher.libraryMatch(for: result, using: self)
+            } catch {
+                return nil
+            }
         }
     }
 }

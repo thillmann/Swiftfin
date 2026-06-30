@@ -46,6 +46,9 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
     @StateObject
     private var viewModel: PagingLibraryViewModel<Element>
 
+    @State
+    private var pendingSeerrRequestItem: SeerrClient.MediaResult?
+
     init(viewModel: PagingLibraryViewModel<Element>) {
 
         self._displayType = StoredValue(.User.libraryDisplayType(parentID: viewModel.parent?.id))
@@ -63,6 +66,8 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
             select(item: element)
         case let element as BaseItemPerson:
             select(item: BaseItemDto(person: element))
+        case let element as UnifiedMediaResult:
+            select(item: element)
         default:
             assertionFailure("Used an unexpected type within a `PagingLibaryView`?")
         }
@@ -83,6 +88,15 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
     private func select(person: BaseItemPerson) {
         let viewModel = ItemLibraryViewModel(parent: person)
         router.route(to: .library(viewModel: viewModel))
+    }
+
+    private func select(item: UnifiedMediaResult) {
+        switch item {
+        case let .jellyfin(baseItem):
+            select(item: baseItem)
+        case let .seerr(seerrItem):
+            pendingSeerrRequestItem = seerrItem
+        }
     }
 
     private var activeDisplayType: LibraryDisplayType {
@@ -204,6 +218,8 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
                     select(item: item)
                 case let item as BaseItemPerson:
                     select(item: BaseItemDto(person: item))
+                case let item as UnifiedMediaResult:
+                    select(item: item)
                 default:
                     assertionFailure("Used an unexpected type within a `PagingLibaryView`?")
                 }
@@ -212,6 +228,13 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
         .onFirstAppear {
             if viewModel.state == .initial {
                 viewModel.send(.refresh)
+            }
+        }
+        .fullScreenCover(item: $pendingSeerrRequestItem) { item in
+            SeerrRequestView(item: item) {
+                if let viewModel = viewModel as? SeerrRequestStateUpdating {
+                    viewModel.markRequested(item)
+                }
             }
         }
     }

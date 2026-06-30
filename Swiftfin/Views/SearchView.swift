@@ -159,11 +159,11 @@ struct SearchView: View {
         }
     }
 
-    private func select(_ item: UnifiedSearchResult, in namespace: Namespace.ID) {
+    private func select(_ item: UnifiedMediaResult, in namespace: Namespace.ID) {
         switch item {
         case let .jellyfin(baseItem):
             select(baseItem, in: namespace)
-        case let .seer(seerItem):
+        case let .seerr(seerItem):
             pendingSeerRequestItem = seerItem
         }
     }
@@ -197,7 +197,7 @@ struct SearchView: View {
     private func unifiedItemsSection(
         title: String,
         type: BaseItemKind,
-        items: [UnifiedSearchResult],
+        items: [UnifiedMediaResult],
         posterType: PosterDisplayType
     ) -> some View {
         PosterHStack(
@@ -208,7 +208,7 @@ struct SearchView: View {
                 select(item, in: namespace)
             }
         ) { item in
-            PosterButton<UnifiedSearchResult>.TitleSubtitleContentView(item: item)
+            PosterButton<UnifiedMediaResult>.TitleSubtitleContentView(item: item)
         }
         .trailing {
             SeeAllButton {
@@ -220,8 +220,8 @@ struct SearchView: View {
                 router.route(to: .library(viewModel: viewModel))
             }
         }
-        .posterOverlay(for: UnifiedSearchResult.self) { item in
-            UnifiedSearchResultPosterOverlay(item: item)
+        .posterOverlay(for: UnifiedMediaResult.self) { item in
+            UnifiedMediaResultPosterOverlay(item: item)
         }
     }
 

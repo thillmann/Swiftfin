@@ -36,6 +36,25 @@ struct PosterVGrid<Element: Poster>: View {
         )
     }
 
+    private var horizontalPadding: CGFloat {
+        80
+    }
+
+    private var topPadding: CGFloat {
+        120
+    }
+
+    private var posterAspectRatio: CGFloat {
+        switch posterType {
+        case .landscape:
+            1.77
+        case .portrait:
+            2 / 3
+        case .square:
+            1
+        }
+    }
+
     private var gridItems: [PosterVGridItem<Element>] {
         let idCounts = Dictionary(
             grouping: data.map(\.unwrappedIDHashOrZero).filter { $0 != 0 },
@@ -94,15 +113,38 @@ struct PosterVGrid<Element: Poster>: View {
         self.onSelect = onSelect
     }
 
-    private func gridCell(for item: Element) -> some View {
-        PosterButton(
-            item: item,
-            type: posterType,
-            overlayOptions: overlayOptions,
-            unplayedIndicatorType: unplayedIndicatorType
-        ) {
-            onSelect(item)
+    private func itemWidth(containerWidth: CGFloat) -> CGFloat {
+        let availableWidth = containerWidth - horizontalPadding * 2 - gridSpacing * CGFloat(columnCount - 1)
+        return max(availableWidth / CGFloat(columnCount), 1)
+    }
+
+    private func itemHeight(containerWidth: CGFloat) -> CGFloat {
+        itemWidth(containerWidth: containerWidth) / posterAspectRatio
+    }
+
+    private func gridCell(for item: Element, containerWidth: CGFloat) -> some View {
+        Group {
+            if let unifiedItem = item as? UnifiedMediaResult {
+                PosterButton(item: unifiedItem, type: posterType) {
+                    onSelect(item)
+                } overlay: {
+                    UnifiedMediaResultPosterOverlay(item: unifiedItem)
+                }
+            } else {
+                PosterButton(
+                    item: item,
+                    type: posterType,
+                    overlayOptions: overlayOptions,
+                    unplayedIndicatorType: unplayedIndicatorType
+                ) {
+                    onSelect(item)
+                }
+            }
         }
+        .frame(
+            width: itemWidth(containerWidth: containerWidth),
+            height: itemHeight(containerWidth: containerWidth)
+        )
     }
 
     private func listCell(for item: Element) -> some View {
@@ -130,26 +172,28 @@ struct PosterVGrid<Element: Poster>: View {
     }
 
     @ViewBuilder
-    private func cell(for item: Element) -> some View {
+    private func cell(for item: Element, containerWidth: CGFloat) -> some View {
         if layout == .grid {
-            gridCell(for: item)
+            gridCell(for: item, containerWidth: containerWidth)
         } else {
             listCell(for: item)
         }
     }
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: gridSpacing) {
-                ForEach(gridItems, id: \.id) { gridItem in
-                    cell(for: gridItem.item)
-                        .onAppear {
-                            onNeedsNextPage(gridItem.item)
-                        }
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: gridSpacing) {
+                    ForEach(gridItems, id: \.id) { gridItem in
+                        cell(for: gridItem.item, containerWidth: proxy.size.width)
+                            .onAppear {
+                                onNeedsNextPage(gridItem.item)
+                            }
+                    }
                 }
+                .padding(horizontalPadding)
+                .padding(.top, topPadding)
             }
-            .padding(80)
-            .padding(.top, 120)
         }
     }
 }
