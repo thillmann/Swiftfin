@@ -22,6 +22,12 @@ extension HomeView {
         @State
         private var contentSize: CGSize = .zero
 
+        private struct GenrePalette {
+            let background: [Color]
+            let tint: Color
+            let glow: Color
+        }
+
         private let horizontalPadding: CGFloat = EdgeInsets.edgePadding
         private let itemSpacing: CGFloat = EdgeInsets.edgePadding - 40
         private let verticalPadding: CGFloat = 20
@@ -51,7 +57,7 @@ extension HomeView {
             if genres.isNotEmpty {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack {
-                        Text(L10n.genres)
+                        Text("Browse by Genre")
                             .font(.headline)
                             .fontWeight(.semibold)
                             .accessibility(addTraits: [.isHeader])
@@ -86,10 +92,7 @@ extension HomeView {
                 route(to: genre)
             } label: {
                 ZStack {
-                    PosterImage(
-                        item: genre.posterItem,
-                        type: .portrait
-                    )
+                    genreArtwork(for: genre)
 
                     LinearGradient(
                         colors: [
@@ -105,12 +108,12 @@ extension HomeView {
                         Spacer(minLength: 0)
 
                         Text(genre.displayTitle)
-                            .font(.caption.weight(.semibold))
+                            .font(.callout.weight(.semibold))
                             .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
+                            .multilineTextAlignment(.leading)
                             .lineLimit(2)
                             .minimumScaleFactor(0.7)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(16)
                 }
@@ -120,27 +123,132 @@ extension HomeView {
             .accessibilityLabel(genre.displayTitle)
         }
 
+        private func genreArtwork(for genre: HomeViewModel.Genre) -> some View {
+            let palette = genrePalette(for: genre.genre)
+
+            return ZStack {
+                if genre.imageSources.isNotEmpty {
+                    GeometryReader { proxy in
+                        ImageView(genre.imageSources)
+                            .image { image in
+                                image
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(
+                                        width: proxy.size.width,
+                                        height: proxy.size.height
+                                    )
+                                    .clipped()
+                            }
+                            .placeholder { _ in
+                                abstractGenreArtwork(palette: palette)
+                            }
+                            .failure {
+                                abstractGenreArtwork(palette: palette)
+                            }
+                            .frame(
+                                width: proxy.size.width,
+                                height: proxy.size.height
+                            )
+                    }
+                } else {
+                    abstractGenreArtwork(palette: palette)
+                }
+
+                RadialGradient(
+                    colors: [
+                        palette.glow.opacity(0.85),
+                        palette.glow.opacity(0.18),
+                        .clear,
+                    ],
+                    center: .topTrailing,
+                    startRadius: 8,
+                    endRadius: 260
+                )
+                .blendMode(.screen)
+
+                LinearGradient(
+                    colors: [
+                        palette.tint.opacity(0.72),
+                        palette.tint.opacity(0.18),
+                        .clear,
+                    ],
+                    startPoint: .bottomLeading,
+                    endPoint: .topTrailing
+                )
+
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0.05),
+                        .black.opacity(0.34),
+                        .black.opacity(0.82),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
+
+        private func abstractGenreArtwork(palette: GenrePalette) -> some View {
+            LinearGradient(
+                colors: palette.background,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        private func genrePalette(for genre: UnifiedGenre) -> GenrePalette {
+            switch genre.id {
+            case "action":
+                .init(background: [.orange, .red, .black], tint: .orange, glow: .yellow)
+            case "adventure":
+                .init(background: [.mint, .green, .black], tint: .green, glow: .cyan)
+            case "animation":
+                .init(background: [.cyan, .purple, .pink], tint: .pink, glow: .yellow)
+            case "comedy":
+                .init(background: [.yellow, .green, .black], tint: .green, glow: .yellow)
+            case "crime":
+                .init(background: [.gray, .blue, .black], tint: .blue, glow: .cyan)
+            case "documentary":
+                .init(background: [.teal, .blue, .black], tint: .teal, glow: .mint)
+            case "drama":
+                .init(background: [.blue, .indigo, .black], tint: .blue, glow: .cyan)
+            case "family", "kids":
+                .init(background: [.pink, .orange, .purple], tint: .pink, glow: .yellow)
+            case "fantasy":
+                .init(background: [.purple, .indigo, .black], tint: .purple, glow: .mint)
+            case "history":
+                .init(background: [.brown, .orange, .black], tint: .orange, glow: .yellow)
+            case "horror":
+                .init(background: [.orange, .black, .black], tint: .orange, glow: .red)
+            case "music":
+                .init(background: [.pink, .purple, .black], tint: .pink, glow: .cyan)
+            case "mystery":
+                .init(background: [.indigo, .gray, .black], tint: .indigo, glow: .blue)
+            case "news", "talk":
+                .init(background: [.blue, .cyan, .black], tint: .blue, glow: .white)
+            case "politics", "war":
+                .init(background: [.gray, .red, .black], tint: .red, glow: .orange)
+            case "reality":
+                .init(background: [.purple, .pink, .black], tint: .purple, glow: .pink)
+            case "romance":
+                .init(background: [.pink, .red, .black], tint: .pink, glow: .orange)
+            case "science-fiction":
+                .init(background: [.cyan, .indigo, .black], tint: .cyan, glow: .teal)
+            case "soap":
+                .init(background: [.mint, .teal, .black], tint: .teal, glow: .white)
+            case "thriller":
+                .init(background: [.red, .purple, .black], tint: .red, glow: .orange)
+            case "western":
+                .init(background: [.orange, .brown, .black], tint: .brown, glow: .yellow)
+            default:
+                .init(background: [.teal, .purple, .black], tint: .teal, glow: .white)
+            }
+        }
+
         private func route(to genre: HomeViewModel.Genre) {
             didSelectGenre()
 
-            if SeerrIntegration.isAvailable,
-               SeerrGenreMapper.mapping(for: genre.genre) != nil
-            {
-                router.route(to: .genreLibrary(genre: genre.genre))
-            } else {
-                let parent = TitledLibraryParent(
-                    displayTitle: genre.displayTitle,
-                    id: genre.genre.id ?? genre.genre.value
-                )
-                let viewModel = ItemLibraryViewModel(
-                    parent: parent,
-                    filters: .init(
-                        genres: [genre.genre],
-                        itemTypes: [.movie, .series]
-                    )
-                )
-                router.route(to: .library(viewModel: viewModel))
-            }
+            router.route(to: .genreLibrary(genre: genre.genre))
         }
 
         func onSelectGenre(_ action: @escaping () -> Void) -> Self {

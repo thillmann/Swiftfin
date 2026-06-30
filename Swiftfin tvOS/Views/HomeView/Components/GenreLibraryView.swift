@@ -12,7 +12,7 @@ import SwiftUI
 
 struct GenreLibraryView: View {
 
-    let genre: ItemGenre
+    let genre: UnifiedGenre
 
     @StateObject
     private var viewModel: GenreLibraryViewModel
@@ -42,7 +42,7 @@ struct GenreLibraryView: View {
         )
     }
 
-    init(genre: ItemGenre) {
+    init(genre: UnifiedGenre) {
         self.genre = genre
         self._viewModel = StateObject(wrappedValue: GenreLibraryViewModel(genre: genre))
     }
@@ -82,7 +82,7 @@ struct GenreLibraryView: View {
                         title: "In Library",
                         items: viewModel.inLibraryItems,
                         containerWidth: proxy.size.width,
-                        onNeedsNextPage: viewModel.loadNextJellyfinPageIfNeeded(currentItem:)
+                        onNeedsNextPage: { _ in }
                     )
 
                     mediaSection(
@@ -168,43 +168,29 @@ private final class GenreLibraryViewModel: ViewModel {
     @Published
     private(set) var isLoading = false
 
-    private let genre: ItemGenre
-    private let jellyfinViewModel: ItemLibraryViewModel
+    private let genre: UnifiedGenre
+    private let itemTypes: [BaseItemKind]
     private let pageSize: Int
-    private let maxSeerrPagesPerLoad = 3
 
     private var didLoadInitialPage = false
-    private var jellyfinPage = -1
-    private var hasNextJellyfinPage = true
-    private var isLoadingNextJellyfinPage = false
-    private var nextSeerrPage = 1
-    private var hasNextSeerrPage = true
     private var isLoadingNextSeerrPage = false
-    private var librarySignatures = Set<String>()
-    private var availableIDs = Set<String>()
     private var pagingGeneration = 0
 
+    private lazy var mediaSource = UnifiedGenreMediaSource(
+        genre: genre,
+        itemTypes: itemTypes,
+        pageSize: pageSize,
+        viewModel: self
+    )
+
     init(
-        genre: ItemGenre,
+        genre: UnifiedGenre,
         itemTypes: [BaseItemKind] = [.movie, .series],
         pageSize: Int = 20
     ) {
-        let parent = TitledLibraryParent(
-            displayTitle: genre.displayTitle,
-            id: genre.id ?? genre.value
-        )
-        let filters = ItemFilterCollection(
-            genres: [genre],
-            itemTypes: itemTypes
-        )
-
         self.genre = genre
+        self.itemTypes = itemTypes
         self.pageSize = pageSize
-        self.jellyfinViewModel = ItemLibraryViewModel(
-            parent: parent,
-            filters: filters,
-            pageSize: pageSize
-        )
 
         super.init()
     }
@@ -225,16 +211,15 @@ private final class GenreLibraryViewModel: ViewModel {
             didLoadInitialPage = true
         }
 
-        await loadNextJellyfinPage()
-        await loadNextSeerrPage()
-    }
-
-    func loadNextJellyfinPageIfNeeded(currentItem: UnifiedMediaResult) {
-        guard shouldLoadNextPage(currentItem: currentItem, in: inLibraryItems) else { return }
-
-        Task {
-            await loadNextJellyfinPage()
+        do {
+            inLibraryItems = try await mediaSource.loadAllInLibraryItems()
+        } catch {
+            guard isCurrentGeneration(pagingGeneration) else { return }
+            self.error = ErrorMessage(error.localizedDescription)
+            return
         }
+
+        await loadNextSeerrPage()
     }
 
     func loadNextSeerrPageIfNeeded(currentItem: UnifiedMediaResult) {
@@ -257,14 +242,8 @@ private final class GenreLibraryViewModel: ViewModel {
         pagingGeneration += 1
         inLibraryItems = []
         availableItems = []
-        jellyfinPage = -1
-        hasNextJellyfinPage = true
-        isLoadingNextJellyfinPage = false
-        nextSeerrPage = 1
-        hasNextSeerrPage = true
         isLoadingNextSeerrPage = false
-        librarySignatures = []
-        availableIDs = []
+        mediaSource.reset()
     }
 
     private func shouldLoadNextPage(
@@ -277,48 +256,8 @@ private final class GenreLibraryViewModel: ViewModel {
         return index >= items.count - threshold
     }
 
-    private func loadNextJellyfinPage() async {
-        guard hasNextJellyfinPage, !isLoadingNextJellyfinPage else { return }
-
-        let generation = pagingGeneration
-        isLoadingNextJellyfinPage = true
-        defer {
-            if isCurrentGeneration(generation) {
-                isLoadingNextJellyfinPage = false
-            }
-        }
-
-        do {
-            let page = jellyfinPage + 1
-            let fetchedItems = try await jellyfinViewModel.get(page: page)
-
-            guard isCurrentGeneration(generation) else { return }
-
-            jellyfinPage = page
-            hasNextJellyfinPage = fetchedItems.count >= pageSize
-
-            for item in fetchedItems {
-                librarySignatures.insert(SeerrLibraryMatcher.mediaSignature(for: item))
-            }
-
-            appendInLibraryItems(fetchedItems.map(UnifiedMediaResult.jellyfin))
-            removeAvailableItemsNowInLibrary()
-        } catch {
-            guard isCurrentGeneration(generation) else { return }
-            self.error = ErrorMessage(error.localizedDescription)
-        }
-    }
-
     private func loadNextSeerrPage() async {
-        guard hasNextSeerrPage, !isLoadingNextSeerrPage else { return }
-        guard SeerrIntegration.isAvailable else {
-            hasNextSeerrPage = false
-            return
-        }
-        guard SeerrGenreMapper.mapping(for: genre) != nil else {
-            hasNextSeerrPage = false
-            return
-        }
+        guard mediaSource.hasNextAvailablePage, !isLoadingNextSeerrPage else { return }
 
         let generation = pagingGeneration
         isLoadingNextSeerrPage = true
@@ -328,29 +267,8 @@ private final class GenreLibraryViewModel: ViewModel {
             }
         }
 
-        var appendedItems: [UnifiedMediaResult] = []
-
-        for _ in 0 ..< maxSeerrPagesPerLoad {
-            let page = nextSeerrPage
-            let seerrPage = await getSeerrItems(page: page)
-
-            guard isCurrentGeneration(generation) else { return }
-
-            nextSeerrPage += 1
-            hasNextSeerrPage = seerrPage.hasNextPage
-
-            guard seerrPage.items.isNotEmpty else { break }
-
-            let availableSeerrItems = await availableSeerrItems(from: seerrPage.items)
-
-            guard isCurrentGeneration(generation) else { return }
-
-            appendedItems.append(contentsOf: availableSeerrItems.map(UnifiedMediaResult.seerr))
-
-            if appendedItems.count >= pageSize || !hasNextSeerrPage {
-                break
-            }
-        }
+        let appendedItems = await mediaSource.loadNextAvailablePage()
+        guard isCurrentGeneration(generation) else { return }
 
         appendAvailableItems(appendedItems)
     }
@@ -359,111 +277,10 @@ private final class GenreLibraryViewModel: ViewModel {
         pagingGeneration == generation
     }
 
-    private func appendInLibraryItems(_ items: [UnifiedMediaResult]) {
-        var knownIDs = Set(inLibraryItems.map(\.id))
+    private func appendAvailableItems(_ items: [UnifiedMediaResult]) {
+        var knownIDs = Set(availableItems.map(\.id))
         let newItems = items.filter { knownIDs.insert($0.id).inserted }
 
-        inLibraryItems.append(contentsOf: newItems)
-    }
-
-    private func appendAvailableItems(_ items: [UnifiedMediaResult]) {
-        var newItems: [UnifiedMediaResult] = []
-
-        for item in items {
-            guard case let .seerr(seerrItem) = item else { continue }
-            let key = SeerrLibraryMatcher.key(for: seerrItem)
-            guard availableIDs.insert(key).inserted else { continue }
-
-            newItems.append(item)
-        }
-
         availableItems += newItems
-    }
-
-    private func removeAvailableItemsNowInLibrary() {
-        availableItems.removeAll { item in
-            librarySignatures.contains(mediaSignature(for: item))
-        }
-        availableIDs = Set(availableItems.compactMap { item in
-            guard case let .seerr(seerrItem) = item else { return nil }
-            return SeerrLibraryMatcher.key(for: seerrItem)
-        })
-    }
-
-    private func availableSeerrItems(from items: [SeerrClient.MediaResult]) async -> [SeerrClient.MediaResult] {
-        var results: [SeerrClient.MediaResult] = []
-
-        for item in items {
-            let signature = SeerrLibraryMatcher.mediaSignature(for: item)
-            guard !librarySignatures.contains(signature) else { continue }
-            guard availableIDs.contains(SeerrLibraryMatcher.key(for: item)) == false else { continue }
-            guard await libraryMatch(for: item) == nil else {
-                librarySignatures.insert(signature)
-                continue
-            }
-
-            results.append(item)
-        }
-
-        return results
-    }
-
-    private func getSeerrItems(page: Int) async -> (items: [SeerrClient.MediaResult], hasNextPage: Bool) {
-        guard let mapping = SeerrGenreMapper.mapping(for: genre) else { return ([], false) }
-
-        var results: [SeerrClient.MediaResult] = []
-        var hasNextPage = false
-
-        if let movieGenreID = mapping.movieGenreID {
-            switch await SeerrClient.discoverMovies(page: page, language: "en", genreID: movieGenreID) {
-            case let .success(response):
-                results.append(contentsOf: response.results)
-                hasNextPage = hasNextPage || page < (response.totalPages ?? page)
-            case .failure:
-                break
-            }
-        }
-
-        if let tvGenreID = mapping.tvGenreID {
-            switch await SeerrClient.discoverTV(page: page, language: "en", genreID: tvGenreID) {
-            case let .success(response):
-                results.append(contentsOf: response.results)
-                hasNextPage = hasNextPage || page < (response.totalPages ?? page)
-            case .failure:
-                break
-            }
-        }
-
-        return (
-            deduplicatedSeerrItems(results.filter { item in
-                item.originalLanguage == "en" && SeerrLibraryMatcher.jellyfinItemType(for: item) != nil
-            }),
-            hasNextPage
-        )
-    }
-
-    private func libraryMatch(for result: SeerrClient.MediaResult) async -> BaseItemDto? {
-        do {
-            return try await SeerrLibraryMatcher.libraryMatch(for: result, using: self)
-        } catch {
-            return nil
-        }
-    }
-
-    private func deduplicatedSeerrItems(_ results: [SeerrClient.MediaResult]) -> [SeerrClient.MediaResult] {
-        var seenIDs = Set<String>()
-
-        return results.filter { item in
-            seenIDs.insert(SeerrLibraryMatcher.key(for: item)).inserted
-        }
-    }
-
-    private func mediaSignature(for result: UnifiedMediaResult) -> String {
-        switch result {
-        case let .jellyfin(item):
-            SeerrLibraryMatcher.mediaSignature(for: item)
-        case let .seerr(item):
-            SeerrLibraryMatcher.mediaSignature(for: item)
-        }
     }
 }

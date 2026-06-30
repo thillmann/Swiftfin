@@ -35,9 +35,9 @@ extension NavigationRoute {
     }
 
     #if os(tvOS)
-    static func genreLibrary(genre: ItemGenre) -> NavigationRoute {
+    static func genreLibrary(genre: UnifiedGenre) -> NavigationRoute {
         NavigationRoute(
-            id: "genre-library-(\(genre.id ?? genre.value))",
+            id: "genre-library-(\(genre.id))",
             withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
         ) {
             GenreLibraryView(genre: genre)
