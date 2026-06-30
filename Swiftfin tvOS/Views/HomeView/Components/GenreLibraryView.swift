@@ -82,6 +82,7 @@ struct GenreLibraryView: View {
                         title: "In Library",
                         items: viewModel.inLibraryItems,
                         containerWidth: proxy.size.width,
+                        showsLoadingFooter: false,
                         onNeedsNextPage: { _ in }
                     )
 
@@ -89,6 +90,7 @@ struct GenreLibraryView: View {
                         title: "Available",
                         items: viewModel.availableItems,
                         containerWidth: proxy.size.width,
+                        showsLoadingFooter: viewModel.isLoadingAvailableItems,
                         onNeedsNextPage: viewModel.loadNextSeerrPageIfNeeded(currentItem:)
                     )
                 }
@@ -104,9 +106,10 @@ struct GenreLibraryView: View {
         title: String,
         items: [UnifiedMediaResult],
         containerWidth: CGFloat,
+        showsLoadingFooter: Bool,
         onNeedsNextPage: @escaping (UnifiedMediaResult) -> Void
     ) -> some View {
-        if items.isNotEmpty {
+        if items.isNotEmpty || showsLoadingFooter {
             Section {
                 ForEach(items) { item in
                     PosterButton(item: item, type: .portrait) {
@@ -130,6 +133,12 @@ struct GenreLibraryView: View {
                     .fontWeight(.semibold)
                     .accessibility(addTraits: [.isHeader])
                     .frame(maxWidth: .infinity, alignment: .leading)
+            } footer: {
+                if showsLoadingFooter {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 32)
+                }
             }
         }
     }
@@ -168,12 +177,14 @@ private final class GenreLibraryViewModel: ViewModel {
     @Published
     private(set) var isLoading = false
 
+    @Published
+    private(set) var isLoadingAvailableItems = false
+
     private let genre: UnifiedGenre
     private let itemTypes: [BaseItemKind]
     private let pageSize: Int
 
     private var didLoadInitialPage = false
-    private var isLoadingNextSeerrPage = false
     private var pagingGeneration = 0
 
     private lazy var mediaSource = UnifiedGenreMediaSource(
@@ -242,7 +253,7 @@ private final class GenreLibraryViewModel: ViewModel {
         pagingGeneration += 1
         inLibraryItems = []
         availableItems = []
-        isLoadingNextSeerrPage = false
+        isLoadingAvailableItems = false
         mediaSource.reset()
     }
 
@@ -257,13 +268,13 @@ private final class GenreLibraryViewModel: ViewModel {
     }
 
     private func loadNextSeerrPage() async {
-        guard mediaSource.hasNextAvailablePage, !isLoadingNextSeerrPage else { return }
+        guard mediaSource.hasNextAvailablePage, !isLoadingAvailableItems else { return }
 
         let generation = pagingGeneration
-        isLoadingNextSeerrPage = true
+        isLoadingAvailableItems = true
         defer {
             if isCurrentGeneration(generation) {
-                isLoadingNextSeerrPage = false
+                isLoadingAvailableItems = false
             }
         }
 
