@@ -10,7 +10,7 @@ import SwiftUI
 
 struct UnifiedMediaGridSection: View {
 
-    let title: String
+    let title: String?
     let items: [UnifiedMediaResult]
     let containerWidth: CGFloat
     let onNeedsNextPage: (UnifiedMediaResult) -> Void
@@ -38,7 +38,7 @@ struct UnifiedMediaGridSection: View {
     }
 
     init(
-        title: String,
+        title: String?,
         items: [UnifiedMediaResult],
         containerWidth: CGFloat,
         onNeedsNextPage: @escaping (UnifiedMediaResult) -> Void = { _ in },
@@ -54,11 +54,13 @@ struct UnifiedMediaGridSection: View {
     var body: some View {
         if items.isNotEmpty {
             VStack(alignment: .leading, spacing: 24) {
-                Text(title)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .accessibility(addTraits: [.isHeader])
-                    .padding(.horizontal, horizontalPadding)
+                if let title {
+                    Text(title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .accessibility(addTraits: [.isHeader])
+                        .padding(.horizontal, horizontalPadding)
+                }
 
                 LazyVGrid(columns: columns, spacing: gridSpacing) {
                     ForEach(items) { item in

@@ -10,6 +10,7 @@ import SwiftUI
 
 enum FeatureButtonTokens {
     static let baseHeight: CGFloat = 64
+    static let labelFont: Font = .system(size: baseHeight * 0.4, weight: .semibold)
 
     static let unfocusedBorderOpacity: CGFloat = 0.2
 }
@@ -262,7 +263,7 @@ private struct FeatureButtonStylesPreview: View {
             // preview only
         } label: {
             Image(systemName: icon)
-                .font(.system(size: FeatureButtonTokens.baseHeight * 0.4, weight: .semibold))
+                .font(FeatureButtonTokens.labelFont)
         }
         .buttonStyle(
             FeatureButtonStyle(

@@ -199,6 +199,7 @@ extension ItemView {
                         }
                     }
                 }
+                .font(FeatureButtonTokens.labelFont)
                 .padding(.horizontal, 40)
             }
             .buttonStyle(

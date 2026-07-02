@@ -80,7 +80,7 @@ extension HomeView {
         }
 
         private var iconFont: Font {
-            .system(size: FeatureButtonTokens.baseHeight * 0.4, weight: .semibold)
+            FeatureButtonTokens.labelFont
         }
 
         private var contentOffset: CGFloat {

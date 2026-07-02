@@ -24,7 +24,7 @@ extension ItemView {
         var viewModel: ItemViewModel
 
         private var iconFont: Font {
-            .system(size: FeatureButtonTokens.baseHeight * 0.4, weight: .semibold)
+            FeatureButtonTokens.labelFont
         }
 
         // MARK: - Has Trailers
@@ -54,7 +54,7 @@ extension ItemView {
                     Button {
                         viewModel.send(.toggleIsPlayed)
                     } label: {
-                        Image(systemName: "checkmark")
+                        Image(systemName: isCheckmarkSelected ? "xmark" : "checkmark")
                             .font(iconFont)
                     }
                     .buttonStyle(.featureIconButton)

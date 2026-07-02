@@ -54,6 +54,34 @@ enum SeerrLibraryMatcher {
         "\(item.mediaType?.rawValue ?? "unknown")-\(item.id)"
     }
 
+    static func updatingRequestStatus(
+        in items: [SeerrClient.MediaResult],
+        for requestedItem: SeerrClient.MediaResult,
+        to status: SeerrClient.MediaStatus
+    ) -> [SeerrClient.MediaResult] {
+        items.map { item in
+            guard item.id == requestedItem.id, item.mediaType == requestedItem.mediaType else { return item }
+            return item.updatingStatus(status)
+        }
+    }
+
+    static func unifiedResults(
+        for results: [SeerrClient.MediaResult],
+        using viewModel: ViewModel
+    ) async -> [UnifiedMediaResult] {
+        var unifiedItems: [UnifiedMediaResult] = []
+
+        for result in results {
+            if let match = await libraryMatchIgnoringErrors(for: result, using: viewModel) {
+                unifiedItems.append(.jellyfin(match))
+            } else {
+                unifiedItems.append(.seerr(result))
+            }
+        }
+
+        return unifiedItems
+    }
+
     static func jellyfinItemType(for item: SeerrClient.MediaResult) -> BaseItemKind? {
         switch item.mediaType {
         case .movie:
@@ -62,6 +90,17 @@ enum SeerrLibraryMatcher {
             .series
         case .person, nil:
             nil
+        }
+    }
+
+    private static func libraryMatchIgnoringErrors(
+        for result: SeerrClient.MediaResult,
+        using viewModel: ViewModel
+    ) async -> BaseItemDto? {
+        do {
+            return try await libraryMatch(for: result, using: viewModel)
+        } catch {
+            return nil
         }
     }
 

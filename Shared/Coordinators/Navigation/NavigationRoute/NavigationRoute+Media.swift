@@ -33,6 +33,14 @@ extension NavigationRoute {
             SeerrUpcomingView()
         }
     }
+
+    static func browseBy(_ option: BrowseByOption) -> NavigationRoute {
+        NavigationRoute(
+            id: "\(option.kind.routePrefix)-\(option.seerrID)"
+        ) {
+            BrowseByOptionView(option: option)
+        }
+    }
     #endif
 
     static var channels: NavigationRoute {

@@ -18,6 +18,8 @@ struct HomeView: View {
         case cinematicRecentlyAdded
         case nextUp
         case recentlyAdded
+        case studios
+        case networks
         case genres
         case library(ObjectIdentifier)
     }
@@ -116,8 +118,20 @@ struct HomeView: View {
                         )
                 }
 
+                BrowseBySectionView(
+                    group: .studios,
+                    onPrepareForNavigation: prepareForNavigation
+                )
+                .focused($focusedSection, equals: .studios)
+
+                BrowseBySectionView(
+                    group: .networks,
+                    onPrepareForNavigation: prepareForNavigation
+                )
+                .focused($focusedSection, equals: .networks)
+
                 GenresView(genres: viewModel.genres)
-                    .onSelectGenre(prepareForGenreNavigation)
+                    .onSelectGenre(prepareForNavigation)
                     .focused($focusedSection, equals: .genres)
             }
             .padding(.bottom, bottomPadding)
@@ -145,7 +159,7 @@ struct HomeView: View {
             case .cinematicResume, .cinematicRecentlyAdded:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.hero)
-            case .nextUp, .recentlyAdded, .genres, .library:
+            case .nextUp, .recentlyAdded, .studios, .networks, .genres, .library:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.belowHero)
             case nil:
@@ -186,7 +200,7 @@ struct HomeView: View {
         }
     }
 
-    private func prepareForGenreNavigation() {
+    private func prepareForNavigation() {
         focusExitResetTask?.cancel()
         suppressFocusExitReset = true
     }

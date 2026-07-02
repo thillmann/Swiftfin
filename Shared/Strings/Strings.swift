@@ -288,6 +288,12 @@ internal enum L10n {
   internal static let boxRearImageDescription = L10n.tr("Localizable", "boxRearImageDescription", fallback: "Rear box art representing the back of the item's physical packaging, often showing descriptions or track listings.")
   /// Brightness
   internal static let brightness = L10n.tr("Localizable", "brightness", fallback: "Brightness")
+  /// Browse all
+  internal static let browseAll = L10n.tr("Localizable", "browseAll", fallback: "Browse all")
+  /// Browse Movies by Studio
+  internal static let browseMoviesByStudio = L10n.tr("Localizable", "browseMoviesByStudio", fallback: "Browse Movies by Studio")
+  /// Browse TV Shows by Network
+  internal static let browseTVShowsByNetwork = L10n.tr("Localizable", "browseTVShowsByNetwork", fallback: "Browse TV Shows by Network")
   /// Bugs and features
   internal static let bugsAndFeatures = L10n.tr("Localizable", "bugsAndFeatures", fallback: "Bugs and features")
   /// Buttons
@@ -1092,6 +1098,22 @@ internal enum L10n {
   internal static let native = L10n.tr("Localizable", "native", fallback: "Native")
   /// Network
   internal static let network = L10n.tr("Localizable", "network", fallback: "Network")
+  /// Prestige dramas and cult favorites
+  internal static let networkAMCTagline = L10n.tr("Localizable", "networkAMCTagline", fallback: "Prestige dramas and cult favorites")
+  /// Premium originals and Apple stories
+  internal static let networkAppleTVTagline = L10n.tr("Localizable", "networkAppleTVTagline", fallback: "Premium originals and Apple stories")
+  /// Family worlds and franchise favorites
+  internal static let networkDisneyPlusTagline = L10n.tr("Localizable", "networkDisneyPlusTagline", fallback: "Family worlds and franchise favorites")
+  /// Sharp originals and fearless series
+  internal static let networkFXTagline = L10n.tr("Localizable", "networkFXTagline", fallback: "Sharp originals and fearless series")
+  /// Prestige television and Sunday nights
+  internal static let networkHboTagline = L10n.tr("Localizable", "networkHboTagline", fallback: "Prestige television and Sunday nights")
+  /// Next-day favorites and bold originals
+  internal static let networkHuluTagline = L10n.tr("Localizable", "networkHuluTagline", fallback: "Next-day favorites and bold originals")
+  /// Binge-worthy originals
+  internal static let networkNetflixTagline = L10n.tr("Localizable", "networkNetflixTagline", fallback: "Binge-worthy originals")
+  /// Blockbusters and originals
+  internal static let networkPrimeVideoTagline = L10n.tr("Localizable", "networkPrimeVideoTagline", fallback: "Blockbusters and originals")
   /// Network timed out
   internal static let networkTimedOut = L10n.tr("Localizable", "networkTimedOut", fallback: "Network timed out")
   /// Never
@@ -1658,10 +1680,32 @@ internal enum L10n {
   internal static let streams = L10n.tr("Localizable", "streams", fallback: "Streams")
   /// Studio
   internal static let studio = L10n.tr("Localizable", "studio", fallback: "Studio")
+  /// Strange, sharp, unforgettable
+  internal static let studioA24Tagline = L10n.tr("Localizable", "studioA24Tagline", fallback: "Strange, sharp, unforgettable")
+  /// Gods, rogues, and caped chaos
+  internal static let studioDcTagline = L10n.tr("Localizable", "studioDcTagline", fallback: "Gods, rogues, and caped chaos")
+  /// Magic, music, and adventure
+  internal static let studioDisneyTagline = L10n.tr("Localizable", "studioDisneyTagline", fallback: "Magic, music, and adventure")
+  /// Animated mischief and heart
+  internal static let studioDreamWorksTagline = L10n.tr("Localizable", "studioDreamWorksTagline", fallback: "Animated mischief and heart")
+  /// Heroes at full throttle
+  internal static let studioMarvelTagline = L10n.tr("Localizable", "studioMarvelTagline", fallback: "Heroes at full throttle")
+  /// Mountains and missions
+  internal static let studioParamountTagline = L10n.tr("Localizable", "studioParamountTagline", fallback: "Mountains and missions")
+  /// Heart, humor, and wonder
+  internal static let studioPixarTagline = L10n.tr("Localizable", "studioPixarTagline", fallback: "Heart, humor, and wonder")
   /// Studios
   internal static let studios = L10n.tr("Localizable", "studios", fallback: "Studios")
   /// Studio(s) involved in the creation of media.
   internal static let studiosDescription = L10n.tr("Localizable", "studiosDescription", fallback: "Studio(s) involved in the creation of media.")
+  /// Sleek thrills and crowd-pleasers
+  internal static let studioSonyTagline = L10n.tr("Localizable", "studioSonyTagline", fallback: "Sleek thrills and crowd-pleasers")
+  /// Monuments of studio cinema
+  internal static let studioTwentiethCenturyTagline = L10n.tr("Localizable", "studioTwentiethCenturyTagline", fallback: "Monuments of studio cinema")
+  /// Monsters, mayhem, and movie magic
+  internal static let studioUniversalTagline = L10n.tr("Localizable", "studioUniversalTagline", fallback: "Monsters, mayhem, and movie magic")
+  /// Big-screen legends
+  internal static let studioWarnerBrosTagline = L10n.tr("Localizable", "studioWarnerBrosTagline", fallback: "Big-screen legends")
   /// Subtitle
   internal static let subtitle = L10n.tr("Localizable", "subtitle", fallback: "Subtitle")
   /// The subtitle codec is not supported
