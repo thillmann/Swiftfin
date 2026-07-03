@@ -24,15 +24,18 @@ extension ItemView {
         var viewModel: ItemViewModel
 
         let showsProgressBar: Bool
+        let onMoveCommand: ((MoveCommandDirection) -> Void)?
 
         private let logger = Logger.swiftfin()
 
         init(
             viewModel: ItemViewModel,
-            showsProgressBar: Bool = true
+            showsProgressBar: Bool = true,
+            onMoveCommand: ((MoveCommandDirection) -> Void)? = nil
         ) {
             self.viewModel = viewModel
             self.showsProgressBar = showsProgressBar
+            self.onMoveCommand = onMoveCommand
         }
 
         // MARK: - Media Sources
@@ -117,18 +120,6 @@ extension ItemView {
             return actionLabel
         }
 
-        // MARK: - Media Source
-
-        private var source: String? {
-            guard let sourceLabel = viewModel.selectedMediaSource?.displayTitle,
-                  viewModel.playButtonItem?.mediaSources?.count ?? 0 > 1
-            else {
-                return nil
-            }
-
-            return sourceLabel
-        }
-
         // MARK: - Progress
 
         private var progress: Double {
@@ -153,12 +144,11 @@ extension ItemView {
         // MARK: - Body
 
         var body: some View {
-            HStack(spacing: 30) {
+            HStack(spacing: FeatureButtonTokens.actionSpacing) {
                 playButton
 
                 if multipleVersions {
                     VersionMenu(viewModel: viewModel, mediaSources: mediaSources)
-                        .frame(width: 100, height: 100)
                 }
             }
             .fontWeight(.semibold)
@@ -167,7 +157,7 @@ extension ItemView {
         // MARK: - Play Button
 
         private var playButton: some View {
-            Button {
+            let button = Button {
                 play()
             } label: {
                 HStack(spacing: 12) {
@@ -188,15 +178,7 @@ extension ItemView {
                     } else {
                         Image(systemName: "play.fill")
 
-                        VStack {
-                            Text(title)
-
-                            if let source {
-                                Marquee(source, animateWhenFocused: true)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                        }
+                        Text(title)
                     }
                 }
                 .font(FeatureButtonTokens.labelFont)
@@ -215,6 +197,14 @@ extension ItemView {
             .isSelected(true)
             .enabled(isEnabled)
             .focused($isPlayButtonFocused)
+
+            return Group {
+                if let onMoveCommand {
+                    button.onMoveCommand(perform: onMoveCommand)
+                } else {
+                    button
+                }
+            }
         }
 
         // MARK: - Play Content

@@ -11,6 +11,7 @@ import SwiftUI
 enum FeatureButtonTokens {
     static let baseHeight: CGFloat = 64
     static let labelFont: Font = .system(size: baseHeight * 0.4, weight: .semibold)
+    static let actionSpacing: CGFloat = 12
 
     static let unfocusedBorderOpacity: CGFloat = 0.2
 }

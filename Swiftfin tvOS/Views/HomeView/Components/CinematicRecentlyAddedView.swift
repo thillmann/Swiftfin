@@ -157,14 +157,18 @@ extension HomeView {
         private func heroContent(for item: BaseItemDto) -> some View {
             CinematicItemHeroView(item: item) { itemViewModel in
                 if itemViewModel.item.presentPlayButton {
-                    ItemView.PlayButton(viewModel: itemViewModel, showsProgressBar: false)
-                        .focused($focusedAction, equals: .play)
-                        .onMoveCommand { direction in
+                    ItemView.PlayButton(
+                        viewModel: itemViewModel,
+                        showsProgressBar: false
+                    ) { direction in
+                        if focusedAction == .play {
                             if direction == .left {
                                 focusedAction = .play
                                 selectPreviousItem()
                             }
                         }
+                    }
+                    .focused($focusedAction, equals: .play)
                 }
 
                 favoriteButton(viewModel: itemViewModel)

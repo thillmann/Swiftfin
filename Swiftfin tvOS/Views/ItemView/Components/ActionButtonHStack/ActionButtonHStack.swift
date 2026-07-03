@@ -44,7 +44,7 @@ extension ItemView {
         // MARK: - Body
 
         var body: some View {
-            HStack(alignment: .center, spacing: 20) {
+            HStack(alignment: .center, spacing: FeatureButtonTokens.actionSpacing) {
 
                 // MARK: Toggle Played
 

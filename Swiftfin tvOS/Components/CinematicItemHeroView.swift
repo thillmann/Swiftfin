@@ -75,7 +75,7 @@ struct CinematicItemHeroView<
                 detailRow
             }
 
-            HStack(spacing: 20) {
+            HStack(spacing: FeatureButtonTokens.actionSpacing) {
                 actions(itemViewModel)
             }
         }
