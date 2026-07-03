@@ -188,7 +188,7 @@ extension PosterHStack {
         )
     }
 
-    func trailing<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> Self {
+    func trailing(@ViewBuilder _ content: @escaping () -> some View) -> Self {
         copy(modifying: \.trailingContent, with: Optional.some { AnyView(content()) })
     }
 
