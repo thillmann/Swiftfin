@@ -50,7 +50,7 @@ final class MediaViewModel: ViewModel {
 
         #if os(tvOS)
         if SeerrIntegration.isAvailable {
-            media.append(contentsOf: [.trending, .upcoming])
+            media.append(.trending)
         }
         #endif
 

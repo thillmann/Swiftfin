@@ -25,12 +25,12 @@ extension NavigationRoute {
         }
     }
 
-    static var seerrUpcoming: NavigationRoute {
+    static func seerrUpcoming(mediaType: SeerrUpcomingView.MediaType = .movies) -> NavigationRoute {
         NavigationRoute(
-            id: "seerr-upcoming",
+            id: "seerr-upcoming-\(mediaType)",
             withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
         ) {
-            SeerrUpcomingView()
+            SeerrUpcomingView(mediaType: mediaType)
         }
     }
 

@@ -60,7 +60,7 @@ struct MediaView: View {
                 case .trending:
                     router.route(to: .seerrTrending, in: namespace)
                 case .upcoming:
-                    router.route(to: .seerrUpcoming, in: namespace)
+                    router.route(to: .seerrUpcoming(), in: namespace)
                 #endif
                 }
             }

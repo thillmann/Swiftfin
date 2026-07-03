@@ -64,6 +64,10 @@ final class HomeViewModel: ViewModel, Stateful {
     #if os(tvOS)
     @Published
     private(set) var genres: [Genre] = []
+    @Published
+    private(set) var upcomingMovies: [UnifiedMediaResult] = []
+    @Published
+    private(set) var upcomingTVShows: [UnifiedMediaResult] = []
     #endif
     @Published
     var resumeItems: OrderedSet<BaseItemDto> = []
@@ -112,6 +116,9 @@ final class HomeViewModel: ViewModel, Stateful {
                 do {
                     self?.nextUpViewModel.send(.refresh)
                     self?.recentlyAddedViewModel.send(.refresh)
+                    #if os(tvOS)
+                    await self?.loadUpcomingMedia()
+                    #endif
 
                     let resumeItems = try await self?.getResumeItems() ?? []
 
@@ -215,6 +222,9 @@ final class HomeViewModel: ViewModel, Stateful {
 
         await nextUpViewModel.send(.refresh)
         await recentlyAddedViewModel.send(.refresh)
+        #if os(tvOS)
+        await loadUpcomingMedia()
+        #endif
 
         let resumeItems = try await getResumeItems()
         #if os(tvOS)
@@ -339,6 +349,110 @@ final class HomeViewModel: ViewModel, Stateful {
     private func loadGenres() {
         genres = UnifiedGenreTaxonomy.allGenres.map { genre in
             Genre(genre: genre)
+        }
+    }
+
+    func markUpcomingRequested(_ requestedItem: SeerrClient.MediaResult) {
+        upcomingMovies = updateRequestStatus(for: upcomingMovies, requestedItem: requestedItem)
+        upcomingTVShows = updateRequestStatus(for: upcomingTVShows, requestedItem: requestedItem)
+    }
+
+    private func loadUpcomingMedia() async {
+        guard SeerrIntegration.isAvailable else {
+            upcomingMovies = []
+            upcomingTVShows = []
+            return
+        }
+
+        let movies = await loadUpcomingItems { page in
+            await SeerrClient.discoverUpcomingMovies(page: page, language: "en")
+        }
+        let tvShows = await loadUpcomingItems { page in
+            await SeerrClient.discoverUpcomingTV(page: page, language: "en")
+        }
+
+        upcomingMovies = unifiedUpcomingItems(from: movies)
+        upcomingTVShows = unifiedUpcomingItems(from: tvShows)
+    }
+
+    private func loadUpcomingItems(
+        using discover: (Int) async -> Result<SeerrClient.Page<SeerrClient.MediaResult>, SeerrClient.ProbeError>
+    ) async -> [SeerrClient.MediaResult] {
+        let pageLimit = 5
+        let firstPageResult = await discover(1)
+
+        guard case let .success(firstPage) = firstPageResult else { return [] }
+
+        var results = firstPage.results
+        let lastPage = min(firstPage.totalPages ?? 1, pageLimit)
+
+        if lastPage > 1 {
+            for page in 2 ... lastPage {
+                let pageResult = await discover(page)
+
+                guard case let .success(response) = pageResult else { return results }
+
+                results.append(contentsOf: response.results)
+            }
+        }
+
+        return results
+    }
+
+    private func unifiedUpcomingItems(from results: [SeerrClient.MediaResult]) -> [UnifiedMediaResult] {
+        sortByReleaseDate(
+            deduplicated(
+                results.filter { $0.originalLanguage == "en" }
+            )
+            .map(UnifiedMediaResult.seerr)
+        )
+    }
+
+    private func deduplicated(_ results: [SeerrClient.MediaResult]) -> [SeerrClient.MediaResult] {
+        var seenIDs = Set<String>()
+
+        return results.filter { item in
+            seenIDs.insert(SeerrLibraryMatcher.key(for: item)).inserted
+        }
+    }
+
+    private func sortByReleaseDate(_ items: [UnifiedMediaResult]) -> [UnifiedMediaResult] {
+        items.sorted { lhs, rhs in
+            let lhsDate = releaseDate(for: lhs)
+            let rhsDate = releaseDate(for: rhs)
+
+            switch (lhsDate, rhsDate) {
+            case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
+                return lhsDate < rhsDate
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            default:
+                return lhs.id < rhs.id
+            }
+        }
+    }
+
+    private func releaseDate(for item: UnifiedMediaResult) -> String? {
+        guard case let .seerr(item) = item else { return nil }
+        guard let date = item.releaseDate ?? item.firstAirDate, date.isNotEmpty else { return nil }
+        return date
+    }
+
+    private func updateRequestStatus(
+        for items: [UnifiedMediaResult],
+        requestedItem: SeerrClient.MediaResult
+    ) -> [UnifiedMediaResult] {
+        items.map { item in
+            guard case let .seerr(seerrItem) = item,
+                  seerrItem.id == requestedItem.id,
+                  seerrItem.mediaType == requestedItem.mediaType
+            else {
+                return item
+            }
+
+            return .seerr(seerrItem.updatingStatus(.pending))
         }
     }
     #endif

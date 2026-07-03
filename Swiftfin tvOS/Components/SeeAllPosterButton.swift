@@ -11,7 +11,18 @@ import SwiftUI
 struct SeeAllPosterButton: View {
 
     let type: PosterDisplayType
+    let title: String
     let action: () -> Void
+
+    init(
+        type: PosterDisplayType,
+        title: String = L10n.seeAll,
+        action: @escaping () -> Void
+    ) {
+        self.type = type
+        self.title = title
+        self.action = action
+    }
 
     var body: some View {
         Button {
@@ -19,18 +30,29 @@ struct SeeAllPosterButton: View {
         } label: {
             ZStack {
                 Color(UIColor.darkGray)
-                    .opacity(0.5)
+                    .opacity(0.46)
 
-                VStack(spacing: 20) {
-                    Image(systemName: "chevron.right")
-                        .font(.title)
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: 42, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.72))
 
-                    Text(L10n.seeAll)
-                        .font(.title3)
+                VStack {
+                    Spacer()
+
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
+                        .frame(maxWidth: .infinity)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 18)
             }
             .posterStyle(type)
         }
         .buttonStyle(.card)
+        .accessibilityLabel(title)
     }
 }

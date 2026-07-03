@@ -18,6 +18,8 @@ struct HomeView: View {
         case cinematicRecentlyAdded
         case nextUp
         case recentlyAdded
+        case upcomingMovies
+        case upcomingTVShows
         case studios
         case networks
         case genres
@@ -65,6 +67,23 @@ struct HomeView: View {
         )
     }
 
+    private var movieLibraries: [LatestInLibraryViewModel] {
+        viewModel.libraries.filter { library in
+            guard let collectionType = collectionType(for: library) else { return false }
+            return [.homevideos, .movies, .musicvideos].contains(collectionType)
+        }
+    }
+
+    private var tvShowLibraries: [LatestInLibraryViewModel] {
+        viewModel.libraries.filter { library in
+            collectionType(for: library) == .tvshows
+        }
+    }
+
+    private func collectionType(for library: LatestInLibraryViewModel) -> CollectionType? {
+        (library.parent as? BaseItemDto)?.collectionType
+    }
+
     @ViewBuilder
     private var contentView: some View {
         HeroScrollView(
@@ -109,7 +128,7 @@ struct HomeView: View {
                         .safeAreaPadding(.top, showRecentlyAdded ? 0 : 150)
                 }
 
-                ForEach(viewModel.libraries) { viewModel in
+                ForEach(movieLibraries) { viewModel in
                     LatestInLibraryView(viewModel: viewModel)
                         .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
                         .focused(
@@ -118,17 +137,48 @@ struct HomeView: View {
                         )
                 }
 
-                BrowseBySectionView(
-                    group: .studios,
-                    onPrepareForNavigation: prepareForNavigation
-                )
-                .focused($focusedSection, equals: .studios)
+                if SeerrIntegration.isAvailable {
+                    UpcomingMediaView(
+                        title: "\(L10n.upcoming) \(L10n.movies)",
+                        mediaType: .movies,
+                        items: viewModel.upcomingMovies,
+                        onMarkRequested: viewModel.markUpcomingRequested,
+                        onPrepareForNavigation: prepareForNavigation
+                    )
+                    .focused($focusedSection, equals: .upcomingMovies)
 
-                BrowseBySectionView(
-                    group: .networks,
-                    onPrepareForNavigation: prepareForNavigation
-                )
-                .focused($focusedSection, equals: .networks)
+                    BrowseBySectionView(
+                        group: .studios,
+                        onPrepareForNavigation: prepareForNavigation
+                    )
+                    .focused($focusedSection, equals: .studios)
+                }
+
+                ForEach(tvShowLibraries) { viewModel in
+                    LatestInLibraryView(viewModel: viewModel)
+                        .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
+                        .focused(
+                            $focusedSection,
+                            equals: .library(ObjectIdentifier(viewModel))
+                        )
+                }
+
+                if SeerrIntegration.isAvailable {
+                    UpcomingMediaView(
+                        title: "\(L10n.upcoming) \(L10n.tvShowsCapitalized)",
+                        mediaType: .tv,
+                        items: viewModel.upcomingTVShows,
+                        onMarkRequested: viewModel.markUpcomingRequested,
+                        onPrepareForNavigation: prepareForNavigation
+                    )
+                    .focused($focusedSection, equals: .upcomingTVShows)
+
+                    BrowseBySectionView(
+                        group: .networks,
+                        onPrepareForNavigation: prepareForNavigation
+                    )
+                    .focused($focusedSection, equals: .networks)
+                }
 
                 GenresView(genres: viewModel.genres)
                     .onSelectGenre(prepareForNavigation)
@@ -159,7 +209,7 @@ struct HomeView: View {
             case .cinematicResume, .cinematicRecentlyAdded:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.hero)
-            case .nextUp, .recentlyAdded, .studios, .networks, .genres, .library:
+            case .nextUp, .recentlyAdded, .upcomingMovies, .upcomingTVShows, .studios, .networks, .genres, .library:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.belowHero)
             case nil:

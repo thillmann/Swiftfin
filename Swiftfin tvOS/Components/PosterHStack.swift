@@ -17,7 +17,7 @@ struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: 
     private var type: PosterDisplayType
     private var itemContentAspectRatio: CGFloat?
     private var posterButton: (Element) -> PosterButtonView
-    private var trailingContent: () -> any View
+    private var trailingContent: (() -> AnyView)?
 
     @State
     private var contentSize: CGSize = .zero
@@ -110,6 +110,11 @@ struct PosterHStack<Element: Poster, Data: Collection, PosterButtonView: View>: 
                         posterButton(visibleItem.item)
                             .frame(width: itemWidth, height: itemHeight)
                     }
+
+                    if let trailingContent {
+                        trailingContent()
+                            .frame(width: itemWidth, height: itemHeight)
+                    }
                 }
                 .scrollTargetLayout()
                 .padding(.horizontal, horizontalPadding)
@@ -160,7 +165,7 @@ extension PosterHStack where PosterButtonView == PosterButton<Element, PosterBut
                     action(item)
                 }
             },
-            trailingContent: { EmptyView() }
+            trailingContent: nil
         )
     }
 }
@@ -179,12 +184,12 @@ extension PosterHStack {
             type: type,
             itemContentAspectRatio: nil,
             posterButton: posterButton,
-            trailingContent: { EmptyView() }
+            trailingContent: nil
         )
     }
 
-    func trailing(@ViewBuilder _ content: @escaping () -> any View) -> Self {
-        copy(modifying: \.trailingContent, with: content)
+    func trailing<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> Self {
+        copy(modifying: \.trailingContent, with: Optional.some { AnyView(content()) })
     }
 
     func itemContentAspectRatio(_ aspectRatio: CGFloat) -> Self {

@@ -13,6 +13,15 @@ struct SeerrUpcomingView: View {
     enum MediaType: Hashable {
         case movies
         case tv
+
+        var title: String {
+            switch self {
+            case .movies:
+                "\(L10n.upcoming) \(L10n.movies)"
+            case .tv:
+                "\(L10n.upcoming) \(L10n.tvShowsCapitalized)"
+            }
+        }
     }
 
     @StateObject
@@ -21,8 +30,11 @@ struct SeerrUpcomingView: View {
     @State
     private var pendingRequestItem: SeerrClient.MediaResult?
 
-    @State
-    private var selectedMediaType = MediaType.movies
+    private let mediaType: MediaType
+
+    init(mediaType: MediaType = .movies) {
+        self.mediaType = mediaType
+    }
 
     private var content: some View {
         PosterVGrid(
@@ -36,7 +48,7 @@ struct SeerrUpcomingView: View {
         }
     }
 
-    private var tabContent: some View {
+    private var contentView: some View {
         ZStack {
             if let error = viewModel.error, viewModel.items.isEmpty {
                 ErrorView(error: error)
@@ -50,35 +62,21 @@ struct SeerrUpcomingView: View {
         }
         .ignoresSafeArea()
         .refreshable {
-            await viewModel.refresh(mediaType: selectedMediaType)
+            await viewModel.refresh(mediaType: mediaType)
         }
     }
 
     var body: some View {
-        TabView(selection: $selectedMediaType) {
-            tabContent
-                .tabItem {
-                    Label(L10n.movies, systemImage: "film")
-                        .symbolRenderingMode(.monochrome)
-                }
-                .tag(MediaType.movies)
-
-            tabContent
-                .tabItem {
-                    Label(L10n.tvShows, systemImage: "tv")
-                        .symbolRenderingMode(.monochrome)
-                }
-                .tag(MediaType.tv)
-        }
-        .navigationTitle(L10n.upcoming)
-        .task(id: selectedMediaType) {
-            await viewModel.select(selectedMediaType)
-        }
-        .fullScreenCover(item: $pendingRequestItem) { item in
-            SeerrRequestView(item: item) {
-                viewModel.markRequested(item)
+        contentView
+            .navigationTitle(mediaType.title)
+            .task(id: mediaType) {
+                await viewModel.select(mediaType)
             }
-        }
+            .fullScreenCover(item: $pendingRequestItem) { item in
+                SeerrRequestView(item: item) {
+                    viewModel.markRequested(item)
+                }
+            }
     }
 }
 
