@@ -12,7 +12,7 @@ import SwiftUI
 
 struct GenreLibraryView: View {
 
-    let genre: UnifiedGenre
+    let genre: MediaGenre
 
     @StateObject
     private var viewModel: GenreLibraryViewModel
@@ -42,9 +42,15 @@ struct GenreLibraryView: View {
         )
     }
 
-    init(genre: UnifiedGenre) {
+    init(
+        genre: MediaGenre,
+        itemTypes: [BaseItemKind] = [.movie, .series]
+    ) {
         self.genre = genre
-        self._viewModel = StateObject(wrappedValue: GenreLibraryViewModel(genre: genre))
+        self._viewModel = StateObject(wrappedValue: GenreLibraryViewModel(
+            genre: genre,
+            itemTypes: itemTypes
+        ))
     }
 
     var body: some View {
@@ -180,14 +186,14 @@ private final class GenreLibraryViewModel: ViewModel {
     @Published
     private(set) var isLoadingAvailableItems = false
 
-    private let genre: UnifiedGenre
+    private let genre: MediaGenre
     private let itemTypes: [BaseItemKind]
     private let pageSize: Int
 
     private var didLoadInitialPage = false
     private var pagingGeneration = 0
 
-    private lazy var mediaSource = UnifiedGenreMediaSource(
+    private lazy var mediaSource = GenreMediaSource(
         genre: genre,
         itemTypes: itemTypes,
         pageSize: pageSize,
@@ -195,7 +201,7 @@ private final class GenreLibraryViewModel: ViewModel {
     )
 
     init(
-        genre: UnifiedGenre,
+        genre: MediaGenre,
         itemTypes: [BaseItemKind] = [.movie, .series],
         pageSize: Int = 20
     ) {

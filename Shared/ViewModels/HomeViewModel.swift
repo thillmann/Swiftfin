@@ -18,10 +18,18 @@ final class HomeViewModel: ViewModel, Stateful {
 
     #if os(tvOS)
     struct Genre: Hashable, Identifiable {
-        let genre: UnifiedGenre
+        let id: String
+        let genre: MediaGenre
+        let itemTypes: [BaseItemKind]
 
-        var id: String {
-            genre.id
+        init(
+            genre: MediaGenre,
+            idPrefix: String,
+            itemTypes: [BaseItemKind]
+        ) {
+            self.id = "\(idPrefix)-\(genre.id)"
+            self.genre = genre
+            self.itemTypes = itemTypes
         }
 
         var displayTitle: String {
@@ -63,7 +71,9 @@ final class HomeViewModel: ViewModel, Stateful {
     private(set) var libraries: [LatestInLibraryViewModel] = []
     #if os(tvOS)
     @Published
-    private(set) var genres: [Genre] = []
+    private(set) var movieGenres: [Genre] = []
+    @Published
+    private(set) var tvShowGenres: [Genre] = []
     @Published
     private(set) var upcomingMovies: [UnifiedMediaResult] = []
     @Published
@@ -347,8 +357,20 @@ final class HomeViewModel: ViewModel, Stateful {
 
     #if os(tvOS)
     private func loadGenres() {
-        genres = UnifiedGenreTaxonomy.allGenres.map { genre in
-            Genre(genre: genre)
+        movieGenres = GenreTaxonomy.movieGenres.map { genre in
+            Genre(
+                genre: genre,
+                idPrefix: "movie",
+                itemTypes: [.movie]
+            )
+        }
+
+        tvShowGenres = GenreTaxonomy.tvShowGenres.map { genre in
+            Genre(
+                genre: genre,
+                idPrefix: "tv",
+                itemTypes: [.series]
+            )
         }
     }
 

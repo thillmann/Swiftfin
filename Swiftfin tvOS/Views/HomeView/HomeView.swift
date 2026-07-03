@@ -22,7 +22,8 @@ struct HomeView: View {
         case upcomingTVShows
         case studios
         case networks
-        case genres
+        case movieGenres
+        case tvShowGenres
         case library(ObjectIdentifier)
     }
 
@@ -154,6 +155,13 @@ struct HomeView: View {
                     .focused($focusedSection, equals: .studios)
                 }
 
+                GenresView(
+                    title: "Browse Movies by Genre",
+                    genres: viewModel.movieGenres
+                )
+                .onSelectGenre(prepareForNavigation)
+                .focused($focusedSection, equals: .movieGenres)
+
                 ForEach(tvShowLibraries) { viewModel in
                     LatestInLibraryView(viewModel: viewModel)
                         .posterOverlayOptions(posterOverlayOptions, unplayedIndicatorType: showUnplayed)
@@ -180,9 +188,12 @@ struct HomeView: View {
                     .focused($focusedSection, equals: .networks)
                 }
 
-                GenresView(genres: viewModel.genres)
-                    .onSelectGenre(prepareForNavigation)
-                    .focused($focusedSection, equals: .genres)
+                GenresView(
+                    title: "Browse TV Shows by Genre",
+                    genres: viewModel.tvShowGenres
+                )
+                .onSelectGenre(prepareForNavigation)
+                .focused($focusedSection, equals: .tvShowGenres)
             }
             .padding(.bottom, bottomPadding)
         }
@@ -209,7 +220,7 @@ struct HomeView: View {
             case .cinematicResume, .cinematicRecentlyAdded:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.hero)
-            case .nextUp, .recentlyAdded, .upcomingMovies, .upcomingTVShows, .studios, .networks, .genres, .library:
+            case .nextUp, .recentlyAdded, .upcomingMovies, .upcomingTVShows, .studios, .networks, .movieGenres, .tvShowGenres, .library:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.belowHero)
             case nil:

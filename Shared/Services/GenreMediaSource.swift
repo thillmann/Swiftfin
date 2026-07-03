@@ -10,9 +10,9 @@ import Foundation
 import JellyfinAPI
 
 @MainActor
-final class UnifiedGenreMediaSource {
+final class GenreMediaSource {
 
-    private let genre: UnifiedGenre
+    private let genre: MediaGenre
     private let itemTypes: [BaseItemKind]
     private let pageSize: Int
     private let maxSeerrPagesPerLoad: Int
@@ -25,7 +25,7 @@ final class UnifiedGenreMediaSource {
     private var availableIDs = Set<String>()
 
     init(
-        genre: UnifiedGenre,
+        genre: MediaGenre,
         itemTypes: [BaseItemKind] = [.movie, .series],
         pageSize: Int = 20,
         maxSeerrPagesPerLoad: Int = 3,

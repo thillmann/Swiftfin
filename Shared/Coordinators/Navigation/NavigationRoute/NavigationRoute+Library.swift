@@ -35,12 +35,19 @@ extension NavigationRoute {
     }
 
     #if os(tvOS)
-    static func genreLibrary(genre: UnifiedGenre) -> NavigationRoute {
-        NavigationRoute(
-            id: "genre-library-(\(genre.id))",
+    static func genreLibrary(
+        genre: MediaGenre,
+        itemTypes: [BaseItemKind] = [.movie, .series]
+    ) -> NavigationRoute {
+        let itemTypeID = itemTypes
+            .map { String(describing: $0) }
+            .joined(separator: "-")
+
+        return NavigationRoute(
+            id: "genre-library-(\(genre.id))-(\(itemTypeID))",
             withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
         ) {
-            GenreLibraryView(genre: genre)
+            GenreLibraryView(genre: genre, itemTypes: itemTypes)
         }
     }
     #endif

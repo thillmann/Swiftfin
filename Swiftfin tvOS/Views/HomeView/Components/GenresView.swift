@@ -16,6 +16,7 @@ extension HomeView {
         private var router
 
         let genres: [HomeViewModel.Genre]
+        let title: String
 
         private var didSelectGenre: () -> Void = {}
 
@@ -32,7 +33,11 @@ extension HomeView {
         private let itemSpacing: CGFloat = EdgeInsets.edgePadding - 40
         private let verticalPadding: CGFloat = 20
 
-        init(genres: [HomeViewModel.Genre]) {
+        init(
+            title: String,
+            genres: [HomeViewModel.Genre]
+        ) {
+            self.title = title
             self.genres = genres
         }
 
@@ -57,7 +62,7 @@ extension HomeView {
             if genres.isNotEmpty {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack {
-                        Text("Browse by Genre")
+                        Text(title)
                             .font(.headline)
                             .fontWeight(.semibold)
                             .accessibility(addTraits: [.isHeader])
@@ -196,9 +201,9 @@ extension HomeView {
             )
         }
 
-        private func genrePalette(for genre: UnifiedGenre) -> GenrePalette {
+        private func genrePalette(for genre: MediaGenre) -> GenrePalette {
             switch genre.id {
-            case "action":
+            case "action", "action-adventure":
                 .init(background: [.orange, .red, .black], tint: .orange, glow: .yellow)
             case "adventure":
                 .init(background: [.mint, .green, .black], tint: .green, glow: .cyan)
@@ -212,7 +217,7 @@ extension HomeView {
                 .init(background: [.teal, .blue, .black], tint: .teal, glow: .mint)
             case "drama":
                 .init(background: [.blue, .indigo, .black], tint: .blue, glow: .cyan)
-            case "family", "kids":
+            case "family", "kids", "kids-family":
                 .init(background: [.pink, .orange, .purple], tint: .pink, glow: .yellow)
             case "fantasy":
                 .init(background: [.purple, .indigo, .black], tint: .purple, glow: .mint)
@@ -226,13 +231,13 @@ extension HomeView {
                 .init(background: [.indigo, .gray, .black], tint: .indigo, glow: .blue)
             case "news", "talk":
                 .init(background: [.blue, .cyan, .black], tint: .blue, glow: .white)
-            case "politics", "war":
+            case "politics", "war", "war-politics":
                 .init(background: [.gray, .red, .black], tint: .red, glow: .orange)
             case "reality":
                 .init(background: [.purple, .pink, .black], tint: .purple, glow: .pink)
             case "romance":
                 .init(background: [.pink, .red, .black], tint: .pink, glow: .orange)
-            case "science-fiction":
+            case "science-fiction", "sci-fi-fantasy":
                 .init(background: [.cyan, .indigo, .black], tint: .cyan, glow: .teal)
             case "soap":
                 .init(background: [.mint, .teal, .black], tint: .teal, glow: .white)
@@ -248,7 +253,7 @@ extension HomeView {
         private func route(to genre: HomeViewModel.Genre) {
             didSelectGenre()
 
-            router.route(to: .genreLibrary(genre: genre.genre))
+            router.route(to: .genreLibrary(genre: genre.genre, itemTypes: genre.itemTypes))
         }
 
         func onSelectGenre(_ action: @escaping () -> Void) -> Self {

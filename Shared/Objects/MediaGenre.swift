@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct UnifiedGenre: Hashable, Identifiable {
+struct MediaGenre: Hashable, Identifiable {
 
     let id: String
     let displayTitle: String
@@ -42,9 +42,145 @@ struct UnifiedGenre: Hashable, Identifiable {
     }
 }
 
-enum UnifiedGenreTaxonomy {
+enum GenreTaxonomy {
 
-    static let allGenres: [UnifiedGenre] = [
+    static let movieGenres: [MediaGenre] = allGenres
+        .filter(\.seerrMovieGenreIDs.isNotEmpty)
+        .map { genre in
+            MediaGenre(
+                id: genre.id,
+                displayTitle: genre.displayTitle,
+                jellyfinNames: genre.jellyfinNames,
+                seerrMovieGenreIDs: genre.seerrMovieGenreIDs,
+                artworkPath: genre.artworkPath
+            )
+        }
+
+    static let tvShowGenres: [MediaGenre] = [
+        .init(
+            id: "action-adventure",
+            displayTitle: "Action & Adventure",
+            jellyfinNames: ["Action & Adventure", "Action and Adventure"],
+            seerrTVGenreIDs: [10759],
+            artworkPath: "/7dxnNNo8BI5Aguzf9N3OHRTI2g5.jpg"
+        ),
+        .init(
+            id: "animation",
+            displayTitle: "Animation",
+            jellyfinNames: ["Animation", "Animated"],
+            seerrTVGenreIDs: [16],
+            artworkPath: "/9In9QgVJx7PlFOAgVHCKKSbo605.jpg"
+        ),
+        .init(
+            id: "comedy",
+            displayTitle: "Comedy",
+            jellyfinNames: ["Comedy"],
+            seerrTVGenreIDs: [35],
+            artworkPath: "/4GdVgjpTGmmFEeDT2bXFPO1dbW9.jpg"
+        ),
+        .init(
+            id: "crime",
+            displayTitle: "Crime",
+            jellyfinNames: ["Crime"],
+            seerrTVGenreIDs: [80],
+            artworkPath: "/aYfKFadDk7kWhXmKpyrElcB0GzV.jpg"
+        ),
+        .init(
+            id: "documentary",
+            displayTitle: "Documentary",
+            jellyfinNames: ["Documentary", "Documentaries"],
+            seerrTVGenreIDs: [99],
+            artworkPath: "/vEnsWnJrZMkgzxispiQiGhaIqpi.jpg"
+        ),
+        .init(
+            id: "drama",
+            displayTitle: "Drama",
+            jellyfinNames: ["Drama"],
+            seerrTVGenreIDs: [18],
+            artworkPath: "/p8yEj3UVpGPvRWAPnQXYO5jYya1.jpg"
+        ),
+        .init(
+            id: "family",
+            displayTitle: "Family",
+            jellyfinNames: ["Family"],
+            seerrTVGenreIDs: [10751],
+            artworkPath: "/1Ho8mHqoSD1vcN3i1IIzCsc6IgU.jpg"
+        ),
+        .init(
+            id: "kids",
+            displayTitle: "Kids",
+            jellyfinNames: ["Kids", "Children", "Children's"],
+            seerrTVGenreIDs: [10762],
+            artworkPath: "/wqf3lWTRLwcHfsjjmtG4v68Ef8x.jpg"
+        ),
+        .init(
+            id: "mystery",
+            displayTitle: "Mystery",
+            jellyfinNames: ["Mystery"],
+            seerrTVGenreIDs: [9648],
+            artworkPath: "/3jDXL4Xvj3AzDOF6UH1xeyHW8MH.jpg"
+        ),
+        .init(
+            id: "news",
+            displayTitle: "News",
+            jellyfinNames: ["News"],
+            seerrTVGenreIDs: [10763],
+            artworkPath: "/rNwlBpCG5heXps3dO6JsPTKNraw.jpg"
+        ),
+        .init(
+            id: "reality",
+            displayTitle: "Reality",
+            jellyfinNames: ["Reality"],
+            seerrTVGenreIDs: [10764],
+            artworkPath: "/fCDsHzRyZondNUZKVhHHqp9uj7Q.jpg"
+        ),
+        .init(
+            id: "sci-fi-fantasy",
+            displayTitle: "Sci-Fi & Fantasy",
+            jellyfinNames: [
+                "Fantasy",
+                "Science Fiction",
+                "Sci Fi",
+                "Sci-Fi",
+                "SciFi",
+                "Sci-Fi & Fantasy",
+                "Sci Fi & Fantasy",
+                "Sci-Fi and Fantasy"
+            ],
+            seerrTVGenreIDs: [10765],
+            artworkPath: "/uuwUpvS5F5a74ksnWgrwkYRG2LB.jpg"
+        ),
+        .init(
+            id: "soap",
+            displayTitle: "Soap",
+            jellyfinNames: ["Soap"],
+            seerrTVGenreIDs: [10766],
+            artworkPath: "/sCTNR6iYgEAaYxjvibhzt8sc1nQ.jpg"
+        ),
+        .init(
+            id: "talk",
+            displayTitle: "Talk",
+            jellyfinNames: ["Talk"],
+            seerrTVGenreIDs: [10767],
+            artworkPath: "/z7UzSgpfiU3IWMj6WPF8LY1DtXA.jpg"
+        ),
+        .init(
+            id: "war-politics",
+            displayTitle: "War & Politics",
+            jellyfinNames: ["Politics", "War", "War & Politics", "War and Politics"],
+            seerrTVGenreIDs: [10768],
+            artworkPath: "/k7mYQNJFkLuSguZaEvUjgFBfqV8.jpg"
+        ),
+        .init(
+            id: "western",
+            displayTitle: "Western",
+            jellyfinNames: ["Western"],
+            seerrTVGenreIDs: [37],
+            artworkPath: "/uzKBAqpZAvo8xyKcklqXhMlQXhZ.jpg"
+        ),
+    ]
+
+    static let allGenres: [MediaGenre] = [
         .init(
             id: "action",
             displayTitle: "Action",
@@ -220,32 +356,4 @@ enum UnifiedGenreTaxonomy {
             artworkPath: "/x4biAVdPVCghBlsVIzB6NmbghIz.jpg"
         ),
     ]
-
-    static func genres(for jellyfinGenre: ItemGenre) -> [UnifiedGenre] {
-        genres(forJellyfinName: jellyfinGenre.value)
-    }
-
-    static func genres(forJellyfinName name: String) -> [UnifiedGenre] {
-        let normalizedName = normalized(name)
-
-        return allGenres.filter { genre in
-            genre.jellyfinNames.contains { normalized($0) == normalizedName }
-        }
-    }
-
-    static func genre(withID id: String) -> UnifiedGenre? {
-        allGenres.first { $0.id == id }
-    }
-
-    static func normalized(_ value: String) -> String {
-        value
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .replacingOccurrences(of: "&", with: " and ")
-            .replacingOccurrences(of: "-", with: " ")
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
 }
