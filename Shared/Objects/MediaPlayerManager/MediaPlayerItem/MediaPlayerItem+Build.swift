@@ -208,11 +208,12 @@ extension MediaPlayerItem {
 
             logger.trace("Making video stream URL for item \(itemID)")
 
+            let mediaSourceID = mediaSource.id ?? itemID
             let videoStreamParameters = Paths.GetVideoStreamParameters(
                 isStatic: true,
                 tag: item.etag,
                 playSessionID: playSessionID,
-                mediaSourceID: itemID
+                mediaSourceID: mediaSourceID
             )
 
             let videoStreamRequest = Paths.getVideoStream(
