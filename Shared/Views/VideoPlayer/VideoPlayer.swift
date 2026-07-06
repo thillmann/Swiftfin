@@ -35,6 +35,10 @@ struct VideoPlayer: View {
     private var scrubbingStartTime: CFTimeInterval? = nil
     @State
     private var subtitleOffset: Duration = .zero
+    #if os(tvOS)
+    @State
+    private var isBuffering = false
+    #endif
 
     @StateObject
     private var containerState: VideoPlayerContainerState = .init()
@@ -53,6 +57,18 @@ struct VideoPlayer: View {
         } playbackControls: {
             PlaybackControls()
         }
+        #if os(tvOS)
+        .overlay {
+            if isPresentingLoadingIndicator {
+                LoadingIndicator()
+                    .allowsHitTesting(false)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isPresentingLoadingIndicator)
+        .onReceive(proxy.isBuffering.$value) { newValue in
+            isBuffering = newValue
+        }
+        #endif
         .onAppear {
             manager.proxy = proxy
             manager.start()
@@ -129,3 +145,29 @@ struct VideoPlayer: View {
         }
     }
 }
+
+#if os(tvOS)
+private extension VideoPlayer {
+
+    var isPresentingLoadingIndicator: Bool {
+        manager.state == .loadingItem || isBuffering
+    }
+
+    struct LoadingIndicator: View {
+
+        var body: some View {
+            ProgressView()
+                .controlSize(.large)
+                .tint(.white)
+                .padding(36)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.black.opacity(0.65))
+                }
+                .shadow(color: Color.black.opacity(0.5), radius: 12, y: 6)
+                .transition(.opacity)
+                .accessibilityLabel("Loading")
+        }
+    }
+}
+#endif
