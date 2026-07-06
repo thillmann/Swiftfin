@@ -63,6 +63,9 @@ class ItemViewModel: ViewModel, Stateful {
                 selectedMediaSource = newValue.mediaSources?.first
             }
         }
+        didSet {
+            hydrateMediaSourcesIfNeeded(for: playButtonItem)
+        }
     }
 
     @Published
@@ -96,6 +99,9 @@ class ItemViewModel: ViewModel, Stateful {
     private var toggleIsFavoriteTask: AnyCancellable?
     private var toggleIsPlayedTask: AnyCancellable?
     private var refreshTask: AnyCancellable?
+    private var mediaSourcesTask: AnyCancellable?
+    private var hydratedMediaSourceItemIDs: Set<String> = []
+    private var loadingMediaSourceItemID: String?
 
     // MARK: init
 
@@ -107,6 +113,8 @@ class ItemViewModel: ViewModel, Stateful {
             self.selectedMediaSource = item.mediaSources?.first
         }
         super.init()
+
+        hydrateMediaSourcesIfNeeded(for: playButtonItem)
 
         Notifications[.itemShouldRefreshMetadata]
             .publisher
@@ -164,8 +172,10 @@ class ItemViewModel: ViewModel, Stateful {
 
                     await MainActor.run {
                         self.backgroundStates.remove(.refresh)
-                        if results.fullItem.id != self.item.id || results.fullItem != self.item {
-                            self.item = results.fullItem
+                        let fullItem = self.preservingKnownMediaSources(in: results.fullItem)
+
+                        if fullItem.id != self.item.id || fullItem != self.item {
+                            self.item = fullItem
                         }
 
                         if !results.similarItems.elementsEqual(self.similarItems, by: { $0.id == $1.id }) {
@@ -218,7 +228,7 @@ class ItemViewModel: ViewModel, Stateful {
                     guard !Task.isCancelled else { return }
 
                     await MainActor.run {
-                        self.item = results.fullItem
+                        self.item = self.preservingKnownMediaSources(in: results.fullItem)
                         self.similarItems = results.similarItems
                         self.specialFeatures = results.specialFeatures
                         self.localTrailers = results.localTrailers
@@ -246,7 +256,7 @@ class ItemViewModel: ViewModel, Stateful {
                 do {
                     await MainActor.run {
                         self.backgroundStates.remove(.refresh)
-                        self.item = newItem
+                        self.item = self.preservingKnownMediaSources(in: newItem)
                     }
                 }
             }
@@ -310,7 +320,150 @@ class ItemViewModel: ViewModel, Stateful {
     }
 
     private func getFullItem() async throws -> BaseItemDto {
-        try await item.getFullItem(userSession: requireUserSession(), sendNotification: true)
+        var parameters = Paths.GetItemsParameters()
+        parameters.enableUserData = true
+        parameters.fields = .ItemDetailFields
+        parameters.ids = try [itemID]
+        parameters.limit = 1
+
+        let request = Paths.getItems(parameters: parameters)
+        let response = try await send(request)
+
+        guard let item = response.value.items?.first else {
+            throw ErrorMessage(L10n.unknownError)
+        }
+
+        Notifications[.itemMetadataDidChange].post(item)
+
+        return item
+    }
+
+    private func preservingKnownMediaSources(in newItem: BaseItemDto) -> BaseItemDto {
+        guard newItem.mediaSources?.isEmpty != false else { return newItem }
+
+        let knownMediaSources = [
+            item.id == newItem.id ? item.mediaSources : nil,
+            playButtonItem?.id == newItem.id ? playButtonItem?.mediaSources : nil,
+        ]
+            .compacted()
+            .first { $0.isNotEmpty }
+
+        guard let knownMediaSources else {
+            return newItem
+        }
+
+        var updatedItem = newItem
+        updatedItem.mediaSourceCount = max(
+            newItem.mediaSourceCount ?? 0,
+            knownMediaSources.count
+        )
+        updatedItem.mediaSources = knownMediaSources
+
+        return updatedItem
+    }
+
+    private func hydrateMediaSourcesIfNeeded(for item: BaseItemDto?) {
+        guard let item,
+              item.isPlayable,
+              item.mediaSources?.isEmpty != false,
+              let itemID = item.id,
+              loadingMediaSourceItemID != itemID,
+              !hydratedMediaSourceItemIDs.contains(itemID)
+        else {
+            return
+        }
+
+        loadingMediaSourceItemID = itemID
+        mediaSourcesTask?.cancel()
+
+        mediaSourcesTask = Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let sourceItem = try await getMediaSourceItem(itemID: itemID)
+
+                guard !Task.isCancelled else { return }
+
+                await MainActor.run {
+                    self.loadingMediaSourceItemID = nil
+
+                    if sourceItem.mediaSources != nil {
+                        self.hydratedMediaSourceItemIDs.insert(itemID)
+                        self.applyMediaSources(from: sourceItem, itemID: itemID)
+                    }
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+
+                await MainActor.run {
+                    self.loadingMediaSourceItemID = nil
+                }
+            }
+        }
+        .asAnyCancellable()
+    }
+
+    private func getMediaSourceItem(itemID: String) async throws -> BaseItemDto {
+        var parameters = Paths.GetItemsParameters()
+        parameters.enableUserData = true
+        parameters.fields = .MediaSourceFields
+        parameters.ids = [itemID]
+        parameters.limit = 1
+
+        let request = Paths.getItems(parameters: parameters)
+        let response = try await send(request)
+
+        guard let item = response.value.items?.first else {
+            throw ErrorMessage(L10n.unknownError)
+        }
+
+        return item
+    }
+
+    private func applyMediaSources(from sourceItem: BaseItemDto, itemID: String) {
+        guard let mediaSources = sourceItem.mediaSources else { return }
+
+        let currentSelection = selectedMediaSource
+
+        if item.id == itemID {
+            var updatedItem = item
+            updatedItem.mediaSourceCount = sourceItem.mediaSourceCount ?? mediaSources.count
+            updatedItem.mediaSources = mediaSources
+            item = updatedItem
+        }
+
+        if playButtonItem?.id == itemID {
+            var updatedPlayButtonItem = playButtonItem
+            updatedPlayButtonItem?.mediaSourceCount = sourceItem.mediaSourceCount ?? mediaSources.count
+            updatedPlayButtonItem?.mediaSources = mediaSources
+            playButtonItem = updatedPlayButtonItem
+        }
+
+        selectedMediaSource = matchingMediaSource(
+            in: mediaSources,
+            currentSelection: currentSelection
+        ) ?? mediaSources.first
+    }
+
+    private func matchingMediaSource(
+        in mediaSources: [MediaSourceInfo],
+        currentSelection: MediaSourceInfo?
+    ) -> MediaSourceInfo? {
+        guard let currentSelection else { return nil }
+
+        if let currentID = currentSelection.id,
+           let matchingID = mediaSources.first(where: { $0.id == currentID })
+        {
+            return matchingID
+        }
+
+        if let currentETag = currentSelection.eTag,
+           let matchingETag = mediaSources.first(where: { $0.eTag == currentETag })
+        {
+            return matchingETag
+        }
+
+        return mediaSources.first { $0 == currentSelection }
     }
 
     private func getSimilarItems() async throws -> [BaseItemDto] {

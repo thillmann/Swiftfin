@@ -53,7 +53,7 @@ extension ItemView {
         // MARK: - Validation
 
         private var isEnabled: Bool {
-            viewModel.selectedMediaSource != nil
+            viewModel.playButtonItem != nil
         }
 
         // MARK: - Title
@@ -148,7 +148,7 @@ extension ItemView {
                 playButton
 
                 if multipleVersions {
-                    VersionMenu(viewModel: viewModel, mediaSources: mediaSources)
+                    MediaSourceMenu(viewModel: viewModel, mediaSources: mediaSources)
                 }
             }
             .fontWeight(.semibold)
@@ -210,12 +210,12 @@ extension ItemView {
         // MARK: - Play Content
 
         private func play(fromBeginning: Bool = false) {
-            guard let playButtonItem = viewModel.playButtonItem,
-                  let selectedMediaSource = viewModel.selectedMediaSource
-            else {
-                logger.error("Play selected with no item or media source")
+            guard let playButtonItem = viewModel.playButtonItem else {
+                logger.error("Play selected with no item")
                 return
             }
+
+            let selectedMediaSource = viewModel.selectedMediaSource
 
             let queue: (any MediaPlayerQueue)? = {
                 if playButtonItem.type == .episode {

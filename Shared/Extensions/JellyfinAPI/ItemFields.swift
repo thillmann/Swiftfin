@@ -15,10 +15,19 @@ extension ItemFields {
     /// for basic presentation. Depending on the context, using
     /// more fields and including user data may also be necessary.
     static let MinimumFields: [ItemFields] = [
-        .mediaSources,
+        .mediaSourceCount,
         .overview,
         .parentID,
         .taglines,
+    ]
+
+    static let ItemDetailFields: [ItemFields] = ItemFields.allCases.filter {
+        $0 != .mediaSources
+    }
+
+    static let MediaSourceFields: [ItemFields] = [
+        .mediaSourceCount,
+        .mediaSources,
     ]
 }
 
@@ -26,5 +35,13 @@ extension [ItemFields] {
 
     static var MinimumFields: Self {
         ItemFields.MinimumFields
+    }
+
+    static var ItemDetailFields: Self {
+        ItemFields.ItemDetailFields
+    }
+
+    static var MediaSourceFields: Self {
+        ItemFields.MediaSourceFields
     }
 }

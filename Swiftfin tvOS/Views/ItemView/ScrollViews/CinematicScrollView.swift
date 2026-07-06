@@ -242,7 +242,7 @@ extension ItemView {
         private var isPreferredHeaderFocusReady: Bool {
             switch preferredHeaderFocusLayer {
             case .playButton:
-                viewModel.playButtonItem != nil && viewModel.selectedMediaSource != nil
+                viewModel.playButtonItem != nil
             case .actionButtons:
                 true
             case nil:

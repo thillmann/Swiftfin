@@ -6,6 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import JellyfinAPI
 import SwiftUI
 
 extension ItemView {
@@ -14,6 +15,32 @@ extension ItemView {
 
         @ObservedObject
         var viewModel: ItemViewModel
+
+        private var mediaSourceCount: Int {
+            viewModel.item.mediaSources?.count ?? 0
+        }
+
+        private var selectedMediaSource: MediaSourceInfo? {
+            guard let mediaSources = viewModel.item.mediaSources else { return nil }
+
+            guard let selectedMediaSource = viewModel.selectedMediaSource else {
+                return mediaSources.first
+            }
+
+            return mediaSources.first { mediaSource in
+                mediaSourcesMatch(mediaSource, selectedMediaSource)
+            } ?? mediaSources.first
+        }
+
+        private func mediaSourcesMatch(_ lhs: MediaSourceInfo, _ rhs: MediaSourceInfo) -> Bool {
+            if let lhsID = lhs.id,
+               let rhsID = rhs.id
+            {
+                return lhsID == rhsID
+            }
+
+            return lhs == rhs
+        }
 
         var body: some View {
             VStack(alignment: .leading, spacing: 0) {
@@ -30,14 +57,15 @@ extension ItemView {
 
                         OverviewCard(item: viewModel.item)
 
-                        if let mediaSources = viewModel.item.mediaSources {
-                            ForEach(mediaSources) { source in
-                                MediaSourcesCard(subtitle: mediaSources.count > 1 ? source.displayTitle : nil, source: source)
-                            }
-                        }
-
                         if viewModel.item.hasRatings {
                             RatingsCard(item: viewModel.item)
+                        }
+
+                        if let selectedMediaSource {
+                            MediaSourcesCard(
+                                subtitle: mediaSourceCount > 1 ? selectedMediaSource.displayTitle : nil,
+                                source: selectedMediaSource
+                            )
                         }
                     }
                     .padding(.horizontal, 80)

@@ -208,19 +208,14 @@ extension BaseItemDto {
                 guard let channel = try? await self.getChannel(
                     for: program,
                     userSession: userSession
-                ),
-                    let mediaSource = channel.mediaSources?.first
-                else {
+                ) else {
                     throw ErrorMessage(L10n.unknownError)
                 }
-                return try await MediaPlayerItem.build(for: channel, mediaSource: mediaSource)
+                return try await MediaPlayerItem.build(for: channel)
             }
         default:
             MediaPlayerItemProvider(item: self) { item in
-                guard let mediaSource = item.mediaSources?.first else {
-                    throw ErrorMessage(L10n.unknownError)
-                }
-                return try await MediaPlayerItem.build(for: item, mediaSource: mediaSource)
+                try await MediaPlayerItem.build(for: item)
             }
         }
     }
