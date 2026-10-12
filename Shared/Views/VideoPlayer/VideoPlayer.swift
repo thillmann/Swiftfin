@@ -76,7 +76,8 @@ struct VideoPlayer: View {
         .animation(.easeInOut(duration: 0.2), value: manager.state == .loadingItem || isBuffering)
         .onReceive(proxy.isBuffering.$value) { isBuffering = $0 }
         #endif
-        .onAppear {
+        .onFirstAppear {
+            // PiP restoration can make the view appear again with playback still active.
             manager.proxy = proxy
             manager.start()
         }

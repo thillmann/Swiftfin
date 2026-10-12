@@ -109,7 +109,7 @@ final class UserSessionManager: ObservableObject {
     @MainActor
     private func refreshCurrentSession() async {
         do {
-            try await updateCurrentSession(with: resolveStoredSession())
+            try await updateCurrentSession(with: resolveStoredSession(), preservingMatchingSession: true)
         } catch {
             logger.error(
                 "Unable to refresh current user session",
@@ -201,6 +201,7 @@ final class UserSessionManager: ObservableObject {
     @MainActor
     func appWillEnterForeground() async {
         await refreshCurrentSession()
+        scheduleServerConnectionResolution()
 
         Task {
             await refreshServerInformationIfNeeded(reason: .stale)
@@ -309,12 +310,15 @@ final class UserSessionManager: ObservableObject {
     }
 
     @MainActor
-    private func updateCurrentSession(with newSession: UserSession?) async {
+    private func updateCurrentSession(
+        with newSession: UserSession?,
+        preservingMatchingSession: Bool = false
+    ) async {
         let previous = sessionTransition?.task
         let id = UUID()
         let task = Task {
             await previous?.value
-            await applyCurrentSession(newSession)
+            await applyCurrentSession(newSession, preservingMatchingSession: preservingMatchingSession)
         }
         sessionTransition = (id, task)
         await task.value
@@ -325,8 +329,19 @@ final class UserSessionManager: ObservableObject {
 
     /// Serialize transitions because starting and stopping session services can suspend
     @MainActor
-    private func applyCurrentSession(_ newSession: UserSession?) async {
+    private func applyCurrentSession(_ newSession: UserSession?, preservingMatchingSession: Bool) async {
         let previousSession = currentSession
+
+        // Foreground refresh must keep the session (and PiP playback) alive for the same account.
+        // Compare after queued transitions finish so a real account change still tears down playback.
+        if preservingMatchingSession,
+           let previousSession,
+           let newSession,
+           previousSession.user.id == newSession.user.id,
+           previousSession.server.id == newSession.server.id
+        {
+            return
+        }
 
         await stopActivePlayback()
         previousSession?.willStop()
