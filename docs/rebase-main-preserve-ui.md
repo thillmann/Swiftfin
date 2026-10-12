@@ -10,6 +10,13 @@
 - Rebase the cumulative final source tree as one commit (198 source commits remain in source/backup history). This avoids resolving transient intermediate designs against the final upstream architecture.
 - No fetch, build, push, or force-push requested/performed. Use recorded local upstream.
 
+## Completed integration checkpoint
+
+- Rebased integration commit: `09f21c92ef06895ec9010017a22706c2b8dd8413`, directly based on recorded upstream.
+- Source and backup both verified at the recorded source commit after completion. Original source worktree and integration worktree were clean; upstream ancestry and full integration diff whitespace checks passed.
+- Final history contains a cumulative source integration commit and this documentation checkpoint. The original 198-commit source history remains intact on the source and backup branches.
+- Detailed conflict decisions: [rebase-resolution-record.json](rebase-resolution-record.json).
+
 ## Migration checklist
 
 Checked items mean code integration and source inspection are complete; device behavior still needs the runtime validation listed below.
