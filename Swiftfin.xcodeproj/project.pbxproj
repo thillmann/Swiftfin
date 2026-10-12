@@ -101,6 +101,8 @@
 		E20000002FCF000000000003 /* TVServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53ABFDDB267972BF00886593 /* TVServices.framework */; };
 		E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = E20000002FCF000000000100 /* Swiftfin tvOS Top Shelf.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F200000000000001 /* Shared/Views/ItemView/Components/MediaSourceMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = F200000000000002 /* Shared/Views/ItemView/Components/MediaSourceMenu.swift */; };
+		AEA020000000000000000001 /* CoreStore in Embed Package Frameworks */ = {isa = PBXBuildFile; productRef = E13DD3C52716499E009D4DAF /* CoreStore */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AEA020000000000000000003 /* CoreStore in Embed Package Frameworks */ = {isa = PBXBuildFile; productRef = E13DD3CC27164CA7009D4DAF /* CoreStore */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -123,6 +125,28 @@
 				E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AEA020000000000000000002 /* Embed Package Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				AEA020000000000000000001 /* CoreStore in Embed Package Frameworks */,
+			);
+			name = "Embed Package Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AEA020000000000000000004 /* Embed Package Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				AEA020000000000000000003 /* CoreStore in Embed Package Frameworks */,
+			);
+			name = "Embed Package Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -489,6 +513,7 @@
 				5358705E2669D21600D05A09 /* Resources */,
 				E19009182F00000000000002 /* Write Git Branch */,
 				E20000002FCF000000000007 /* Embed App Extensions */,
+				AEA020000000000000000004 /* Embed Package Frameworks */,
 			);
 			buildRules = (
 			);
@@ -548,6 +573,7 @@
 				5377CBEE263B596A003A4E83 /* Frameworks */,
 				5377CBEF263B596A003A4E83 /* Resources */,
 				E19009182F00000000000001 /* Write Git Branch */,
+				AEA020000000000000000002 /* Embed Package Frameworks */,
 			);
 			buildRules = (
 			);
