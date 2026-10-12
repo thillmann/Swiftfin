@@ -154,7 +154,7 @@ final class ServerConnectionViewModel: ViewModel {
         guard !userSessionManager.hasActivePlayback else { return }
 
         if userSession?.server.id == server.id {
-            await userSession?.serverConnectionManager.resolveActiveConnection()
+            await userSession?.serverConnectionManager.refreshAndResolveActiveConnection()
         } else {
             let includeWifiSSID = server.serverConnections.contains(where: \.requiresWifiSSID)
             let context = await NetworkConnectionContext.current(includeWifiSSID: includeWifiSSID)
@@ -180,6 +180,10 @@ final class ServerConnectionViewModel: ViewModel {
         server.serverConnections = connections
         connections = server.serverConnections
         activeConnection = server.activeServerConnection
+
+        if userSession?.server.id == server.id {
+            userSession?.serverConnectionManager.connectionRulesDidChange()
+        }
     }
 
     private func reloadConnections() {

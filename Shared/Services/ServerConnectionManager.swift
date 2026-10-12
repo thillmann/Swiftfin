@@ -63,6 +63,8 @@ final class ServerConnectionManager: ObservableObject {
     private var monitor: NWPathMonitor?
     private var isStarted = false
     private var context: NetworkConnectionContext = .unavailable
+    // Reject lookups superseded by rule edits, stop, or a newer network update.
+    private var contextGeneration = UUID()
     private var evaluationTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
 
@@ -99,17 +101,20 @@ final class ServerConnectionManager: ObservableObject {
     static func evaluate(
         server: ServerState,
         accessToken: String?,
-        context: NetworkConnectionContext
+        context: NetworkConnectionContext,
+        isContextCurrent: () -> Bool = { true }
     ) async -> Resolution {
         guard context.isSatisfied else { return .unreachable([]) }
 
-        let candidates = server.serverConnections.filter { $0.matches(context) }
+        let connections = server.serverConnections
+        let candidates = connections.filter { $0.matches(context) }
         guard candidates.isNotEmpty else { return .unreachable([]) }
         guard let reachableConnection = await firstReachableConnection(
             in: candidates,
             accessToken: accessToken,
             serverID: server.id
         ) else { return .unreachable(candidates) }
+        guard !Task.isCancelled, server.serverConnections == connections, isContextCurrent() else { return .unreachable(candidates) }
 
         if server.activeServerConnection?.id != reachableConnection.id {
             server.activeServerConnection = reachableConnection
@@ -153,14 +158,12 @@ final class ServerConnectionManager: ObservableObject {
 
         isStarted = true
 
-        let includeWifiSSID = userSession?.server.serverConnections.contains(where: \.requiresWifiSSID) == true
         let monitor = NWPathMonitor()
         self.monitor = monitor
 
         monitor.pathUpdateHandler = { [weak self] path in
             Task { [weak self] in
-                let newContext = await NetworkConnectionContext.current(path: path, includeWifiSSID: includeWifiSSID)
-                await self?.contextDidUpdate(newContext)
+                await self?.updateContext(for: path)
             }
         }
         monitor.start(queue: queue)
@@ -179,15 +182,43 @@ final class ServerConnectionManager: ObservableObject {
 
     @Function(\Action.Cases.stop)
     private func _stop() {
-        guard isStarted else { return }
-
         isStarted = false
-        evaluationTask?.cancel()
-        evaluationTask = nil
+        invalidateNetworkContext()
         cancellables.removeAll()
         monitor?.cancel()
         monitor = nil
+    }
+
+    func connectionRulesDidChange() {
+        invalidateNetworkContext()
+        scheduleConnectionResolution()
+    }
+
+    func refreshAndResolveActiveConnection() async {
+        invalidateNetworkContext()
+        await resolveActiveConnection()
+    }
+
+    private func invalidateNetworkContext() {
+        contextGeneration = UUID()
         context = .unavailable
+        evaluationTask?.cancel()
+        evaluationTask = nil
+    }
+
+    private var requiresWifiSSID: Bool {
+        userSession?.server.serverConnections.contains(where: \.requiresWifiSSID) == true
+    }
+
+    private func updateContext(for path: NWPath) async {
+        guard isStarted else { return }
+
+        let generation = UUID()
+        contextGeneration = generation
+        let newContext = await NetworkConnectionContext.current(path: path, includeWifiSSID: requiresWifiSSID)
+        guard isStarted, contextGeneration == generation else { return }
+
+        contextDidUpdate(newContext)
     }
 
     @Function(\Action.Cases.scheduleConnectionResolution)
@@ -207,18 +238,22 @@ final class ServerConnectionManager: ObservableObject {
     private func _resolveActiveConnection() async {
         guard !Task.isCancelled, isAutoSwitchEnabled, let userSession else { return }
 
+        let generation = contextGeneration
         if context == .unavailable {
-            context = await NetworkConnectionContext
-                .current(includeWifiSSID: userSession.server.serverConnections.contains(where: \.requiresWifiSSID))
+            let newContext = await NetworkConnectionContext.current(includeWifiSSID: requiresWifiSSID)
+            guard !Task.isCancelled, contextGeneration == generation else { return }
+
+            context = newContext
         }
 
         let currentConnection = userSession.server.activeServerConnection
         let resolution = await Self.evaluate(
             server: userSession.server,
             accessToken: userSession.user.accessToken,
-            context: context
+            context: context,
+            isContextCurrent: { self.contextGeneration == generation }
         )
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, contextGeneration == generation else { return }
 
         if case let .connected(reachableConnection) = resolution,
            currentConnection?.id != reachableConnection.id
