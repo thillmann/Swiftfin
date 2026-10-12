@@ -59,24 +59,24 @@ struct ContentGroupView<Provider: ContentGroupProvider>: View {
             }
             .trackingFrame(for: .scrollView)
             #if os(tvOS)
-            .coordinatedFocus(Focus.content.rawValue)
-            .ignoresSafeArea(.container, edges: [.horizontal, .top])
+                .coordinatedFocus(Focus.content.rawValue)
+                .ignoresSafeArea(.container, edges: [.horizontal, .top])
             #else
-            .ignoresSafeArea(
-                edges: contentGroupOptions.contains(.ignoreSafeAreaTop) ? [.horizontal, .top] : .horizontal
-            )
+                .ignoresSafeArea(
+                    edges: contentGroupOptions.contains(.ignoreSafeAreaTop) ? [.horizontal, .top] : .horizontal
+                )
             #endif
-            .scrollIndicators(.hidden)
-            .refreshable {
-                await viewModel.background.refresh()
-            }
-            .onReceive(tabItemSelected) { event in
-                if event.isRepeat, event.isRoot {
-                    withAnimation {
-                        proxy.scrollTo("top", anchor: .top)
+                .scrollIndicators(.hidden)
+                    .refreshable {
+                        await viewModel.background.refresh()
                     }
-                }
-            }
+                    .onReceive(tabItemSelected) { event in
+                        if event.isRepeat, event.isRoot {
+                            withAnimation {
+                                proxy.scrollTo("top", anchor: .top)
+                            }
+                        }
+                    }
         }
     }
 
@@ -91,7 +91,7 @@ struct ContentGroupView<Provider: ContentGroupProvider>: View {
                     )
                     .focusable()
                     #if os(tvOS)
-                    .coordinatedFocus(.fallback)
+                        .coordinatedFocus(.fallback)
                     #endif
                 } else {
                     contentView
@@ -99,15 +99,15 @@ struct ContentGroupView<Provider: ContentGroupProvider>: View {
 
             case .error:
                 viewModel.error.map(ErrorView.init)
-                    #if os(tvOS)
-                        .coordinatedFocus(.fallback)
-                    #endif
+                #if os(tvOS)
+                    .coordinatedFocus(.fallback)
+                #endif
 
             case .initial, .refreshing:
                 ProgressView()
-                    #if os(tvOS)
-                        .coordinatedFocus(.placeholder)
-                    #endif
+                #if os(tvOS)
+                    .coordinatedFocus(.placeholder)
+                #endif
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .ignoresSafeArea(edges: .all)
             }
@@ -116,29 +116,29 @@ struct ContentGroupView<Provider: ContentGroupProvider>: View {
         .animation(.linear(duration: 0.2), value: viewModel.background.states)
         .navigationTitle(viewModel.provider.displayTitle)
         #if os(iOS)
-        .toolbarTitleDisplayMode(router.isRootOfPath ? .inlineLarge : .inline)
+            .toolbarTitleDisplayMode(router.isRootOfPath ? .inlineLarge : .inline)
         #elseif os(tvOS)
-        .toolbar(router.isRootOfPath ? .hidden : .automatic, for: .navigationBar)
+            .toolbar(router.isRootOfPath ? .hidden : .automatic, for: .navigationBar)
         #endif
-        .onFirstAppear {
-            viewModel.refresh()
-        }
-        .refreshable {
-            viewModel.refresh()
-        }
-        .sinceLastDisappear { interval in
-            viewModel.refreshIfNeeded(sinceLastDisappear: interval)
-        }
-        .onSceneWillEnterForeground {
-            viewModel.refreshIfPendingChanges()
-        }
-        .topBarTrailing {
-            if #unavailable(iOS 26.0) {
-                if viewModel.background.is(.refreshing) {
-                    ProgressView()
+            .onFirstAppear {
+                viewModel.refresh()
+            }
+            .refreshable {
+                viewModel.refresh()
+            }
+            .sinceLastDisappear { interval in
+                viewModel.refreshIfNeeded(sinceLastDisappear: interval)
+            }
+            .onSceneWillEnterForeground {
+                viewModel.refreshIfPendingChanges()
+            }
+            .topBarTrailing {
+                if #unavailable(iOS 26.0) {
+                    if viewModel.background.is(.refreshing) {
+                        ProgressView()
+                    }
                 }
             }
-        }
-        .environmentObject(focusCoordinator)
+            .environmentObject(focusCoordinator)
     }
 }

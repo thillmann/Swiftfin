@@ -63,6 +63,7 @@ struct SettingsBarButton: View {
                 profileFallback
             }
             .id(user.id)
+
         case .toolbarIcon:
             Image(systemName: "person.fill")
                 .font(.system(size: 18, weight: .semibold))

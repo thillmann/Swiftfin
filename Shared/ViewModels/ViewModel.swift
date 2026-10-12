@@ -70,7 +70,9 @@ class ViewModel: ObservableObject {
 
     func send<Value: Decodable & Sendable>(_ request: Request<Value>) async throws -> (value: Value, items: [ItemRecord]) {
         let response = try await requireUserSession().send(request)
-        for record in response.items { platformRecords[record.id] = record }
+        for record in response.items {
+            platformRecords[record.id] = record
+        }
         return response
     }
 

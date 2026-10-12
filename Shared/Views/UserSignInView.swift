@@ -170,7 +170,7 @@ struct UserSignInView: View {
             .backport
             .buttonStyle(.glassProminent.shadow(false))
             #if os(iOS)
-            .controlSize(.large)
+                .controlSize(.large)
             #endif
             #if os(iOS)
             .listRowSeparator(.hidden)
@@ -193,11 +193,11 @@ struct UserSignInView: View {
             .buttonStyle(.glassProminent.shadow(false))
             .tint(.jellyfinPurple)
             #if os(iOS)
-            .controlSize(.large)
-            .listRowSeparator(.hidden)
+                .controlSize(.large)
+                .listRowSeparator(.hidden)
             #endif
-            .frame(maxHeight: 75)
-            .disabled(username.isEmpty)
+                .frame(maxHeight: 75)
+                .disabled(username.isEmpty)
         }
 
         if viewModel.isQuickConnectEnabled {
@@ -221,7 +221,7 @@ struct UserSignInView: View {
                 .buttonStyle(.glassProminent.shadow(false))
                 .tint(.jellyfinPurple)
                 #if os(iOS)
-                .controlSize(.large)
+                    .controlSize(.large)
                 #endif
                 #if os(iOS)
                 .listRowSeparator(.hidden)

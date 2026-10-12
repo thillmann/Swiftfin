@@ -206,10 +206,27 @@ extension Notifications.Key {
 
 // Platform views keep their snapshot-based refresh and focus behavior.
 extension Notifications.Key {
-    static var didChangeUserSession: Key<Void> { Key("didChangeUserSession") }
-    static var itemMetadataDidChange: Key<BaseItemDto> { Key("itemMetadataDidChange") }
-    static var itemShouldRefreshMetadata: Key<String> { Key("itemShouldRefresh") }
-    static var didDeleteItem: Key<String> { Key("didDeleteItem") }
-    static var didSendStopReport: Key<Void> { Key("didSendStopReport") }
-    static var didFailMigration: Key<Void> { Key("didFailMigration") }
+    static var didChangeUserSession: Key<Void> {
+        Key("didChangeUserSession")
+    }
+
+    static var itemMetadataDidChange: Key<BaseItemDto> {
+        Key("itemMetadataDidChange")
+    }
+
+    static var itemShouldRefreshMetadata: Key<String> {
+        Key("itemShouldRefresh")
+    }
+
+    static var didDeleteItem: Key<String> {
+        Key("didDeleteItem")
+    }
+
+    static var didSendStopReport: Key<Void> {
+        Key("didSendStopReport")
+    }
+
+    static var didFailMigration: Key<Void> {
+        Key("didFailMigration")
+    }
 }

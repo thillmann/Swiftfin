@@ -74,11 +74,13 @@ final class DownloadTask: ObservableObject, Identifiable {
 
     func getImageURL(name: String) -> URL? {
         guard let record else { return nil }
+
         return DownloadStorage.imageURL(for: record, name: name)
     }
 
     func getMediaURL() -> URL? {
         guard let record else { return nil }
+
         return DownloadStorage.mediaURL(for: record)
     }
 
@@ -114,6 +116,7 @@ final class DownloadTask: ObservableObject, Identifiable {
     /// translation can provide a localized "of" format.
     var transferProgressText: String {
         guard let record else { return transferPercentageText }
+
         let bytesWritten = max(record.bytesWritten, 0)
         let transferred = bytesWritten.formatted(.byteCount(style: .file))
 

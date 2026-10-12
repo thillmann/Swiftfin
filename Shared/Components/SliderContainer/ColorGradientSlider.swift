@@ -27,26 +27,26 @@ struct ColorGradientSlider: View {
         )
         .sliderContainerStyle(.colorGradient(color: color.wrappedValue, component: component))
         #if os(tvOS)
-        .onMoveCommand { direction in
-            let step: CGFloat = 5
+            .onMoveCommand { direction in
+                let step: CGFloat = 5
 
-            switch direction {
-            case .left:
-                color.wrappedValue.rgbaComponents[keyPath: component] = max(
-                    0,
-                    (color.wrappedValue.rgbaComponents[keyPath: component] * 255 - step) / 255
-                )
+                switch direction {
+                case .left:
+                    color.wrappedValue.rgbaComponents[keyPath: component] = max(
+                        0,
+                        (color.wrappedValue.rgbaComponents[keyPath: component] * 255 - step) / 255
+                    )
 
-            case .right:
-                color.wrappedValue.rgbaComponents[keyPath: component] = min(
-                    1,
-                    (color.wrappedValue.rgbaComponents[keyPath: component] * 255 + step) / 255
-                )
+                case .right:
+                    color.wrappedValue.rgbaComponents[keyPath: component] = min(
+                        1,
+                        (color.wrappedValue.rgbaComponents[keyPath: component] * 255 + step) / 255
+                    )
 
-            default:
-                break
+                default:
+                    break
+                }
             }
-        }
         #endif
     }
 }

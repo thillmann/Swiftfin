@@ -40,7 +40,8 @@ enum SeerrIntegration {
     }
 
     static var apiKey: String? {
-        let apiKey = Container.shared.keychainService()
+        let apiKey = Container.shared
+            .keychainService()
             .get(apiKeyKeychainKey)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -59,7 +60,6 @@ enum SeerrIntegration {
         guard isAvailable else {
             return nil
         }
-
         guard let tmdbID = await tmdbProviderID(for: item, userSession: userSession) else {
             return nil
         }
@@ -71,12 +71,12 @@ enum SeerrIntegration {
             guard let nextEpisode = details.nextEpisodeToAir else {
                 return nil
             }
-
             guard let label = nextEpisode.upcomingEpisodePillLabel else {
                 return nil
             }
 
             return label
+
         case .failure:
             return nil
         }

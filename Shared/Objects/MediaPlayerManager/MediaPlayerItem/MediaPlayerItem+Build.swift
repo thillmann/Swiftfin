@@ -35,11 +35,13 @@ extension MediaPlayerItem {
             logger.critical("No user session!")
             throw ErrorMessage(L10n.unknownError)
         }
+
         let initialItem: BaseItemDto
         if requestedItem.type == .program {
             guard requestedItem.isAiring,
                   let channel = try await requestedItem.getChannel(for: requestedItem, userSession: userSession)
             else { throw ErrorMessage(L10n.unknownError) }
+
             initialItem = channel
         } else {
             initialItem = requestedItem
@@ -90,6 +92,7 @@ extension MediaPlayerItem {
             logger.error("No media sources for item \(itemID)!")
             throw ErrorMessage(L10n.unknownError)
         }
+
         initialMediaSource = resolvedInitialMediaSource
         #endif
 
@@ -149,9 +152,11 @@ extension MediaPlayerItem {
                 itemID: itemID,
                 logger: logger
             ) {
-                try await userSession.client.send(
-                    request.withResponse(PlaybackInfoResponseEnvelope.self)
-                ).value
+                try await userSession.client
+                    .send(
+                        request.withResponse(PlaybackInfoResponseEnvelope.self)
+                    )
+                    .value
             }
         } catch {
             logger.error("PlaybackInfo request failed for item \(itemID): \(error.localizedDescription)")
@@ -178,9 +183,11 @@ extension MediaPlayerItem {
                     itemID: itemID,
                     logger: logger
                 ) {
-                    try await userSession.client.send(
-                        fallbackRequest.withResponse(PlaybackInfoResponseEnvelope.self)
-                    ).value
+                    try await userSession.client
+                        .send(
+                            fallbackRequest.withResponse(PlaybackInfoResponseEnvelope.self)
+                        )
+                        .value
                 }
                 let fallbackSources = fallbackResponse.playbackInfo.mediaSources ?? []
 
@@ -200,8 +207,8 @@ extension MediaPlayerItem {
         ) else {
             throw ErrorMessage("Unable to find media source for item")
         }
-
         guard storedItem.value != nil else { throw ItemStore.StoreError.itemUnavailable }
+
         item.runTimeTicks = mediaSource.runTimeTicks ?? item.runTimeTicks
 
         guard let playSessionID = playbackResponse.playbackInfo.playSessionID else {
@@ -476,11 +483,13 @@ private enum PlaybackStreamResolver {
         }
 
         guard !directStreamPath.hasPrefix("//") else { return nil }
+
         return authenticatedServerURL(path: directStreamPath, client: client)
     }
 
     private static func authenticatedServerURL(path: String, client: JellyfinClient) -> URL? {
         guard let url = client.url(path: path) else { return nil }
+
         return appendingAPIKey(to: url, accessToken: client.accessToken)
     }
 

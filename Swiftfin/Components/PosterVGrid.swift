@@ -25,6 +25,7 @@ struct PosterVGrid<Element: PlatformPoster, Header: View, Content: View>: View {
 
     private func stableID(for item: Element) -> AnyHashable? {
         guard item.unwrappedIDHashOrZero != 0 else { return nil }
+
         return AnyHashable(item.id)
     }
 

@@ -190,6 +190,7 @@ extension PlatformItemView {
 
         private func play(fromBeginning: Bool = false) {
             guard !isPreparingPlayback else { return }
+
             isPreparingPlayback = true
             Task { @MainActor in
                 defer { isPreparingPlayback = false }

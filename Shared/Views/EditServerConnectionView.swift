@@ -195,11 +195,11 @@ struct EditServerConnectionView: View {
 
             Section {
                 TextField(L10n.url, text: $draft.urlString)
-                    #if !os(tvOS)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.URL)
-                        .autocorrectionDisabled()
-                    #endif
+                #if !os(tvOS)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                #endif
             } header: {
                 Text(L10n.url)
             } footer: {

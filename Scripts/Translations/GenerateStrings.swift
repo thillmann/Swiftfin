@@ -237,7 +237,8 @@ func generateSwift(keys: [String], entries: [String: Entry]) -> String {
 // Parse printf arguments, including positional/repeated arguments and dynamic width/precision.
 // Reject unsupported or inconsistent formats rather than generating an unsafe variadic call.
 func argumentTypes(_ value: String, line: Int) -> [String] {
-    let pattern = #/^%(?:(?<position>[0-9]+)\$)?[-+ #0']*(?<width>[0-9]+|\*(?:[0-9]+\$)?)?(?:\.(?<precision>[0-9]*|\*(?:[0-9]+\$)?))?(?<length>hh|ll|[hlqLztj])?(?<conversion>[@diuoxXfFeEgGaAcCsSp])/#
+    let pattern =
+        #/^%(?:(?<position>[0-9]+)\$)?[-+ #0']*(?<width>[0-9]+|\*(?:[0-9]+\$)?)?(?:\.(?<precision>[0-9]*|\*(?:[0-9]+\$)?))?(?<length>hh|ll|[hlqLztj])?(?<conversion>[@diuoxXfFeEgGaAcCsSp])/#
     var remaining = value[...]
     var arguments: [Int: String] = [:]
     var nextPosition = 1

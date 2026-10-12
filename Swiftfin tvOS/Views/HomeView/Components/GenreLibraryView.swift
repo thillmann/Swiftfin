@@ -130,6 +130,7 @@ struct GenreLibraryView: View {
                     .focused($focusedItemID, equals: item.id)
                     .onChange(of: focusedItemID) { _, newValue in
                         guard newValue == item.id else { return }
+
                         onNeedsNextPage(item)
                     }
                 }
@@ -214,6 +215,7 @@ private final class GenreLibraryViewModel: ViewModel {
 
     func loadIfNeeded() async {
         guard !didLoadInitialPage else { return }
+
         await refresh()
     }
 
@@ -232,6 +234,7 @@ private final class GenreLibraryViewModel: ViewModel {
             inLibraryItems = try await mediaSource.loadAllInLibraryItems()
         } catch {
             guard isCurrentGeneration(pagingGeneration) else { return }
+
             self.error = ErrorMessage(error.localizedDescription)
             return
         }
@@ -251,6 +254,7 @@ private final class GenreLibraryViewModel: ViewModel {
         availableItems = availableItems.map { item in
             guard case let .seerr(seerrItem) = item else { return item }
             guard seerrItem.id == requestedItem.id, seerrItem.mediaType == requestedItem.mediaType else { return item }
+
             return .seerr(seerrItem.updatingStatus(.pending))
         }
     }
@@ -268,6 +272,7 @@ private final class GenreLibraryViewModel: ViewModel {
         in items: [UnifiedMediaResult]
     ) -> Bool {
         guard let index = items.firstIndex(of: currentItem) else { return false }
+
         let threshold = max(6, pageSize / 2)
 
         return index >= items.count - threshold

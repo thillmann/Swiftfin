@@ -31,6 +31,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             completionHandler()
             return
         }
+
         _ = Container.shared.downloadManager()
     }
 

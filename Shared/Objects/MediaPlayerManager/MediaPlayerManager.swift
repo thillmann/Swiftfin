@@ -202,6 +202,7 @@ final class MediaPlayerManager: ViewModel {
                 #else
                 return MediaInfoSupplement(item: item)
                 #endif
+
             case .chapters:
                 guard let chapters = item.fullChapterInfo, chapters.isNotEmpty else { return nil }
 
@@ -607,6 +608,7 @@ extension MediaPlayerManager {
 
     func skipCurrentIntro() {
         guard let endSeconds = currentIntroSegment?.endSeconds else { return }
+
         proxy?.setSeconds(endSeconds)
         seconds = endSeconds
     }
@@ -616,15 +618,14 @@ extension MediaPlayerManager {
         mediaSegments = []
 
         guard playbackItem?.origin == .server else { return }
-
         guard let itemID = item.id,
               let itemType = item.type,
               [.episode, .movie, .musicVideo, .video].contains(itemType)
         else {
             return
         }
-
         guard let userSession else { return }
+
         let logger = logger
 
         mediaSegmentsTask = Task { [weak self, userSession, logger] in
@@ -643,6 +644,7 @@ extension MediaPlayerManager {
 
                 await MainActor.run {
                     guard self?.item.id == itemID else { return }
+
                     self?.mediaSegments = segments
                 }
             } catch {

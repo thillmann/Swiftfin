@@ -33,6 +33,7 @@ struct ChannelProgram: Hashable, Identifiable {
 
         return programs.filter { program in
             guard let start = program.startDate else { return false }
+
             return start > currentStart
         }[safe: offset]
     }

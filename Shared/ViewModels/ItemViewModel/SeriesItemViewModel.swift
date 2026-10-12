@@ -66,6 +66,7 @@ final class SeriesItemViewModel: ItemViewModel {
         }
 
         guard let seasonNumber = episode.parentIndexNumber else { return nil }
+
         return seasons.first(where: { $0.season.indexNumber == seasonNumber })?.id
     }
 
@@ -150,6 +151,7 @@ final class SeriesItemViewModel: ItemViewModel {
             }
             .asAnyCancellable()
             return parentState
+
         default: ()
         }
 
@@ -300,15 +302,17 @@ final class SeriesItemViewModel: ItemViewModel {
         guard let episodeID = episode.id, let userSession else { return episode }
 
         do {
-            return try await userSession.client.send(
-                Paths.getItem(
-                    itemID: episodeID,
-                    userID: userSession.user.id
-                ),
-                configure: { request in
-                    request.timeoutInterval = ItemViewModel.mediaSourceCatalogueRequestTimeout
-                }
-            ).value
+            return try await userSession.client
+                .send(
+                    Paths.getItem(
+                        itemID: episodeID,
+                        userID: userSession.user.id
+                    ),
+                    configure: { request in
+                        request.timeoutInterval = ItemViewModel.mediaSourceCatalogueRequestTimeout
+                    }
+                )
+                .value
         } catch {
             return episode
         }

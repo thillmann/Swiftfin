@@ -180,9 +180,9 @@ extension SeriesEpisodeContentGroup {
                 ) { element in
                     content(element)
                         .focused($focusedElement, equals: element.id)
-                        #if os(tvOS)
+                    #if os(tvOS)
                         .ignoresSafeArea()
-                        #endif
+                    #endif
                 }
                 .initialElement(id: preferredElementID)
                 .clipsToBounds(false)

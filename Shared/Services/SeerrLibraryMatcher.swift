@@ -61,6 +61,7 @@ enum SeerrLibraryMatcher {
     ) -> [SeerrClient.MediaResult] {
         items.map { item in
             guard item.id == requestedItem.id, item.mediaType == requestedItem.mediaType else { return item }
+
             return item.updatingStatus(status)
         }
     }

@@ -242,6 +242,7 @@ struct MainTabView: View {
             let item = response.value
             let queue: (any MediaPlayerQueue)? = {
                 guard item.type == .episode else { return nil }
+
                 return EpisodeMediaPlayerQueue(episode: item)
             }()
 

@@ -77,6 +77,7 @@ extension MediaInfoSupplement {
         private var posterImageSources: [ImageSource]? {
             #if os(tvOS)
             guard item.type == .episode else { return nil }
+
             return [item.imageSource(.primary, maxWidth: 300, quality: 90)]
             #else
             nil

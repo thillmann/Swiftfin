@@ -58,7 +58,7 @@ extension VideoPlayer.PlaybackControls {
                     isLive: manager.item.isLiveStream || manager.requestedItem.type == .program,
                     liveChannelName: manager.item.displayTitle
                 )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 ActionButtons()
                     .frame(height: Self.buttonSize)
@@ -70,11 +70,11 @@ extension VideoPlayer.PlaybackControls {
             content
                 .font(.system(size: UIDevice.isTV ? 30 : 24, weight: .semibold))
                 .menuStyle(OverlayMenuStyle())
-                #if os(iOS)
+            #if os(iOS)
                 .background {
                     EmptyHitTestView()
                 }
-                #endif
+            #endif
         }
     }
 }
@@ -94,7 +94,10 @@ extension VideoPlayer.PlaybackControls.Toolbar {
         private var _titleSubtitle: (title: String, subtitle: String?) {
             if item.type == .episode {
                 if let parentTitle = item.parentTitle {
-                    return (title: parentTitle, subtitle: [item.seasonEpisodeLabel, item.displayTitle].compactMap(\.self).joined(separator: " • "))
+                    return (
+                        title: parentTitle,
+                        subtitle: [item.seasonEpisodeLabel, item.displayTitle].compactMap(\.self).joined(separator: " • ")
+                    )
                 }
             }
 

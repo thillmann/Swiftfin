@@ -32,10 +32,12 @@ class MediaChaptersSupplement: ObservableObject, MediaPlayerSupplement {
     func chapterID(at seconds: Duration) -> ChapterInfo.FullInfo.ID? {
         guard let nextIndex = chapters.firstIndex(where: {
             guard let startSeconds = $0.chapterInfo.startSeconds else { return false }
+
             return startSeconds > seconds
         }) else {
             return chapters.last?.id
         }
+
         return chapters[safe: max(0, nextIndex - 1)]?.id
     }
 
@@ -74,6 +76,7 @@ extension MediaChaptersSupplement {
 
         private var activeChapter: ChapterInfo.FullInfo? {
             guard let id = supplement.activeChapterID else { return nil }
+
             return chapters.first { $0.id == id }
         }
 
@@ -108,6 +111,7 @@ extension MediaChaptersSupplement {
             ) { chapter, _ in
                 ChapterRow(supplement: supplement, chapter: chapter) {
                     guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
+
                     manager.proxy?.setSeconds(startSeconds)
                     manager.setPlaybackRequestStatus(status: .playing)
                 }
@@ -131,6 +135,7 @@ extension MediaChaptersSupplement {
             ) { chapter in
                 ChapterButton(supplement: supplement, chapter: chapter) {
                     guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
+
                     manager.proxy?.setSeconds(startSeconds)
                     manager.setPlaybackRequestStatus(status: .playing)
                 }
@@ -157,6 +162,7 @@ extension MediaChaptersSupplement {
                         chapter: chapter
                     ) {
                         guard let startSeconds = chapter.chapterInfo.startSeconds else { return }
+
                         manager.proxy?.setSeconds(startSeconds)
                         manager.setPlaybackRequestStatus(status: .playing)
                     }

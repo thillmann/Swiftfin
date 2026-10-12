@@ -32,6 +32,7 @@ enum EnvironmentContextMenu<Value> {
                 guard let value = value as? Value else {
                     return (AnyView(EmptyView()), nil)
                 }
+
                 let content = menuContent(value)
                 return (AnyView(content.menuContent), AnyView(content.preview))
             }

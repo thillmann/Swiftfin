@@ -169,18 +169,18 @@ struct ItemView: View {
         .errorMessage($deleteViewModel.error)
         .errorMessage($provider.actionError)
         #if os(tvOS)
-        .toolbarVisibility(.hidden, for: .navigationBar)
+            .toolbarVisibility(.hidden, for: .navigationBar)
         #else
-        .navigationBarMenuButton(
-            isLoading: viewModel.background.is(.refreshing),
-            isHidden: overflow.isEmpty && menu.isEmpty
-        ) {
-            ItemActionButtons.MenuContent(
-                provider: provider,
-                buttons: overflow,
-                menuButtons: menu
-            )
-        }
+            .navigationBarMenuButton(
+                isLoading: viewModel.background.is(.refreshing),
+                isHidden: overflow.isEmpty && menu.isEmpty
+            ) {
+                ItemActionButtons.MenuContent(
+                    provider: provider,
+                    buttons: overflow,
+                    menuButtons: menu
+                )
+            }
         #endif
     }
 }

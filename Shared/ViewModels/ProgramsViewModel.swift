@@ -146,6 +146,7 @@ final class ProgramsViewModel: ViewModel, PlatformStateful {
 
     func channel(for program: BaseItemDto) -> BaseItemDto? {
         guard let channelID = program.channelID else { return nil }
+
         return channelsByID[channelID]
     }
 
@@ -259,6 +260,7 @@ final class ProgramsViewModel: ViewModel, PlatformStateful {
 
         for channel in response.value.items ?? [] {
             guard let id = channel.id else { continue }
+
             channelsByID[id] = channel
         }
 
@@ -268,6 +270,7 @@ final class ProgramsViewModel: ViewModel, PlatformStateful {
     private static func channelsByID(from channels: [BaseItemDto]) -> [String: BaseItemDto] {
         channels.reduce(into: [:]) { partialResult, channel in
             guard let id = channel.id else { return }
+
             partialResult[id] = channel
         }
     }

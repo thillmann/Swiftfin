@@ -29,11 +29,11 @@ struct CapsuleSliderStyle: SliderContainerStyle {
                 showsProgress: showsProgressWhenUnfocused || configuration.isFocused,
                 neutralProgress: neutralProgress
             ))
-            #if os(tvOS)
+        #if os(tvOS)
             .opacity(configuration.isFocused ? 1 : 0.7)
             .animation(.easeInOut(duration: 0.2), value: configuration.isFocused)
             .animation(.easeInOut(duration: 0.2), value: configuration.originValue != nil)
-            #endif
+        #endif
     }
 }
 

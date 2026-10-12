@@ -136,6 +136,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
                 logger.error("Item ID is nil")
                 throw ErrorMessage(L10n.unknownError)
             }
+
             return id
         }
     }
@@ -166,6 +167,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
     var playbackMediaSource: MediaSourceInfo? {
         guard let playButtonItem else { return selectedMediaSource }
+
         return MediaSourceSelection.resolve(
             intent: mediaSourceSelectionIntent,
             candidates: playButtonItem.mediaSources ?? [],
@@ -175,6 +177,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
     var canDownloadMediaSourceSelection: Bool {
         guard let playButtonItem else { return false }
+
         switch mediaSourceSelectionIntent {
         case let .userSelected(mediaSource):
             return playButtonItem.canBeDownloaded(mediaSource: mediaSource)
@@ -220,6 +223,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
         return isLoadingPlaybackMediaSources ? .pending : .unavailable
         #else
         guard let itemID = playButtonItem.id else { return .unavailable }
+
         let isPending = loadingMediaSourceItemID == itemID
             || (!hydratedMediaSourceItemIDs.contains(itemID) && shouldHydrateMediaSources(for: playButtonItem))
         return isPending ? .pending : .unavailable
@@ -228,6 +232,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
     private var hasDownloadTaskOrPreparation: Bool {
         guard let playButtonItem else { return false }
+
         let downloadManager = Container.shared.downloadManager()
         return downloadManager.task(for: playButtonItem) != nil
             || downloadManager.isPreparingAutomaticDownload(for: playButtonItem)
@@ -355,6 +360,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
             Task { [weak self] in
                 guard let self else { return }
+
                 do {
                     async let fullItem = getFullItem()
                     async let similarItems = getSimilarItems()
@@ -403,14 +409,17 @@ class ItemViewModel: ViewModel, PlatformStateful {
             .store(in: &cancellables)
 
             return state
+
         case let .error(error):
             return .error(error)
+
         case .refresh:
 
             refreshTask?.cancel()
 
             refreshTask = Task { [weak self] in
                 guard let self else { return }
+
                 do {
                     async let fullItem = getFullItem()
                     async let similarItems = getSimilarItems()
@@ -450,12 +459,14 @@ class ItemViewModel: ViewModel, PlatformStateful {
             .asAnyCancellable()
 
             return .refreshing
+
         case let .replace(newItem):
 
             backgroundStates.insert(.refresh)
 
             Task { [weak self] in
                 guard let self else { return }
+
                 do {
                     await MainActor.run {
                         self.backgroundStates.remove(.refresh)
@@ -466,6 +477,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
             .store(in: &cancellables)
 
             return state
+
         case .toggleIsFavorite:
 
             toggleIsFavoriteTask?.cancel()
@@ -490,6 +502,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
             .asAnyCancellable()
 
             return state
+
         case .toggleIsPlayed:
 
             toggleIsPlayedTask?.cancel()
@@ -514,6 +527,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
             .asAnyCancellable()
 
             return state
+
         case let .selectMediaSource(newSource):
 
             selectedMediaSource = newSource
@@ -528,6 +542,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
         guard let userSession = Container.shared.currentUserSession() else {
             throw ErrorMessage(L10n.unknownError)
         }
+
         let entry = try await userSession.getFullItem(id: requestedItemID, requestTimeout: Self.mediaSourceCatalogueRequestTimeout)
         sharedItemEntry = entry
         guard let item = entry.value else { throw ItemStore.StoreError.itemUnavailable }
@@ -596,6 +611,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
         mediaSourcesTask = Task { [weak self] in
             guard let self else { return }
+
             await self.loadPlaybackMediaSources()
             guard !Task.isCancelled else { return }
 
@@ -816,6 +832,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
             }
 
             guard identity.isNotEmpty else { return true }
+
             return seenIdentities.insert(identity).inserted
         }
     }
@@ -872,7 +889,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
     private func setIsPlayed(_ isPlayed: Bool) async throws {
         let session = try requireUserSession()
-        let entry = ItemEntry(item: try session.items.record(for: item))
+        let entry = try ItemEntry(item: session.items.record(for: item))
         sharedItemEntry = entry
         try await session.setPlayed(entry, to: isPlayed)
         if let value = entry.value { Notifications[.itemMetadataDidChange].post(value) }
@@ -880,7 +897,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
 
     private func setIsFavorite(_ isFavorite: Bool) async throws {
         let session = try requireUserSession()
-        let entry = ItemEntry(item: try session.items.record(for: item))
+        let entry = try ItemEntry(item: session.items.record(for: item))
         sharedItemEntry = entry
         try await session.setFavorite(entry, to: isFavorite)
         if let value = entry.value { Notifications[.itemMetadataDidChange].post(value) }

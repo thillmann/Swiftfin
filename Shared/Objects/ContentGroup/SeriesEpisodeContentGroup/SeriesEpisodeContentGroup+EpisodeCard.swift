@@ -97,9 +97,9 @@ extension SeriesEpisodeContentGroup {
                         }
                     }
                     .posterStyle(.landscape)
-                    #if os(tvOS)
+                #if os(tvOS)
                     .posterCornerRadius(.landscape)
-                    #endif
+                #endif
                     .subtleShadow()
             }
         }
@@ -226,14 +226,14 @@ extension SeriesEpisodeContentGroup {
                 }
                 .foregroundStyle(.primary, .secondary)
                 #if os(tvOS)
-                .buttonStyle(
-                    EpisodeContentButtonStyle(
-                        showsMaterial: focusedElement != nil,
-                        isFocused: focusedElement == .content
+                    .buttonStyle(
+                        EpisodeContentButtonStyle(
+                            showsMaterial: focusedElement != nil,
+                            isFocused: focusedElement == .content
+                        )
                     )
-                )
                 #endif
-                .focused($focusedElement, equals: .content)
+                    .focused($focusedElement, equals: .content)
             }
             .focusSection()
             .defaultFocus(

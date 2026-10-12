@@ -109,12 +109,14 @@ final class MediaViewModel: ViewModel {
         case .trending:
             let result = await SeerrClient.discoverTrending(language: "en")
             return try seerrImageSources(from: result)
+
         case .upcoming:
             async let movies = SeerrClient.discoverUpcomingMovies()
             async let tv = SeerrClient.discoverUpcomingTV()
             let (movieResult, tvResult) = await (movies, tv)
 
             return try seerrImageSources(from: movieResult) + seerrImageSources(from: tvResult)
+
         default:
             break
         }

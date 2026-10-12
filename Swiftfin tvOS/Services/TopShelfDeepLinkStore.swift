@@ -32,11 +32,13 @@ final class TopShelfDeepLinkStore: ObservableObject {
 
     func receive(_ url: URL) {
         guard destination(for: url) != nil else { return }
+
         pendingURL = url
     }
 
     func consume(_ url: URL) {
         guard pendingURL == url else { return }
+
         pendingURL = nil
     }
 

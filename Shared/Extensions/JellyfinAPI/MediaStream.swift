@@ -6,8 +6,8 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import FactoryKit
 import CoreTransferable
+import FactoryKit
 import Foundation
 import JellyfinAPI
 
@@ -397,8 +397,10 @@ extension [MediaStream] {
 extension MediaStream {
     var resolvedDeliveryURL: URL? {
         guard let deliveryURL else { return nil }
+
         if let localURL = URL(string: deliveryURL), localURL.isFileURL { return localURL }
         guard let client = Container.shared.currentUserSession()?.client else { return nil }
+
         return url(with: client)
     }
 }

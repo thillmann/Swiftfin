@@ -17,6 +17,7 @@ final class OfflineMediaProgressObserver: ViewModel, MediaPlayerObserver {
     weak var manager: MediaPlayerManager? {
         didSet {
             guard let manager else { return }
+
             setup(with: manager)
         }
     }
@@ -44,9 +45,11 @@ final class OfflineMediaProgressObserver: ViewModel, MediaPlayerObserver {
                 switch action {
                 case .ended:
                     self?.saveProgress(forcePlayed: true)
+
                 case .stop:
                     self?.saveProgress()
                     self?.timer.stop()
+
                 default:
                     break
                 }
@@ -58,9 +61,11 @@ final class OfflineMediaProgressObserver: ViewModel, MediaPlayerObserver {
 
     private func saveProgress(forcePlayed: Bool = false) {
         guard let item, let position = manager?.seconds else { return }
+
         let played: Bool = {
             if forcePlayed { return true }
             guard let runtime = item.baseItem.runtime, runtime > .zero else { return false }
+
             return Double(position.ticks) / Double(runtime.ticks) >= 0.9
         }()
 

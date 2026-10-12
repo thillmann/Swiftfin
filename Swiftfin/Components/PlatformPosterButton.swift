@@ -222,6 +222,7 @@ struct PlatformPosterButton<Item: PlatformPoster, Overlay: View, Fallback: View>
 
     private var shouldShowPosterMenu: Bool {
         guard let menuItem else { return false }
+
         return PosterButtonMenuActions.supports(menuItem)
     }
 
@@ -617,13 +618,15 @@ struct PosterButtonMenuActions: View {
 
     private func setFavorite(_ isFavorite: Bool) async throws {
         guard let session = Container.shared.currentUserSession() else { throw UserSessionError.missingCurrentSession }
-        let entry = ItemEntry(item: try session.items.record(for: item))
+
+        let entry = try ItemEntry(item: session.items.record(for: item))
         try await session.setFavorite(entry, to: isFavorite)
     }
 
     private func setPlayed(_ isPlayed: Bool) async throws {
         guard let session = Container.shared.currentUserSession() else { throw UserSessionError.missingCurrentSession }
-        let entry = ItemEntry(item: try session.items.record(for: item))
+
+        let entry = try ItemEntry(item: session.items.record(for: item))
         try await session.setPlayed(entry, to: isPlayed)
     }
 

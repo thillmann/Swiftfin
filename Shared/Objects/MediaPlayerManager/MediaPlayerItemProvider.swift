@@ -72,7 +72,11 @@ struct MediaPlayerItemProvider {
 // Adapter for platform/offline providers; preserves upstream item modifications.
 extension MediaPlayerItemProvider {
 
-    init(item: BaseItemDto, offlineRecord: DownloadRecord? = nil, resolver: @escaping @MainActor @Sendable (BaseItemDto) async throws -> MediaPlayerItem) {
+    init(
+        item: BaseItemDto,
+        offlineRecord: DownloadRecord? = nil,
+        resolver: @escaping @MainActor @Sendable (BaseItemDto) async throws -> MediaPlayerItem
+    ) {
         self.init(item: item) { item, modifyItem in
             var item = item
             modifyItem?(&item)

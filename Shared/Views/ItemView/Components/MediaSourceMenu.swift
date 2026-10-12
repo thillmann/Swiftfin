@@ -295,19 +295,21 @@ struct MediaSourceSelector: View {
         searchTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 120_000_000)
             guard !Task.isCancelled else { return }
-
             guard normalizedTerms.isNotEmpty else {
                 filteredOptions = options
                 return
             }
 
             let matchingIDs = await Task.detached(priority: .userInitiated) {
-                Set(searchEntries.lazy.filter { entry in
-                    normalizedTerms.allSatisfy { entry.searchText.contains($0) }
-                }.map(\.id))
+                Set(searchEntries.lazy
+                    .filter { entry in
+                        normalizedTerms.allSatisfy { entry.searchText.contains($0) }
+                    }
+                    .map(\.id))
             }.value
 
             guard !Task.isCancelled, searchQuery == query else { return }
+
             filteredOptions = options.filter { matchingIDs.contains($0.id) }
             #if os(tvOS)
             focusedOptionID = filteredOptions.first(where: { $0.id == selectedOptionID })?.id

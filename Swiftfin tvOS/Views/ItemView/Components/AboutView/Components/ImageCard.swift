@@ -45,6 +45,7 @@ extension PlatformItemView.AboutView {
                 {
                     router.route(to: .item(item: seriesItem))
                 }
+
             default:
                 break
             }

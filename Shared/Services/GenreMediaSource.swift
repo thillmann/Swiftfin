@@ -107,6 +107,7 @@ final class GenreMediaSource {
                 fetchedItems.append(contentsOf: items)
 
                 guard items.count >= pageSize else { break }
+
                 page += 1
             }
         }
@@ -164,6 +165,7 @@ final class GenreMediaSource {
             case let .success(response):
                 results.append(contentsOf: response.results)
                 hasNextPage = hasNextPage || page < (response.totalPages ?? page)
+
             case .failure:
                 break
             }
@@ -174,6 +176,7 @@ final class GenreMediaSource {
             case let .success(response):
                 results.append(contentsOf: response.results)
                 hasNextPage = hasNextPage || page < (response.totalPages ?? page)
+
             case .failure:
                 break
             }

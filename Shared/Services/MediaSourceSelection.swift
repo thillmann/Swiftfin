@@ -72,6 +72,7 @@ enum MediaSourceSelection {
 
         case .automatic:
             guard candidates.isNotEmpty else { return nil }
+
             let ranked = rankedAutomaticCandidates(
                 candidates: candidates,
                 policy: policy
@@ -160,6 +161,7 @@ enum MediaSourceSelection {
             : described
         let viable = audioViable.filter { candidate in
             guard let bitrate = candidate.bitrate else { return true }
+
             return bitrate >= policy.minimumBitrate
         }
         return viable.sorted { precedes($0, $1, policy: policy) }
@@ -238,6 +240,7 @@ enum MediaSourceSelection {
     /// unknown resolutions, then known resolutions above the target.
     private static func resolutionGroup(height: Int?, maximumHeight: Int) -> Int {
         guard let height else { return 1 }
+
         return height <= maximumHeight ? 0 : 2
     }
 
@@ -245,6 +248,7 @@ enum MediaSourceSelection {
     /// values above the target remain better fallbacks than unknown values.
     private static func bitrateGroup(_ bitrate: Int64?, target: Int64) -> Int {
         guard let bitrate else { return 2 }
+
         return bitrate <= target ? 0 : 1
     }
 
@@ -263,6 +267,7 @@ enum MediaSourceSelection {
 
     private static func audioAvailability(for source: MediaSourceInfo) -> AudioAvailability {
         guard let streams = source.mediaStreams, streams.isNotEmpty else { return .unknown }
+
         let audioStreams = streams.filter { $0.type == .audio }
         if audioStreams.contains(where: { $0.isExternal != true }) { return .embedded }
         if audioStreams.isNotEmpty { return .externalOnly }
@@ -293,6 +298,7 @@ enum MediaSourceSelection {
 
         let streamBitrates: [Int64] = (source.mediaStreams ?? []).compactMap { stream in
             guard let bitrate = stream.bitRate, bitrate > 0 else { return nil }
+
             return Int64(bitrate)
         }
         if let bitrate = streamBitrates.max() {
@@ -308,7 +314,7 @@ enum MediaSourceSelection {
         ).firstMatch(in: text, range: text.fullNSRange),
             let valueText = capture(1, from: match, in: text),
             let unit = capture(2, from: match, in: text)?.lowercased(),
-            let value = Double(valueText.replacingOccurrences(of: ",", with: "."))
+            let value = Double(valueText.replacing(",", with: "."))
         else { return nil }
 
         let multiplier: Double = switch unit {
@@ -318,6 +324,7 @@ enum MediaSourceSelection {
         default: 0
         }
         guard multiplier > 0, value > 0, value <= Double(Int64.max) / multiplier else { return nil }
+
         return Int64(value * multiplier)
     }
 
@@ -362,7 +369,7 @@ enum MediaSourceSelection {
         ).firstMatch(in: text, range: text.fullNSRange),
             let valueText = capture(1, from: match, in: text),
             let unit = capture(2, from: match, in: text)?.lowercased(),
-            let value = Double(valueText.replacingOccurrences(of: ",", with: "."))
+            let value = Double(valueText.replacing(",", with: "."))
         else { return nil }
 
         let multiplier: Double = switch unit {
@@ -375,11 +382,13 @@ enum MediaSourceSelection {
         default: 0
         }
         guard multiplier > 0, value >= 0, value <= Double(Int64.max) / multiplier else { return nil }
+
         return Int64(value * multiplier)
     }
 
     private static func structuredSize(for source: MediaSourceInfo) -> Int64? {
         guard let size = source.size.map(Int64.init), size >= 1_000_000 else { return nil }
+
         return size
     }
 
@@ -402,6 +411,7 @@ enum MediaSourceSelection {
         guard index < match.numberOfRanges,
               let range = Range(match.range(at: index), in: value)
         else { return nil }
+
         return String(value[range])
     }
 }

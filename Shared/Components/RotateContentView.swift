@@ -244,7 +244,6 @@ class UIRotateContentView: UIView {
         }
         animator.addCompletion { [weak self, weak outgoingView] _ in
             guard let self else { return }
-
             guard self.updateGeneration == generation else { return }
 
             outgoingView?.removeFromSuperview()

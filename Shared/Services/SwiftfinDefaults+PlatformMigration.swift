@@ -1,3 +1,11 @@
+//
+// Swiftfin is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) 2026 Jellyfin & Jellyfin Contributors
+//
+
 import Defaults
 import Foundation
 
@@ -15,7 +23,17 @@ enum PlatformSettingsMigration {
                 size: Defaults[.VideoPlayer.Subtitle.subtitleSize]
             )
         }
-        if needsMigration("posterConfiguration", ["showPosterLabels", "showFavoritedIndicator", "showProgressIndicator", "showUnplayedIndicator", "showPlayedIndicator", "useSeriesBackdrop"]) {
+        if needsMigration(
+            "posterConfiguration",
+            [
+                "showPosterLabels",
+                "showFavoritedIndicator",
+                "showProgressIndicator",
+                "showUnplayedIndicator",
+                "showPlayedIndicator",
+                "useSeriesBackdrop"
+            ]
+        ) {
             var configuration = PosterConfiguration.default
             configuration.isTitlePresented = Defaults[.Customization.showPosterLabels]
             configuration.unplayedStyle = Defaults[.Customization.Indicators.showUnplayed]

@@ -136,6 +136,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
 
                     await MainActor.run {
                         guard let self else { return }
+
                         self.resumeItems.elements = resumeItems
                         #if os(tvOS)
                         if let userSession = self.userSession {
@@ -154,6 +155,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
 
                     await MainActor.run {
                         guard let self else { return }
+
                         self.backgroundStates.remove(.refresh)
                         self.send(.error(.init(error)))
                     }
@@ -162,8 +164,10 @@ final class HomeViewModel: ViewModel, PlatformStateful {
             .asAnyCancellable()
 
             return state
+
         case let .error(error):
             return .error(error)
+
         case let .setIsPlayed(isPlayed, item):
             Task {
                 let previousIsPlayed = item.userData?.isPlayed ?? false
@@ -184,6 +188,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
             .store(in: &cancellables)
 
             return state
+
         case .refresh:
             backgroundRefreshTask?.cancel()
             refreshTask?.cancel()
@@ -196,6 +201,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
 
                     await MainActor.run {
                         guard let self else { return }
+
                         self.state = .content
                     }
                 } catch is CancellationError {
@@ -205,6 +211,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
 
                     await MainActor.run {
                         guard let self else { return }
+
                         self.send(.error(.init(error)))
                     }
                 }
@@ -216,6 +223,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
             #else
             return .refreshing
             #endif
+
         case let .toggleIsFavorite(item):
 
             Task {
@@ -512,6 +520,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
     private func releaseDate(for item: UnifiedMediaResult) -> String? {
         guard case let .seerr(item) = item else { return nil }
         guard let date = item.releaseDate ?? item.firstAirDate, date.isNotEmpty else { return nil }
+
         return date
     }
 
@@ -542,13 +551,13 @@ final class HomeViewModel: ViewModel, PlatformStateful {
 
     private func setIsPlayed(_ isPlayed: Bool, for item: BaseItemDto) async throws {
         let session = try requireUserSession()
-        let entry = ItemEntry(item: try session.items.record(for: item))
+        let entry = try ItemEntry(item: session.items.record(for: item))
         try await session.setPlayed(entry, to: isPlayed)
     }
 
     private func setIsFavorite(_ isFavorite: Bool, for item: BaseItemDto) async throws {
         let session = try requireUserSession()
-        let entry = ItemEntry(item: try session.items.record(for: item))
+        let entry = try ItemEntry(item: session.items.record(for: item))
         try await session.setFavorite(entry, to: isFavorite)
     }
 }

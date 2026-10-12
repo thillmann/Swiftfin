@@ -38,23 +38,23 @@ extension VideoPlayer {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             #if os(tvOS)
-            .focusSection()
-            .onMoveCommand { direction in
-                if viewState.presentation == .hidden, direction == .up || direction == .down {
-                    viewState.showControls()
+                .focusSection()
+                .onMoveCommand { direction in
+                    if viewState.presentation == .hidden, direction == .up || direction == .down {
+                        viewState.showControls()
+                    }
                 }
-            }
-            .onChange(of: actions.map(\.id), initial: true) { oldIDs, _ in
-                viewState.updateOverlayActionFocus(previousIDs: oldIDs)
-            }
-            .onChange(of: viewState.presentation) {
-                viewState.updateOverlayActionFocus()
-            }
-            .onChange(of: viewState.isPresentingCloseConfirmation) {
-                if !viewState.isPresentingCloseConfirmation {
+                .onChange(of: actions.map(\.id), initial: true) { oldIDs, _ in
+                    viewState.updateOverlayActionFocus(previousIDs: oldIDs)
+                }
+                .onChange(of: viewState.presentation) {
                     viewState.updateOverlayActionFocus()
                 }
-            }
+                .onChange(of: viewState.isPresentingCloseConfirmation) {
+                    if !viewState.isPresentingCloseConfirmation {
+                        viewState.updateOverlayActionFocus()
+                    }
+                }
             #endif
         }
 

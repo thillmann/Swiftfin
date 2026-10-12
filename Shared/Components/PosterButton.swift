@@ -96,14 +96,14 @@ struct PosterButton<Item: Poster>: View {
         .buttonStyle(.borderless)
         .buttonBorderShape(.roundedRectangle)
         #if os(tvOS)
-        .focusedValue(\.focusedPoster, AnyPoster(item))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .ignoresSafeArea()
+            .focusedValue(\.focusedPoster, AnyPoster(item))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .ignoresSafeArea()
         #endif
-        .trackingSize($posterSize)
-        .posterContextMenu(for: item) {
-            contextMenuPreview
-                .withViewContext(viewContext)
-        }
+            .trackingSize($posterSize)
+            .posterContextMenu(for: item) {
+                contextMenuPreview
+                    .withViewContext(viewContext)
+            }
     }
 }

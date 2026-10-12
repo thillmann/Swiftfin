@@ -67,10 +67,10 @@ extension VideoPlayer.UIContainerViewController {
             .environmentObject(viewState.focusCoordinator)
             .environmentObject(manager)
             #if os(iOS)
-            .background {
-                GestureView()
-                    .environment(\.panGestureDirection, .vertical)
-            }
+                .background {
+                    GestureView()
+                        .environment(\.panGestureDirection, .vertical)
+                }
             #endif
         }
 
@@ -124,32 +124,32 @@ extension VideoPlayer.UIContainerViewController {
             }
             .edgePadding(.horizontal)
             #if os(tvOS)
-            // Menu dismissal can restore a tab before the content finishes appearing.
-            // Keep tabs out of the focus engine until the requested control receives focus.
-            .disabled(viewState.isSupplementFocusPending)
-            .defaultFocus(
-                $focusedElement,
-                defaultTabFocus,
-                priority: .userInitiated
-            )
-            .focusSection()
-            .onMoveCommand { direction in
-                if direction == .up, viewState.isPresentingSupplement {
-                    viewState.selectedSupplementID = nil
-                }
-            }
+                // Menu dismissal can restore a tab before the content finishes appearing.
+                // Keep tabs out of the focus engine until the requested control receives focus.
+                    .disabled(viewState.isSupplementFocusPending)
+                    .defaultFocus(
+                        $focusedElement,
+                        defaultTabFocus,
+                        priority: .userInitiated
+                    )
+                    .focusSection()
+                    .onMoveCommand { direction in
+                        if direction == .up, viewState.isPresentingSupplement {
+                            viewState.selectedSupplementID = nil
+                        }
+                    }
             #endif
-            .padding(
-                .init(
-                    top: 0,
-                    leading: UIDevice.isTV ? 0 : safeAreaInsets.leading,
-                    bottom: UIDevice.isTV ? 0 : 8,
-                    trailing: UIDevice.isTV ? 0 : safeAreaInsets.trailing
-                )
-            )
-            .buttonStyle(.capsule)
-            .controlSize(.large)
-            .foregroundStyle(.white)
+                    .padding(
+                            .init(
+                                top: 0,
+                                leading: UIDevice.isTV ? 0 : safeAreaInsets.leading,
+                                bottom: UIDevice.isTV ? 0 : 8,
+                                trailing: UIDevice.isTV ? 0 : safeAreaInsets.trailing
+                            )
+                        )
+                        .buttonStyle(.capsule)
+                        .controlSize(.large)
+                        .foregroundStyle(.white)
         }
 
         var body: some View {
@@ -178,15 +178,15 @@ extension VideoPlayer.UIContainerViewController {
                     }
                     #if os(tvOS)
                     .onSelectionPresented { id in
-                            viewState.focusSupplementIfNeeded(id)
-                        }
-                        .onFocusExit(.up, perform: viewState.singleSupplement == nil ? nil : {
-                            viewState.selectedSupplementID = nil
-                        })
+                        viewState.focusSupplementIfNeeded(id)
+                    }
+                    .onFocusExit(.up, perform: viewState.singleSupplement == nil ? nil : {
+                        viewState.selectedSupplementID = nil
+                    })
                     #endif
-                    .isVisible(viewState.isPresentingSupplement)
-                    .enabled(viewState.isPresentingSupplement)
-                    .animation(.linear(duration: 0.25), value: viewState.selectedSupplementID)
+                        .isVisible(viewState.isPresentingSupplement)
+                        .enabled(viewState.isPresentingSupplement)
+                        .animation(.linear(duration: 0.25), value: viewState.selectedSupplementID)
                 }
                 .isVisible(viewState.visibleElements.contains(.supplements))
                 .enabled(viewState.visibleElements.contains(.supplements))
@@ -197,28 +197,28 @@ extension VideoPlayer.UIContainerViewController {
             }
             .withViewContext(.isOverComplexContent)
             #if os(tvOS)
-            .task(id: focusedSupplementID) {
-                let previousSelection = viewState.selectedSupplementID
-                guard !viewState.isSupplementFocusPending,
-                      let id = focusedSupplementID, id != previousSelection
-                else { return }
+                .task(id: focusedSupplementID) {
+                    let previousSelection = viewState.selectedSupplementID
+                    guard !viewState.isSupplementFocusPending,
+                          let id = focusedSupplementID, id != previousSelection
+                    else { return }
 
-                if previousSelection != nil {
-                    do {
-                        try await Task.sleep(for: .milliseconds(500))
-                    } catch {
-                        return
+                    if previousSelection != nil {
+                        do {
+                            try await Task.sleep(for: .milliseconds(500))
+                        } catch {
+                            return
+                        }
                     }
+
+                    guard !Task.isCancelled,
+                          !viewState.isSupplementFocusPending,
+                          focusedSupplementID == id,
+                          viewState.selectedSupplementID == previousSelection
+                    else { return }
+
+                    viewState.selectedSupplementID = id
                 }
-
-                guard !Task.isCancelled,
-                      !viewState.isSupplementFocusPending,
-                      focusedSupplementID == id,
-                      viewState.selectedSupplementID == previousSelection
-                else { return }
-
-                viewState.selectedSupplementID = id
-            }
             #endif
             #if os(iOS)
             .environment(

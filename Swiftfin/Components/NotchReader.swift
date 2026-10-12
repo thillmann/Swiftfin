@@ -11,7 +11,7 @@ import ObjectiveC.runtime
 import SwiftUI
 import UIKit
 
-struct NotchMeasurement: Equatable, Sendable {
+struct NotchMeasurement: Equatable {
 
     let size: CGSize
     /// Physical screen radius, or zero when the view does not cover the display.

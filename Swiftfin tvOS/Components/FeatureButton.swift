@@ -72,6 +72,7 @@ struct FeatureButtonStyle: ButtonStyle {
                 .opacity(isEnabled ? 1 : 0.62)
                 .animation(.easeOut(duration: 0.12), value: effectiveFocus)
                 .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+
         case let .icon(diameter):
             configuration.label
                 .foregroundStyle(foregroundColor(isFocused: effectiveFocus, variant: variant))

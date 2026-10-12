@@ -27,7 +27,6 @@ extension NavigationCoordinator {
             navigationCoordinator?.push(route)
         }
 
-
         @discardableResult
         func pop() -> Bool {
             guard let navigationCoordinator,
@@ -86,7 +85,6 @@ struct Router: DynamicProperty {
                 in: namespace
             )
         }
-
 
         func pop() {
             if !router.pop() {

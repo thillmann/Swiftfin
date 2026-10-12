@@ -147,7 +147,6 @@ extension BaseItemDto {
         let tag = tag ?? getImageTag(for: type)
 
         guard tag != nil || !requireTag else { return nil }
-
         guard let client = Container.shared.currentUserSession()?.client else { return nil }
 
         let parameters = Paths.GetItemImageParameters(

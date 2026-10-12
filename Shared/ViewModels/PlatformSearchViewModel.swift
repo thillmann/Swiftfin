@@ -142,6 +142,7 @@ final class PlatformSearchViewModel: ViewModel {
         }
 
         guard !Task.isCancelled else { return }
+
         self.items = newItems
         self.unifiedItems = newItems.mapValues { $0.map(UnifiedMediaResult.jellyfin) }
 
@@ -152,10 +153,12 @@ final class PlatformSearchViewModel: ViewModel {
 
         let seerResult = await SeerrClient.search(query: query)
         guard !Task.isCancelled else { return }
+
         switch seerResult {
         case let .success(page):
             self.seerItems = page.results
             self.mergeSeerResults(page.results)
+
         case .failure:
             self._resetSeerItems()
         }
@@ -191,6 +194,7 @@ final class PlatformSearchViewModel: ViewModel {
         for result in seerResults {
             guard let kind = UnifiedMediaResult.seerr(result).kind else { continue }
             guard kind != .person else { continue }
+
             groupedSeer[kind, default: []].append(result)
         }
 
@@ -224,6 +228,7 @@ final class PlatformSearchViewModel: ViewModel {
     func markSeerItemRequested(id: Int) {
         seerItems = seerItems.map { item in
             guard item.id == id else { return item }
+
             return item.updatingStatus(.pending)
         }
 
@@ -231,6 +236,7 @@ final class PlatformSearchViewModel: ViewModel {
             items.map { unifiedItem in
                 guard case let .seerr(item) = unifiedItem else { return unifiedItem }
                 guard item.id == id else { return unifiedItem }
+
                 return .seerr(item.updatingStatus(.pending))
             }
         }
@@ -289,6 +295,7 @@ final class PlatformSearchViewModel: ViewModel {
         let lhsYear = lhs.productionYear ?? Int(lhs.premiereDateYear ?? "")
         let rhsYear = rhs.productionYear ?? Int(rhs.premiereDateYear ?? "")
         guard let lhsYear, let rhsYear else { return true }
+
         return lhsYear == rhsYear
     }
 

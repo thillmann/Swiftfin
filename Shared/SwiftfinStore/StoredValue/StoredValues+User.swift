@@ -82,7 +82,6 @@ extension StoredValues.Keys {
             )
         }
 
-
         static var enableItemDeletion: Key<Bool> {
             CurrentUserKey(
                 field: "enableItemDeletion",
@@ -90,14 +89,12 @@ extension StoredValues.Keys {
             )
         }
 
-
         static var enableItemEditing: Key<Bool> {
             CurrentUserKey(
                 field: "enableItemEditing",
                 default: false
             )
         }
-
 
         static func libraryPosterType(parentID: String?) -> Key<PosterDisplayType> {
             CurrentUserKey(
@@ -107,7 +104,6 @@ extension StoredValues.Keys {
             )
         }
 
-
         static func libraryListColumnCount(parentID: String?) -> Key<Int> {
             CurrentUserKey(
                 parentID,
@@ -116,7 +112,6 @@ extension StoredValues.Keys {
             )
         }
 
-
         static func libraryDisplayType(parentID: String?) -> Key<LibraryDisplayType> {
             CurrentUserKey(
                 parentID,
@@ -124,7 +119,6 @@ extension StoredValues.Keys {
                 default: Defaults[.Customization.Library.displayType]
             )
         }
-
 
         static var users: Key<[UserState]> {
             Key(

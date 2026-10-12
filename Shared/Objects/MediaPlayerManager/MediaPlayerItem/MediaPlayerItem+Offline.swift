@@ -37,6 +37,7 @@ extension MediaPlayerItem {
                 guard let streamIndex = streams[index].index,
                       let subtitleURL = DownloadStorage.subtitleURL(for: record, index: streamIndex)
                 else { continue }
+
                 streams[index].deliveryURL = subtitleURL.absoluteString
                 streams[index].deliveryMethod = .external
                 streams[index].isExternal = true
@@ -54,6 +55,7 @@ extension MediaPlayerItem {
             let imageURL = DownloadStorage.imageURL(for: record, name: "Backdrop")
                 ?? DownloadStorage.imageURL(for: record, name: "Primary")
             guard let imageURL else { return nil }
+
             return { UIImage(contentsOfFile: imageURL.path) }
         }()
 

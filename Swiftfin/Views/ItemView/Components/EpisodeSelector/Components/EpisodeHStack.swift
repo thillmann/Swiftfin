@@ -76,6 +76,7 @@ extension SeriesEpisodeSelector {
 
         private func scroll(to seasonID: SeasonItemViewModel.ID) {
             guard let target = snapshot.firstTargetBySeasonID[seasonID] else { return }
+
             requestScroll(to: target)
         }
 
@@ -238,12 +239,15 @@ extension SeriesEpisodeSelector {
             switch self {
             case let .episode(seasonID, episode):
                 guard let episodeID = episode.id else { return .season(seasonID) }
+
                 return .episode(
                     seasonID: seasonID,
                     episodeID: episodeID
                 )
+
             case let .empty(seasonID), let .loading(seasonID):
                 return .season(seasonID)
+
             case let .error(seasonID, _, _):
                 return .season(seasonID)
             }
@@ -277,6 +281,7 @@ extension SeriesEpisodeSelector {
             switch seasonViewModel.state {
             case .content:
                 appendEpisodes(from: seasonViewModel)
+
             case let .error(error):
                 append(
                     .error(
@@ -286,6 +291,7 @@ extension SeriesEpisodeSelector {
                     ),
                     for: seasonViewModel.id
                 )
+
             case .initial, .refreshing:
                 append(.loading(seasonID: seasonViewModel.id), for: seasonViewModel.id)
             }
@@ -296,6 +302,7 @@ extension SeriesEpisodeSelector {
 
             for episode in seasonViewModel.items {
                 guard episode.id != nil else { continue }
+
                 let entry = EpisodeRailEntry.episode(
                     seasonID: seasonViewModel.id,
                     episode: episode
@@ -343,14 +350,17 @@ extension SeriesEpisodeSelector {
                         isCurrent: episode.id == currentItemID
                     )
                     .frame(width: itemWidth, height: railHeight, alignment: .top)
+
                 case .empty:
                     SeriesEpisodeSelector.EmptyCard()
                         .frame(width: itemWidth, height: railHeight, alignment: .top)
+
                 case let .error(_, viewModel, error):
                     SeriesEpisodeSelector.ErrorCard(error: error) {
                         viewModel.send(.refresh)
                     }
                     .frame(width: itemWidth, height: railHeight, alignment: .top)
+
                 case .loading:
                     SeriesEpisodeSelector.LoadingCard()
                         .frame(width: itemWidth, height: railHeight, alignment: .top)

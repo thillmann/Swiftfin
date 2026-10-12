@@ -26,6 +26,7 @@ extension PlatformItemView {
                 overlayOptions: []
             ) { item in
                 guard let mediaSource = item.mediaSources?.first else { return }
+
 //                router.route(
 //                    to: .videoPlayer(manager: OnlineVideoPlayerManager(item: item, mediaSource: mediaSource))
 //                )

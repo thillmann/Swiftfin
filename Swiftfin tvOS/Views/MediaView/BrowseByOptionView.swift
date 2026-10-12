@@ -214,6 +214,7 @@ extension BrowseByOptionView {
                 hasNextPage = page < (response.totalPages ?? page)
                 appendRawItems(filtered(response.results))
                 items = await SeerrLibraryMatcher.unifiedResults(for: rawItems, using: self)
+
             case let .failure(error):
                 self.error = error
                 hasNextPage = false

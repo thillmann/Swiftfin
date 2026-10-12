@@ -13,7 +13,9 @@ import SwiftUI
 @MainActor
 struct TabItem: Displayable, Identifiable, Hashable {
 
-    var displayTitle: String { title }
+    var displayTitle: String {
+        title
+    }
 
     let content: AnyView
     let id: String
@@ -114,7 +116,6 @@ extension TabItem {
         }
     }
 }
-
 
 extension TabItem {
     static var adminDashboard: TabItem {

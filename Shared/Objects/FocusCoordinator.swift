@@ -137,14 +137,14 @@ private struct CoordinatedInitialFocusModifier: ViewModifier {
             content
                 .focusable(coordinator.isInitialFocusPending)
                 .focusEffectDisabled()
-                #if os(tvOS)
+            #if os(tvOS)
                 .focused($isPlaceholderFocused)
                 .onAppear {
                     if coordinator.claimInitialPlaceholderFocus() {
                         isPlaceholderFocused = true
                     }
                 }
-                #endif
+            #endif
 
         case .secondary:
             content

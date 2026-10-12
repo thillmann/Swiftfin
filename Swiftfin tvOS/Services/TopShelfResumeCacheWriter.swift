@@ -49,6 +49,7 @@ enum TopShelfResumeCacheWriter {
             }
 
             guard !Task.isCancelled else { return }
+
             TopShelfResumeCache.write(entries: renderedEntries)
             TVTopShelfContentProvider.topShelfContentDidChange()
         }
@@ -279,6 +280,7 @@ private extension Optional {
         _ transform: (Wrapped) async -> NewValue?
     ) async -> NewValue? {
         guard let self else { return nil }
+
         return await transform(self)
     }
 }

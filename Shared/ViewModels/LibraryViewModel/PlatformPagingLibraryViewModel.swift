@@ -139,9 +139,11 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
     private var randomItemTask: AnyCancellable?
 
     private func observeSharedItemUpdates() {
-        Notifications[.itemMetadataDidChange].publisher
+        Notifications[.itemMetadataDidChange]
+            .publisher
             .sink { [weak self] value in
                 guard let self, let replacement = value as? Element else { return }
+
                 self.items = self.items.map { $0.id == replacement.id ? replacement : $0 }
             }
             .store(in: &cancellables)
@@ -277,6 +279,7 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
             }
 
             return .error(error)
+
         case .refresh:
 
             pagingTask?.cancel()
@@ -313,6 +316,7 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
             .asAnyCancellable()
 
             return .refreshing
+
         case .getNextPage:
 
             guard hasNextPage else { return state }
@@ -341,12 +345,12 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
             .asAnyCancellable()
 
             return .content
+
         case .getRandomItem:
 
             randomItemTask = Task { [weak self] in
                 do {
                     guard let randomItem = try await self?.getRandomItem() else { return }
-
                     guard !Task.isCancelled else { return }
 
                     self?.eventSubject.send(.gotRandomItem(randomItem))
@@ -434,6 +438,7 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
 
         nextPageTask = Task { [weak self] in
             guard let self else { return }
+
             defer { self.nextPageTask = nil }
 
             do {
@@ -458,6 +463,7 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
 
         nextPageTask = Task { [weak self] in
             guard let self else { return }
+
             defer { self.nextPageTask = nil }
 
             do {
@@ -509,6 +515,7 @@ class PlatformPagingLibraryViewModel<Element: PlatformPoster>: ViewModel, Platfo
 
     private func stableID(for item: Element) -> AnyHashable? {
         guard item.unwrappedIDHashOrZero != 0 else { return nil }
+
         return AnyHashable(item.id)
     }
 }

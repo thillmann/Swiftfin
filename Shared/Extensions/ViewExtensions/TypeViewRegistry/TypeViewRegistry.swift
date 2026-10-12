@@ -43,6 +43,7 @@ enum EnvironmentView<Value> {
                 guard let value = value as? Value else {
                     return AnyView(EmptyView())
                 }
+
                 return AnyView(content(value))
             }
 

@@ -15,7 +15,9 @@ import SwiftUI
 
 extension BaseItemDto: PlatformPoster {
 
-    var unwrappedIDHashOrZero: Int { id?.hashValue ?? 0 }
+    var unwrappedIDHashOrZero: Int {
+        id?.hashValue ?? 0
+    }
 
     var showTitle: Bool {
         switch type {
@@ -64,8 +66,10 @@ extension BaseItemDto: PlatformPoster {
             } else {
                 [imageSource(.primary, maxWidth: maxWidth, quality: quality)]
             }
+
         case .folder, .program, .musicVideo, .video:
             [imageSource(.primary, maxWidth: maxWidth, quality: quality)]
+
         default:
             [
                 imageSource(.thumb, maxWidth: maxWidth, quality: quality),
@@ -111,6 +115,7 @@ extension BaseItemDto: PlatformPoster {
                 image
                     .aspectRatio(contentMode: .fit)
             }
+
         default:
             image
         }

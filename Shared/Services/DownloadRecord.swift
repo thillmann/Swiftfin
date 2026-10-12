@@ -76,6 +76,7 @@ enum DownloadSourceClassifier {
               url.host?.isEmpty == false,
               !["m3u", "m3u8"].contains(url.pathExtension.lowercased())
         else { return nil }
+
         return url
     }
 
@@ -143,6 +144,7 @@ enum DownloadSourceClassifier {
 
     private static func extensionForMIMEType(_ mimeType: String?) -> String? {
         guard let mimeType = mimeType?.lowercased() else { return nil }
+
         if mimeType.contains("matroska") { return "mkv" }
         if mimeType.contains("mp4") { return "mp4" }
         if mimeType.contains("quicktime") { return "mov" }
@@ -252,7 +254,7 @@ struct DownloadRecord: Codable, Hashable, Identifiable {
 
     static func makeID(serverID: String, userID: String, itemID: String, mediaSourceID: String) -> String {
         [serverID, userID, itemID, mediaSourceID]
-            .map { Data($0.utf8).base64EncodedString().replacingOccurrences(of: "/", with: "_") }
+            .map { Data($0.utf8).base64EncodedString().replacing("/", with: "_") }
             .joined(separator: ".")
     }
 }
@@ -278,6 +280,7 @@ enum DownloadStorage {
 
     static func mediaURL(for record: DownloadRecord) -> URL? {
         guard let mediaFilename = record.mediaFilename else { return nil }
+
         return folderURL(for: record).appendingPathComponent(mediaFilename, isDirectory: false)
     }
 
@@ -290,6 +293,7 @@ enum DownloadStorage {
             }
         }()
         guard let filename else { return nil }
+
         return folderURL(for: record)
             .appendingPathComponent("Images", isDirectory: true)
             .appendingPathComponent(filename, isDirectory: false)
@@ -297,11 +301,13 @@ enum DownloadStorage {
 
     static func imageURL(for record: DownloadRecord, name: String) -> URL? {
         guard let type = ImageType(rawValue: name) else { return nil }
+
         return imageURL(for: record, type: type)
     }
 
     static func seriesPrimaryImageURL(for record: DownloadRecord) -> URL? {
         guard let filename = record.seriesPrimaryImageFilename else { return nil }
+
         return folderURL(for: record)
             .appendingPathComponent("Images", isDirectory: true)
             .appendingPathComponent(filename, isDirectory: false)
@@ -309,6 +315,7 @@ enum DownloadStorage {
 
     static func subtitleURL(for record: DownloadRecord, index: Int) -> URL? {
         guard let filename = record.subtitleFilenames[index] else { return nil }
+
         return folderURL(for: record)
             .appendingPathComponent("Subtitles", isDirectory: true)
             .appendingPathComponent(filename, isDirectory: false)
@@ -345,6 +352,7 @@ extension DownloadRecord {
     var preferredVideoPlayerType: VideoPlayerType {
         let preferred = Defaults[.VideoPlayer.videoPlayerType]
         guard preferred == .avPlayer else { return preferred }
+
         let container = mediaSource.container?.lowercased() ?? ""
         return subtitleFilenames.isNotEmpty || !["mp4", "mov", "m4v"].contains(container) ? .vlc : .avPlayer
     }

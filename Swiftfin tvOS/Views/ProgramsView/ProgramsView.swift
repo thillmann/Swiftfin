@@ -118,8 +118,10 @@ struct ProgramsView: View {
                 } else {
                     contentView
                 }
+
             case let .error(error):
                 ErrorView(error: error)
+
             case .initial, .refreshing:
                 ProgressView()
             }
@@ -139,6 +141,7 @@ struct ProgramsView: View {
                 try? await Task.sleep(for: .minutes(5))
 
                 guard !Task.isCancelled else { return }
+
                 programsViewModel.send(.backgroundRefresh)
             }
         }

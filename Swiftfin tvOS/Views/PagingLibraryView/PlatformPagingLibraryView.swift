@@ -78,6 +78,7 @@ struct PlatformPagingLibraryView<Element: PlatformPoster & Identifiable>: View {
         case .collectionFolder, .folder:
             let viewModel = ItemLibraryViewModel(parent: item, filters: .default)
             router.route(to: .library(viewModel: viewModel))
+
         default:
             router.route(to: .item(item: item))
         }
@@ -177,8 +178,10 @@ struct PlatformPagingLibraryView<Element: PlatformPoster & Identifiable>: View {
                 } else {
                     contentView
                 }
+
             case .initial, .refreshing:
                 ProgressView()
+
             case let .error(error):
                 ErrorView(error: error)
             }

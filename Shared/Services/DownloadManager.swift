@@ -75,30 +75,45 @@ final class DownloadManager: NSObject, ObservableObject {
         var errorDescription: String? {
             switch self {
             case .invalidItem: "The item is missing required download information."
+
             case .missingMediaSource: "Select a version before downloading."
+
             case .unsupportedItem: "Only finite movie and episode files can be downloaded."
+
             case .unsupportedDiscMedia: "DVD and Blu-ray folder sources cannot be downloaded."
+
             case .unsupportedHLS: "HLS video-on-demand requires a future offline HLS downloader."
+
             case .unsupportedLiveStream: "Live and infinite streams cannot be downloaded."
+
             case .unsupportedRemoteOrPluginSource:
                 "This source protocol is not supported for offline downloads."
+
             case .staticProxyFailed:
                 "Jellyfin could not provide the selected finite HTTP source as a static media file."
+
             case .invalidUpstreamResponse:
                 "The media provider returned an invalid download."
+
             case let .upstreamHTTPError(statusCode):
                 if (500 ..< 600).contains(statusCode) {
                     "The media provider is temporarily unavailable (HTTP \(statusCode)). Try again later."
                 } else {
                     "The media provider returned HTTP \(statusCode)."
                 }
+
             case .upstreamTransportError:
                 "The media provider connection failed. Try again later."
+
             case .versionCouldNotBeResolved:
                 "The selected version could not be resolved to its own downloadable Jellyfin item."
+
             case .versionIsNotDownloadable: "The selected version is not downloadable for this user."
+
             case .notEnoughStorage: "There is not enough free storage for this download."
+
             case .invalidResponse: "The server returned an invalid download."
+
             case .missingSession: "The Jellyfin user session is unavailable."
             }
         }
@@ -123,6 +138,7 @@ final class DownloadManager: NSObject, ObservableObject {
         completionHandler: @escaping () -> Void
     ) -> Bool {
         guard identifier == backgroundSessionIdentifier else { return false }
+
         backgroundCompletionHandler = completionHandler
         return true
     }
@@ -271,6 +287,7 @@ final class DownloadManager: NSObject, ObservableObject {
     /// are recovery mirrors; AnyStoredData is the normal persistent index.
     func prepare() {
         guard !isStorePrepared else { return }
+
         isStorePrepared = true
 
         if let stored: [DownloadRecord] = try? AnyStoredData.fetch(
@@ -309,6 +326,7 @@ final class DownloadManager: NSObject, ObservableObject {
                   let record = task.record,
                   isSameSource(record, mediaSource)
             else { return nil }
+
             return task
         }
 
@@ -331,6 +349,7 @@ final class DownloadManager: NSObject, ObservableObject {
               let mediaURL = DownloadStorage.mediaURL(for: record),
               FileManager.default.fileExists(atPath: mediaURL.path)
         else { return nil }
+
         return record
     }
 
@@ -340,12 +359,14 @@ final class DownloadManager: NSObject, ObservableObject {
 
     func downloadedItems(from downloads: [DownloadTask]) -> [DownloadTask] {
         guard let session = Container.shared.currentUserSession() else { return [] }
+
         let matching = downloads.filter {
             $0.record?.serverID == session.server.id && $0.record?.userID == session.user.id
                 && $0.record.map(Self.isVisibleInDownloadLibrary) == true
         }
         let newestByItem = matching.reduce(into: [String: DownloadTask]()) { result, task in
             guard let record = task.record else { return }
+
             if let existing = result[record.presentationItemID]?.record {
                 let isNewer = record.updatedAt > existing.updatedAt
                     || (record.updatedAt == existing.updatedAt && record.id > existing.id)
@@ -360,6 +381,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     func tasks(for items: [BaseItemDto]) -> [DownloadTask] {
         guard let session = Container.shared.currentUserSession() else { return [] }
+
         return items.compactMap { item in
             guard let itemID = item.id,
                   let recordID = recordIDsByScope[
@@ -370,12 +392,14 @@ final class DownloadManager: NSObject, ObservableObject {
                       )
                   ]
             else { return nil }
+
             return taskAdapters[recordID]
         }
     }
 
     func tasks(forSeriesID seriesID: String, seasonNumber: Int? = nil) -> [DownloadTask] {
         guard let session = Container.shared.currentUserSession() else { return [] }
+
         let matching = taskAdaptersBySeries[
             SeriesDownloadScope(
                 serverID: session.server.id,
@@ -384,11 +408,13 @@ final class DownloadManager: NSObject, ObservableObject {
             )
         ] ?? []
         guard let seasonNumber else { return matching }
+
         return matching.filter { $0.item.parentIndexNumber == seasonNumber }
     }
 
     func isPreparingAutomaticDownload(for item: BaseItemDto) -> Bool {
         guard let scope = downloadScope(for: item) else { return false }
+
         return pendingAutomaticDownloadScopes.contains(scope)
     }
 
@@ -401,6 +427,7 @@ final class DownloadManager: NSObject, ObservableObject {
         let hasPendingPreparation = items.contains(where: isPreparingAutomaticDownload(for:))
         let activeBatchIDs = Set(matchingTasks.compactMap { task -> String? in
             guard task.state.isInProgress else { return nil }
+
             return task.record?.batchID
         })
         let scopedTasks = activeBatchIDs.isEmpty ? matchingTasks : matchingTasks.filter {
@@ -432,6 +459,7 @@ final class DownloadManager: NSObject, ObservableObject {
         let hasPendingPreparation = pendingItems.isNotEmpty
         let activeBatchIDs = Set(matching.compactMap { task -> String? in
             guard task.state.isInProgress else { return nil }
+
             return task.record?.batchID
         })
         let scopedTasks = activeBatchIDs.isEmpty ? matching : matching.filter {
@@ -495,6 +523,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func downloadScope(for item: BaseItemDto) -> ItemDownloadScope? {
         guard let session = Container.shared.currentUserSession(), let itemID = item.id else { return nil }
+
         return ItemDownloadScope(
             serverID: session.server.id,
             userID: session.user.id,
@@ -507,6 +536,7 @@ final class DownloadManager: NSObject, ObservableObject {
         seasonNumber: Int?
     ) -> [BaseItemDto] {
         guard let session = Container.shared.currentUserSession() else { return [] }
+
         return pendingAutomaticDownloadBatches.values
             .flatMap { batch in
                 batch.items.filter { item in
@@ -514,6 +544,7 @@ final class DownloadManager: NSObject, ObservableObject {
                           let itemID = item.id,
                           seasonNumber == nil || item.parentIndexNumber == seasonNumber
                     else { return false }
+
                     return batch.scopes.contains(
                         ItemDownloadScope(
                             serverID: session.server.id,
@@ -527,6 +558,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func finishPendingAutomaticDownloadBatch(_ batchID: UUID) {
         guard pendingAutomaticDownloadBatches.removeValue(forKey: batchID) != nil else { return }
+
         refreshPendingAutomaticDownloadScopes()
         publishPendingAutomaticDownloadChange()
     }
@@ -536,6 +568,7 @@ final class DownloadManager: NSObject, ObservableObject {
         in batchID: UUID
     ) {
         guard var batch = pendingAutomaticDownloadBatches[batchID] else { return }
+
         batch.scopes.remove(scope)
         pendingAutomaticDownloadBatches[batchID] = batch
         refreshPendingAutomaticDownloadScopes()
@@ -544,6 +577,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func cancelPendingAutomaticDownloads(for scopes: Set<ItemDownloadScope>) {
         guard scopes.isNotEmpty else { return }
+
         let matchingBatchIDs = pendingAutomaticDownloadBatches.compactMap { batchID, batch in
             batch.scopes.isDisjoint(with: scopes) ? nil : batchID
         }
@@ -551,6 +585,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
         for batchID in matchingBatchIDs {
             guard var batch = pendingAutomaticDownloadBatches[batchID] else { continue }
+
             batch.scopes.subtract(scopes)
             if batch.scopes.isEmpty {
                 pendingAutomaticDownloadBatches.removeValue(forKey: batchID)?.task?.cancel()
@@ -600,19 +635,24 @@ final class DownloadManager: NSObject, ObservableObject {
                 case .complete:
                     completedCount += 1
                     progress = 1
+
                 case .downloading:
                     activeCount += 1
                     progress = task?.transferProgress ?? 0
+
                 case .resolving:
                     activeCount += 1
                     resolvingCount += 1
                     progress = task?.transferProgress ?? 0
+
                 case .paused:
                     pausedCount += 1
                     progress = task?.transferProgress ?? 0
+
                 case .error:
                     failedCount += 1
                     progress = task?.transferProgress ?? 0
+
                 case .cancelled, .ready, nil:
                     progress = 0
                 }
@@ -653,6 +693,7 @@ final class DownloadManager: NSObject, ObservableObject {
     /// grouped offline-library posters were introduced.
     func ensureSeriesArtwork() {
         guard let currentSession = Container.shared.currentUserSession() else { return }
+
         let candidates = records.values.filter {
             $0.serverID == currentSession.server.id
                 && $0.userID == currentSession.user.id
@@ -668,6 +709,7 @@ final class DownloadManager: NSObject, ObservableObject {
         {
             Task { [weak self] in
                 guard let self, let representative = seriesRecords.first else { return }
+
                 let filename = await self.downloadSeriesPrimaryImage(for: representative)
                 var updatedRecordIDs: [String] = []
 
@@ -702,6 +744,7 @@ final class DownloadManager: NSObject, ObservableObject {
                     var updatedRecords: [DownloadRecord] = []
                     for recordID in updatedRecordIDs {
                         guard var current = self.records[recordID], current.status == .completed else { continue }
+
                         current.seriesPrimaryImageFilename = filename
                         current.updatedAt = .now
                         self.setRecord(current)
@@ -736,12 +779,14 @@ final class DownloadManager: NSObject, ObservableObject {
         var scopes = Set<ItemDownloadScope>()
         for item in items {
             guard let itemID = item.id else { continue }
+
             let scope = ItemDownloadScope(
                 serverID: session.server.id,
                 userID: session.user.id,
                 presentationItemID: itemID
             )
             guard !reservedScopes.contains(scope) else { continue }
+
             if let existing = task(for: item) {
                 switch existing.state {
                 case .cancelled, .error:
@@ -768,10 +813,12 @@ final class DownloadManager: NSObject, ObservableObject {
         let transferBatchID = UUID().uuidString
         let preparationTask = Task { @MainActor [weak self] in
             guard let self else { return }
+
             defer { self.finishPendingAutomaticDownloadBatch(batchID) }
 
             for item in pendingItems {
                 guard !Task.isCancelled, let itemID = item.id else { return }
+
                 let scope = ItemDownloadScope(
                     serverID: session.server.id,
                     userID: session.user.id,
@@ -780,11 +827,13 @@ final class DownloadManager: NSObject, ObservableObject {
                 guard self.pendingAutomaticDownloadBatches[batchID]?.scopes.contains(scope) == true else {
                     continue
                 }
+
                 let resolvedItem = await resolver(item)
                 guard !Task.isCancelled else { return }
                 guard self.pendingAutomaticDownloadBatches[batchID]?.scopes.contains(scope) == true else {
                     continue
                 }
+
                 _ = self.downloadAutomatically(
                     item: resolvedItem,
                     mediaSources: resolvedItem.mediaSources ?? [],
@@ -810,6 +859,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     func cancelAutomaticDownloadPreparation(for item: BaseItemDto) {
         guard let scope = downloadScope(for: item) else { return }
+
         cancelPendingAutomaticDownloads(for: [scope])
     }
 
@@ -896,11 +946,11 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let session = Container.shared.currentUserSession(),
               let itemID = item.id
         else { return nil }
-
         guard let selection = automaticDownloadSelection(
             for: item,
             mediaSources: mediaSources
         ) else { return nil }
+
         let orderedSources = [selection.selected] + selection.fallbacks
         let firstSource = selection.selected
 
@@ -923,6 +973,7 @@ final class DownloadManager: NSObject, ObservableObject {
                     session: session
                 )
                 return nil
+
             case .completed, .deleting, .downloading, .finalizing, .paused, .queued, .resolving:
                 return taskAdapters[existing.id]
             }
@@ -984,6 +1035,7 @@ final class DownloadManager: NSObject, ObservableObject {
         session: UserSession
     ) -> DownloadTask? {
         guard let itemID = item.id, let mediaSourceID = mediaSource.id else { return nil }
+
         let recordID = DownloadRecord.makeID(
             serverID: session.server.id,
             userID: session.user.id,
@@ -1024,6 +1076,7 @@ final class DownloadManager: NSObject, ObservableObject {
         session: UserSession
     ) {
         guard pendingReplacementScopes.insert(scope).inserted else { return }
+
         let conflictIDs = Set(conflicts.map(\.id))
 
         backgroundSession.getAllTasks { [weak self] tasks in
@@ -1032,6 +1085,7 @@ final class DownloadManager: NSObject, ObservableObject {
             }
             DispatchQueue.main.async {
                 guard let self else { return }
+
                 let currentConflicts = self.records.values.filter {
                     ItemDownloadScope(record: $0) == scope
                 }
@@ -1091,6 +1145,7 @@ final class DownloadManager: NSObject, ObservableObject {
     private func performResolution(_ pending: PendingResolution) {
         Task { [weak self] in
             guard let self else { return }
+
             do {
                 let resolution = try await self.resolveDownloadItem(
                     presentationItem: pending.presentationItem,
@@ -1103,6 +1158,7 @@ final class DownloadManager: NSObject, ObservableObject {
                           current.status == .resolving,
                           current.updatedAt == pending.resolutionStartedAt
                     else { return }
+
                     current.resolvedDownloadItemID = resolution.itemID
                     current.transferStrategy = resolution.strategy
                     current.item = resolution.item
@@ -1125,6 +1181,7 @@ final class DownloadManager: NSObject, ObservableObject {
                           current.status == .resolving,
                           current.updatedAt == pending.resolutionStartedAt
                     else { return }
+
                     self.fail(recordID: pending.recordID, error: error)
                 }
             }
@@ -1149,6 +1206,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard var record = task.record,
               records[record.id]?.createdAt == record.createdAt
         else { return }
+
         record.status = .paused
         record.updatedAt = .now
         setRecord(record)
@@ -1164,6 +1222,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard var record = task.record,
               records[record.id]?.createdAt == record.createdAt
         else { return }
+
         backgroundSession.getAllTasks { [weak self] tasks in
             if let transfer = tasks.first(where: {
                 $0.taskDescription == record.id
@@ -1172,6 +1231,7 @@ final class DownloadManager: NSObject, ObservableObject {
                 transfer.resume()
                 DispatchQueue.main.async {
                     guard self?.records[record.id]?.createdAt == record.createdAt else { return }
+
                     record.status = .downloading
                     record.updatedAt = .now
                     self?.setRecord(record)
@@ -1179,6 +1239,7 @@ final class DownloadManager: NSObject, ObservableObject {
             } else {
                 DispatchQueue.main.async {
                     guard self?.records[record.id]?.createdAt == record.createdAt else { return }
+
                     self?.startTransfer(recordID: record.id)
                 }
             }
@@ -1197,6 +1258,7 @@ final class DownloadManager: NSObject, ObservableObject {
             fail(recordID: record.id, error: DownloadError.missingSession)
             return
         }
+
         record.status = .resolving
         record.progress = 0
         record.bytesWritten = 0
@@ -1218,6 +1280,7 @@ final class DownloadManager: NSObject, ObservableObject {
                       current.status == .resolving,
                       current.updatedAt == resolutionStartedAt
                 else { return }
+
                 self.resolveAndStart(
                     recordID: recordID,
                     presentationItem: current.item,
@@ -1233,6 +1296,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let record = task.record,
               records[record.id]?.createdAt == record.createdAt
         else { return }
+
         discardRecords([record])
     }
 
@@ -1240,6 +1304,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let record = task.record,
               records[record.id]?.createdAt == record.createdAt
         else { return }
+
         discardRecords([record])
     }
 
@@ -1278,6 +1343,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
         for record in candidates {
             guard records[record.id]?.createdAt == record.createdAt else { continue }
+
             if let stagedFolder = stageDownloadFolderForDeletion(record) {
                 stagedFolders.append(stagedFolder)
             }
@@ -1292,6 +1358,7 @@ final class DownloadManager: NSObject, ObservableObject {
         }
 
         guard removedRecordIDs.isNotEmpty else { return stagedFolders }
+
         pendingResolutions.removeAll { removedRecordIDs.contains($0.recordID) }
         pendingFinalizationRecordIDs.removeAll { removedRecordIDs.contains($0) }
         publishAdapters()
@@ -1319,6 +1386,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func deleteStagedFolders(_ folders: [URL]) {
         guard folders.isNotEmpty else { return }
+
         fileIOQueue.async {
             for folder in folders {
                 try? FileManager.default.removeItem(at: folder)
@@ -1369,18 +1437,23 @@ final class DownloadManager: NSObject, ObservableObject {
         ) {
         case .live:
             throw DownloadError.unsupportedLiveStream
+
         case .disc:
             throw DownloadError.unsupportedDiscMedia
+
         case .hls:
             throw DownloadError.unsupportedHLS
+
         case .unsupported:
             throw DownloadError.unsupportedRemoteOrPluginSource
+
         case .finiteHTTP:
             return try await resolveFiniteHTTPDownload(
                 presentationItem: presentationItem,
                 selectedMediaSource: selectedMediaSource,
                 session: session
             )
+
         case .file:
             return try await resolveFileDownload(
                 presentationItem: presentationItem,
@@ -1398,6 +1471,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let presentationItemID = presentationItem.id,
               let mediaSourceID = selectedMediaSource.id
         else { throw DownloadError.invalidItem }
+
         let selectedDirectURL = DownloadSourceClassifier.directHTTPURL(for: selectedMediaSource)
 
         let currentItem: BaseItemDto
@@ -1483,14 +1557,18 @@ final class DownloadManager: NSObject, ObservableObject {
                 ) {
                 case .finiteHTTP:
                     resolvedSource = playbackSource
+
                 case .hls:
                     throw DownloadError.unsupportedHLS
+
                 case .live:
                     throw DownloadError.unsupportedLiveStream
+
                 case .file, .unsupported:
                     if exactPlaybackDirectStreamURL != nil {
                         resolvedSource = playbackSource
                     }
+
                 case .disc:
                     throw DownloadError.unsupportedRemoteOrPluginSource
                 }
@@ -1556,17 +1634,23 @@ final class DownloadManager: NSObject, ObservableObject {
         userID: String,
         session: UserSession
     ) async throws -> BaseItemDto {
-        var item = try await session.client.send(
-            Paths.getItem(itemID: itemID, userID: userID)
-        ).value
+        var item = try await session.client
+            .send(
+                Paths.getItem(itemID: itemID, userID: userID)
+            )
+            .value
 
         var parameters = Paths.GetItemsParameters()
         parameters.fields = .MediaSourceFields
         parameters.ids = [itemID]
         parameters.limit = 1
-        if let sourceItem = try? await session.client.send(
-            Paths.getItems(parameters: parameters)
-        ).value.items?.first,
+        if let sourceItem = try? await session.client
+            .send(
+                Paths.getItems(parameters: parameters)
+            )
+            .value
+            .items?
+            .first,
             let mediaSources = sourceItem.mediaSources,
             mediaSources.isNotEmpty
         {
@@ -1592,13 +1676,16 @@ final class DownloadManager: NSObject, ObservableObject {
             userID: session.user.id,
             mediaSourceID: source.id
         )
-        return try await session.client.send(
-            Paths.getPostedPlaybackInfo(
-                itemID: itemID,
-                parameters: parameters,
-                playbackInfo
-            ).withResponse(PlaybackInfoResponseEnvelope.self)
-        ).value
+        return try await session.client
+            .send(
+                Paths.getPostedPlaybackInfo(
+                    itemID: itemID,
+                    parameters: parameters,
+                    playbackInfo
+                )
+                .withResponse(PlaybackInfoResponseEnvelope.self)
+            )
+            .value
     }
 
     private func exactDirectStreamURL(
@@ -1625,6 +1712,7 @@ final class DownloadManager: NSObject, ObservableObject {
             return DownloadSourceClassifier.finiteHTTPURL(from: value)
         }
         guard !value.hasPrefix("//"), let serverURL = session.client.url(path: value) else { return nil }
+
         return DownloadSourceClassifier.finiteHTTPURL(from: serverURL.absoluteString)
     }
 
@@ -1655,9 +1743,11 @@ final class DownloadManager: NSObject, ObservableObject {
 
         let candidate: BaseItemDto
         do {
-            candidate = try await session.client.send(
-                Paths.getItem(itemID: mediaSourceID, userID: session.user.id)
-            ).value
+            candidate = try await session.client
+                .send(
+                    Paths.getItem(itemID: mediaSourceID, userID: session.user.id)
+                )
+                .value
         } catch {
             throw DownloadError.versionCouldNotBeResolved
         }
@@ -1703,18 +1793,22 @@ final class DownloadManager: NSObject, ObservableObject {
                 fail(recordID: recordID, error: DownloadError.invalidItem)
                 return
             }
+
             url = downloadURL
             requiresJellyfinAuthorization = true
+
         case .directHTTPSource:
             guard let directURL = DownloadSourceClassifier.directHTTPURL(for: record.mediaSource) else {
                 fail(recordID: recordID, error: DownloadError.unsupportedRemoteOrPluginSource)
                 return
             }
+
             url = directURL
             requiresJellyfinAuthorization = isSameOrigin(
                 directURL,
                 session.client.configuration.url
             )
+
         case .staticHTTPStream:
             // This is Jellyfin's exact-source static playback proxy, not a
             // version fallback. The app-side download policy gate above is
@@ -1733,8 +1827,10 @@ final class DownloadManager: NSObject, ObservableObject {
                 fail(recordID: recordID, error: DownloadError.invalidItem)
                 return
             }
+
             url = staticURL
             requiresJellyfinAuthorization = true
+
         case nil:
             fail(recordID: recordID, error: DownloadError.unsupportedRemoteOrPluginSource)
             return
@@ -1849,6 +1945,7 @@ final class DownloadManager: NSObject, ObservableObject {
                   $0.id == record.userID && $0.serverID == record.serverID
               })
         else { return nil }
+
         return UserSession(server: server, user: user)
     }
 
@@ -1915,6 +2012,7 @@ final class DownloadManager: NSObject, ObservableObject {
         precondition(downloadBatchDepth > 0, "Unbalanced download batch")
         downloadBatchDepth -= 1
         guard downloadBatchDepth == 0, needsRefreshAfterDownloadBatch else { return }
+
         needsRefreshAfterDownloadBatch = false
         publishAdapters()
         persist()
@@ -1925,6 +2023,7 @@ final class DownloadManager: NSObject, ObservableObject {
             needsRefreshAfterDownloadBatch = true
             return
         }
+
         if publishCollection {
             publishAdapters()
         } else {
@@ -1935,9 +2034,11 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func scheduleProgressPersistence() {
         guard !isProgressPersistenceScheduled else { return }
+
         isProgressPersistenceScheduled = true
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.progressPersistenceInterval) { [weak self] in
             guard let self else { return }
+
             self.isProgressPersistenceScheduled = false
             self.persist(storeInDatabase: false)
         }
@@ -1945,9 +2046,11 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func scheduleAggregateRefresh() {
         guard !isAggregateRefreshScheduled else { return }
+
         isAggregateRefreshScheduled = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             guard let self else { return }
+
             self.isAggregateRefreshScheduled = false
             self.aggregateUpdates.send()
         }
@@ -2052,6 +2155,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func shouldTryNextMediaSource(after error: Error) -> Bool {
         guard let downloadError = error as? DownloadError else { return true }
+
         return switch downloadError {
         case .invalidItem, .missingMediaSource, .missingSession, .notEnoughStorage, .unsupportedItem:
             false
@@ -2069,6 +2173,7 @@ final class DownloadManager: NSObject, ObservableObject {
         }
         taskAdaptersByScope = downloads.reduce(into: [:]) { result, task in
             guard let record = task.record else { return }
+
             let scope = ItemDownloadScope(record: record)
             if result[scope] == nil {
                 result[scope] = task
@@ -2077,6 +2182,7 @@ final class DownloadManager: NSObject, ObservableObject {
         taskAdaptersBySeries = Dictionary(
             grouping: downloads.compactMap { task -> (SeriesDownloadScope, DownloadTask)? in
                 guard let record = task.record, let seriesID = record.item.seriesID else { return nil }
+
                 return (
                     SeriesDownloadScope(
                         serverID: record.serverID,
@@ -2115,11 +2221,13 @@ final class DownloadManager: NSObject, ObservableObject {
             recordIDsByScope.removeValue(forKey: scope)
             return []
         }
+
         return [record]
     }
 
     private func isSameSource(_ record: DownloadRecord, _ mediaSource: MediaSourceInfo?) -> Bool {
         guard record.mediaSourceID == mediaSource?.id else { return false }
+
         if let recordETag = record.mediaSource.eTag?.nilIfEmpty,
            let selectedETag = mediaSource?.eTag?.nilIfEmpty
         {
@@ -2142,6 +2250,7 @@ final class DownloadManager: NSObject, ObservableObject {
                 if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
                 return lhs.id < rhs.id
             }) else { continue }
+
             obsoleteRecords.append(contentsOf: group.filter { $0.id != newest.id })
         }
         guard obsoleteRecords.isNotEmpty else { return false }
@@ -2225,9 +2334,11 @@ final class DownloadManager: NSObject, ObservableObject {
         isPersistenceWriteInFlight = true
         persistenceQueue.async { [weak self] in
             guard let self else { return }
+
             let encodedData = self.writePersistenceFile(snapshot.values)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
+
                 if snapshot.shouldStore, let encodedData {
                     self.storePersistenceData(encodedData)
                 }
@@ -2278,11 +2389,13 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let data = try? Data(contentsOf: DownloadStorage.indexURL),
               let stored = try? JSONDecoder().decode([DownloadRecord].self, from: data)
         else { return }
+
         records = Dictionary(uniqueKeysWithValues: stored.map { ($0.id, $0) })
     }
 
     private func writeManifest(_ record: DownloadRecord) {
         guard let data = try? JSONEncoder().encode(record) else { return }
+
         try? data.write(to: DownloadStorage.manifestURL(for: record), options: .atomic)
     }
 
@@ -2305,13 +2418,15 @@ final class DownloadManager: NSObject, ObservableObject {
                   let item = try? JSONDecoder().decode(BaseItemDto.self, from: data),
                   let itemID = item.id,
                   [.movie, .episode].contains(item.type),
-                  let mediaFile = try? FileManager.default.contentsOfDirectory(
-                      at: directory,
-                      includingPropertiesForKeys: nil
-                  ).first(where: {
-                      $0.lastPathComponent.hasPrefix("Media")
-                          && !["strm", "m3u", "m3u8"].contains($0.pathExtension.lowercased())
-                  })
+                  let mediaFile = try? FileManager.default
+                      .contentsOfDirectory(
+                          at: directory,
+                          includingPropertiesForKeys: nil
+                      )
+                      .first(where: {
+                          $0.lastPathComponent.hasPrefix("Media")
+                              && !["strm", "m3u", "m3u8"].contains($0.pathExtension.lowercased())
+                      })
             else { continue }
 
             let source = item.mediaSources?.first ?? MediaSourceInfo(
@@ -2320,6 +2435,7 @@ final class DownloadManager: NSObject, ObservableObject {
                 name: "Legacy download"
             )
             guard let sourceID = source.id else { continue }
+
             let id = DownloadRecord.makeID(
                 serverID: session.server.id,
                 userID: session.user.id,
@@ -2384,6 +2500,7 @@ final class DownloadManager: NSObject, ObservableObject {
         backgroundSession.getAllTasks { [weak self] tasks in
             DispatchQueue.main.async {
                 guard let self else { return }
+
                 let knownTasks = Dictionary(grouping: tasks) { $0.taskDescription }
                 var activeIDs = Set<String>()
                 var restartIDs = Set<String>()
@@ -2398,6 +2515,7 @@ final class DownloadManager: NSObject, ObservableObject {
                     guard let task = matchingTasks.max(by: { $0.taskIdentifier < $1.taskIdentifier }) else {
                         continue
                     }
+
                     for staleTask in matchingTasks where staleTask.taskIdentifier != task.taskIdentifier {
                         staleTask.cancel()
                     }
@@ -2417,6 +2535,7 @@ final class DownloadManager: NSObject, ObservableObject {
                         self.taskAdapters[id]?.update(record: record)
                         continue
                     }
+
                     if !self.task(task, matches: record) {
                         task.cancel()
                         record.transferTaskIdentifier = nil
@@ -2465,6 +2584,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func task(_ task: URLSessionTask, matches record: DownloadRecord) -> Bool {
         guard let url = task.originalRequest?.url else { return false }
+
         let strategy = record.transferStrategy
             ?? DownloadSourceClassifier.inferredStrategy(
                 itemIsLive: record.item.isLiveStream,
@@ -2474,16 +2594,20 @@ final class DownloadManager: NSObject, ObservableObject {
         switch strategy {
         case .itemDownload:
             return url.path.hasSuffix("/Items/\(record.resolvedDownloadItemID ?? "")/Download")
+
         case .directHTTPSource:
             return DownloadSourceClassifier.directHTTPURL(for: record.mediaSource) == url
+
         case .staticHTTPStream:
             guard url.path.hasSuffix("/Videos/\(record.presentationItemID)/stream"),
                   let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             else { return false }
+
             return components.queryItems?.contains(where: {
                 $0.name.caseInsensitiveCompare("mediaSourceId") == .orderedSame
                     && $0.value == record.mediaSourceID
             }) == true
+
         case nil:
             return false
         }
@@ -2504,6 +2628,7 @@ final class DownloadManager: NSObject, ObservableObject {
         {
             let recordID = pendingFinalizationRecordIDs.removeFirst()
             guard let record = records[recordID], record.status == .finalizing else { continue }
+
             activeFinalizationCount += 1
             performFinalization(record, seriesArtworkSource: seriesArtworkSource(for: record))
         }
@@ -2515,6 +2640,7 @@ final class DownloadManager: NSObject, ObservableObject {
     ) {
         Task { [weak self] in
             guard let self else { return }
+
             var record = initialRecord
             await self.refreshOfflineMetadata(for: &record)
             await self.downloadImages(for: &record, seriesArtworkSource: seriesArtworkSource)
@@ -2533,6 +2659,7 @@ final class DownloadManager: NSObject, ObservableObject {
                     try? FileManager.default.removeItem(at: DownloadStorage.folderURL(for: finalizedRecord))
                     return
                 }
+
                 current.item = finalizedRecord.item
                 current.mediaSource = finalizedRecord.mediaSource
                 current.primaryImageFilename = finalizedRecord.primaryImageFilename
@@ -2559,6 +2686,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func seriesArtworkSource(for record: DownloadRecord) -> DownloadRecord? {
         guard let seriesID = record.item.seriesID else { return nil }
+
         let scope = SeriesDownloadScope(
             serverID: record.serverID,
             userID: record.userID,
@@ -2644,6 +2772,7 @@ final class DownloadManager: NSObject, ObservableObject {
         seriesArtworkSource: DownloadRecord?
     ) async {
         guard let session = session(for: record), let itemID = record.item.id else { return }
+
         let imagesFolder = DownloadStorage.folderURL(for: record)
             .appendingPathComponent("Images", isDirectory: true)
         try? FileManager.default.createDirectory(at: imagesFolder, withIntermediateDirectories: true)
@@ -2705,6 +2834,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
         for source in sources {
             guard let tag = source.tag else { continue }
+
             let parameters = Paths.GetItemImageParameters(
                 maxWidth: source.maxWidth,
                 tag: tag
@@ -2796,6 +2926,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
         for stream in streams {
             guard let index = stream.index else { continue }
+
             let format = stream.codec ?? "srt"
             let request = Paths.getSubtitle(
                 routeItemID: routeItemID,
@@ -2804,6 +2935,7 @@ final class DownloadManager: NSObject, ObservableObject {
                 routeFormat: format
             )
             guard let text = try? await session.client.send(request).value else { continue }
+
             let filename = "\(index).\(format)"
             let destination = subtitlesFolder.appendingPathComponent(filename)
             do {
@@ -2819,6 +2951,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     func saveOfflineProgress(recordID: String, positionTicks: Int, isPlayed: Bool) {
         guard var record = records[recordID] else { return }
+
         record.offlineProgress = .init(positionTicks: positionTicks, isPlayed: isPlayed, updatedAt: .now)
         if record.item.userData == nil {
             record.item.userData = UserItemDataDto()
@@ -2833,12 +2966,14 @@ final class DownloadManager: NSObject, ObservableObject {
 
     func syncOfflineProgress() {
         guard let current = Container.shared.currentUserSession() else { return }
+
         let pending = records.values.filter {
             $0.serverID == current.server.id && $0.userID == current.user.id && $0.offlineProgress != nil
         }
 
         for record in pending {
             guard let progress = record.offlineProgress else { continue }
+
             Task { [weak self] in
                 var update = UpdateUserItemDataDto()
                 update.itemID = record.presentationItemID
@@ -2846,12 +2981,14 @@ final class DownloadManager: NSObject, ObservableObject {
                 update.isPlayed = progress.isPlayed
                 update.lastPlayedDate = progress.updatedAt
                 do {
-                    let serverItem = try await current.client.send(
-                        Paths.getItem(
-                            itemID: record.presentationItemID,
-                            userID: record.userID
+                    let serverItem = try await current.client
+                        .send(
+                            Paths.getItem(
+                                itemID: record.presentationItemID,
+                                userID: record.userID
+                            )
                         )
-                    ).value
+                        .value
                     if let serverUpdatedAt = serverItem.userData?.lastPlayedDate,
                        serverUpdatedAt > progress.updatedAt
                     {
@@ -2859,6 +2996,7 @@ final class DownloadManager: NSObject, ObservableObject {
                             guard var latest = self?.records[record.id],
                                   latest.offlineProgress?.updatedAt == progress.updatedAt
                             else { return }
+
                             latest.offlineProgress = nil
                             latest.updatedAt = .now
                             self?.setRecord(latest)
@@ -2877,6 +3015,7 @@ final class DownloadManager: NSObject, ObservableObject {
                         guard var latest = self?.records[record.id],
                               latest.offlineProgress?.updatedAt == progress.updatedAt
                         else { return }
+
                         latest.offlineProgress = nil
                         latest.updatedAt = .now
                         self?.setRecord(latest)
@@ -2896,10 +3035,12 @@ final class DownloadManager: NSObject, ObservableObject {
             let destination = response?.url ?? DownloadSourceClassifier.directHTTPURL(for: record.mediaSource)
             let isThirdParty = destination.map { url in
                 guard let userSession = session(for: record) else { return true }
+
                 return !isSameOrigin(url, userSession.client.configuration.url)
             } ?? true
             if isThirdParty {
                 guard let statusCode = response?.statusCode else { return .invalidUpstreamResponse }
+
                 if !(200 ..< 300).contains(statusCode) {
                     return .upstreamHTTPError(statusCode)
                 }
@@ -2919,6 +3060,7 @@ final class DownloadManager: NSObject, ObservableObject {
             || (record.mediaSource.isRemote == true && record.mediaSource.protocol != .file)
         let statusIndicatesUnsupportedSource: Bool = {
             guard let statusCode = response?.statusCode else { return false }
+
             return (200 ..< 300).contains(statusCode)
                 || [400, 404, 405, 415, 422].contains(statusCode)
         }()
@@ -2943,6 +3085,7 @@ final class DownloadManager: NSObject, ObservableObject {
         let finalURL = response?.url
         let endpoint = finalURL.flatMap { url -> String? in
             guard let scheme = url.scheme, let host = url.host else { return nil }
+
             return "\(scheme)://\(host)"
         }
 
@@ -2971,6 +3114,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let handle = try? FileHandle(forReadingFrom: location) else {
             return "temporary response body could not be inspected"
         }
+
         defer { handle.closeFile() }
         let prefixData = handle.readData(ofLength: 1024)
         if prefixData.starts(with: Data("d8:announce".utf8))
@@ -3012,6 +3156,7 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let estimatedBytes,
               isImplausiblySmallMedia(actualBytes: reportedBytes, expectedBytes: estimatedBytes)
         else { return reportedBytes }
+
         return estimatedBytes
     }
 
@@ -3079,7 +3224,6 @@ extension DownloadManager: URLSessionDownloadDelegate {
             completionHandler(nil)
             return
         }
-
         guard DownloadSourceClassifier.finiteHTTPURL(from: destinationURL.absoluteString) != nil else {
             task.cancel()
             let error: DownloadError = if ["m3u", "m3u8"].contains(destinationURL.pathExtension.lowercased()) {
@@ -3142,6 +3286,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
               record.transferTaskIdentifier == downloadTask.taskIdentifier,
               [.queued, .downloading, .paused].contains(record.status)
         else { return }
+
         if record.status != .paused {
             record.status = .downloading
         }
@@ -3168,6 +3313,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
               record.transferTaskIdentifier == downloadTask.taskIdentifier
         else { return }
         guard record.status != .cancelled, record.status != .deleting else { return }
+
         let temporaryBytes = (try? location.resourceValues(forKeys: [.fileSizeKey]).fileSize)
             .map(Int64.init)
         guard let response = downloadTask.response as? HTTPURLResponse else {
@@ -3208,6 +3354,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
             )
             return
         }
+
         if let reason = payloadErrorReason(at: location, response: response) {
             let responseError: DownloadError = reason.contains("streaming playlist")
                 ? .unsupportedHLS
@@ -3348,6 +3495,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let error, let id = task.taskDescription else { return }
+
         DispatchQueue.main.async { [weak self] in
             guard let self,
                   let record = self.records[id],
@@ -3359,11 +3507,13 @@ extension DownloadManager: URLSessionDownloadDelegate {
                   status != .failed,
                   status != .finalizing
             else { return }
+
             let response = task.response as? HTTPURLResponse
             let destination = response?.url ?? DownloadSourceClassifier.directHTTPURL(for: record.mediaSource)
             let isDirectProvider = record.transferStrategy == .directHTTPSource
                 && (destination.map {
                     guard let userSession = self.session(for: record) else { return true }
+
                     return !self.isSameOrigin($0, userSession.client.configuration.url)
                 } ?? true)
             let reason = isDirectProvider
@@ -3389,11 +3539,13 @@ extension DownloadManager: URLSessionDownloadDelegate {
 
     func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
         guard session.configuration.identifier == Self.backgroundSessionIdentifier else { return }
+
         DispatchQueue.main.async { [weak self] in
             guard let self else {
                 Self.finishBackgroundSessionEvents()
                 return
             }
+
             self.persist(after: 0) {
                 DispatchQueue.main.async {
                     Self.finishBackgroundSessionEvents()

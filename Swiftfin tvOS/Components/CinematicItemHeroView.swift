@@ -134,6 +134,7 @@ struct CinematicItemHeroView<
                     if let premiereDateLabel = item.premiereDateLabel {
                         Text(premiereDateLabel)
                     }
+
                 default:
                     if let premiereDateYear = item.premiereDateYear {
                         Text(premiereDateYear)

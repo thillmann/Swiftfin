@@ -79,9 +79,11 @@ struct PlatformPosterImage<Item: PlatformPoster, Fallback: View>: View {
                 case .some(.fill):
                     item.transform(image: image)
                         .scaledToFill()
+
                 case .some(.fit):
                     item.transform(image: image)
                         .scaledToFit()
+
                 case .none:
                     item.transform(image: image)
                 }

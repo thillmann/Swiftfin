@@ -100,6 +100,7 @@ struct TruncatedText: View {
                         Text(seeMoreText)
                             .foregroundColor(accentColor)
                     }
+
                 case .pill:
                     Button {
                         onSeeMore()
@@ -112,6 +113,7 @@ struct TruncatedText: View {
                             .background(.white.opacity(0.2), in: Capsule())
                     }
                     .buttonStyle(.plain)
+
                 case .view:
                     Text(seeMoreText)
                         .foregroundColor(accentColor)

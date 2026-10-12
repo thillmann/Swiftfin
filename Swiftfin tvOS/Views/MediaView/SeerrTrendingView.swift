@@ -158,6 +158,7 @@ extension SeerrTrendingView {
         func markRequested(_ requestedItem: SeerrClient.MediaResult) {
             results = results.map { item in
                 guard item.id == requestedItem.id, item.mediaType == requestedItem.mediaType else { return item }
+
                 return item.updatingStatus(.pending)
             }
             updateItems()
@@ -205,6 +206,7 @@ extension SeerrTrendingView {
                     if results.count >= resultLimit {
                         return .success(results)
                     }
+
                 case let .failure(error):
                     return .failure(error)
                 }
@@ -260,6 +262,7 @@ extension SeerrTrendingView {
 
             for result in results {
                 guard let match = await libraryMatch(for: result) else { continue }
+
                 matches[SeerrLibraryMatcher.key(for: result)] = match
             }
 

@@ -31,7 +31,8 @@ struct SeerrRequestView: View {
     var body: some View {
         ZStack {
             #if os(tvOS)
-            Color.black.opacity(0.55)
+            Color.black
+                .opacity(0.55)
                 .ignoresSafeArea()
             #endif
 
@@ -122,6 +123,7 @@ struct SeerrRequestView: View {
                     case .success:
                         onComplete()
                         dismiss()
+
                     case let .failure(error):
                         viewModel.errorMessage = error.localizedDescription
                     }
@@ -191,6 +193,7 @@ struct SeerrRequestView: View {
                     let isSelected = viewModel.selectedSeasonNumbers.contains(seasonNumber)
                     Button {
                         guard let seasonNumber = season.seasonNumber else { return }
+
                         if viewModel.selectedSeasonNumbers.contains(seasonNumber) {
                             viewModel.selectedSeasonNumbers.remove(seasonNumber)
                         } else {
@@ -370,6 +373,7 @@ final class SeerrRequestViewModel: ObservableObject {
     var ratingText: String? {
         let value = movieDetails?.voteAverage ?? tvDetails?.voteAverage ?? item.voteAverage
         guard let value else { return nil }
+
         return String(format: "%.1f", value)
     }
 
@@ -383,6 +387,7 @@ final class SeerrRequestViewModel: ObservableObject {
             .filter { !$0.isEmpty }
 
         guard genres.isNotEmpty else { return nil }
+
         return genres.joined(separator: ", ")
     }
 
@@ -392,6 +397,7 @@ final class SeerrRequestViewModel: ObservableObject {
 
     var requestStatusText: String? {
         guard let requestStatus, requestStatus != .unknown else { return nil }
+
         return requestStatus.displayText
     }
 
@@ -441,10 +447,12 @@ final class SeerrRequestViewModel: ObservableObject {
             let detailsResult = await SeerrClient.movieDetails(id: item.id)
             let serviceResult = await SeerrClient.radarrServices()
             apply(detailsResult: detailsResult, serviceResult: serviceResult)
+
         case .tv:
             let detailsResult = await SeerrClient.tvDetails(id: item.id)
             let serviceResult = await SeerrClient.sonarrServices()
             apply(detailsResult: detailsResult, serviceResult: serviceResult)
+
         default:
             loadState = .failed(L10n.unsupportedMediaTypeForSeerrRequest)
         }
@@ -478,6 +486,7 @@ final class SeerrRequestViewModel: ObservableObject {
                 rootFolders: details.rootFolders,
                 languageProfiles: details.languageProfiles
             )
+
         case .failure:
             break
         }
@@ -569,6 +578,7 @@ final class SeerrRequestViewModel: ObservableObject {
         case let .success(services):
             self.services = services
             self.selectedServiceID = services.first(where: { $0.isDefault == true })?.id ?? services.first?.id
+
         case let .failure(error):
             loadState = .failed(error.localizedDescription)
             return
@@ -590,6 +600,7 @@ final class SeerrRequestViewModel: ObservableObject {
             tvDetails = details
             seasons = details.seasons ?? []
             selectedSeasonNumbers = Set(seasons.compactMap(\.seasonNumber))
+
         case let .failure(error):
             loadState = .failed(error.localizedDescription)
             return
@@ -599,6 +610,7 @@ final class SeerrRequestViewModel: ObservableObject {
         case let .success(services):
             self.services = services
             self.selectedServiceID = services.first(where: { $0.isDefault == true })?.id ?? services.first?.id
+
         case let .failure(error):
             loadState = .failed(error.localizedDescription)
             return

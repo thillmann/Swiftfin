@@ -93,17 +93,21 @@ struct DownloadStatusIndicator: View {
             case .available:
                 Image(systemName: "arrow.down")
                     .foregroundStyle(.primary)
+
             case .resolving:
                 ProgressView()
                     .controlSize(.small)
                     .tint(progressColor)
+
             case .active:
                 Image(systemName: showsStopWhenActive ? "stop.fill" : "arrow.down")
                     .font(.system(size: size * 0.26, weight: .bold))
                     .foregroundStyle(progressColor)
+
             case .complete:
                 Image(systemName: "arrow.down")
                     .foregroundStyle(completeForegroundColor)
+
             case .failed:
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(progressColor)
@@ -204,6 +208,7 @@ struct DownloadTaskButton: View {
         // Keep failures source-specific so selecting another version can
         // replace the failed attempt with a new download.
         guard case let .userSelected(mediaSource) = selection else { return nil }
+
         return downloadManager.task(for: item, mediaSource: mediaSource)
     }
 
@@ -211,6 +216,7 @@ struct DownloadTaskButton: View {
         guard let task else {
             return Empty<Void, Never>(completeImmediately: false).eraseToAnyPublisher()
         }
+
         return task.objectWillChange.eraseToAnyPublisher()
     }
 
@@ -292,6 +298,7 @@ struct DownloadTaskButton: View {
 
     private var accessibilityValue: String {
         guard let task else { return "" }
+
         switch task.state {
         case .downloading, .paused:
             return task.transferProgressText
@@ -309,20 +316,24 @@ struct DownloadTaskButton: View {
             switch task.state {
             case .paused:
                 downloadManager.cancel(task: task)
+
             case .downloading, .resolving:
                 downloadManager.cancel(task: task)
+
             case .cancelled, .error:
                 if case .automatic = selection, automaticItemResolver != nil {
                     startDownload()
                 } else {
                     downloadManager.retry(task: task)
                 }
+
             case .ready:
                 if case .automatic = selection, automaticItemResolver != nil {
                     startDownload()
                 } else {
                     downloadManager.download(task: task)
                 }
+
             default:
                 break
             }
@@ -361,6 +372,7 @@ struct SeriesDownloadButton: View {
     private var summary: DownloadManager.DownloadSummary {
         _ = aggregateRevision
         guard let seriesID = viewModel.item.id else { return .empty }
+
         return downloadManager.summary(
             forSeriesID: seriesID,
             expectedTotalCount: expectedEpisodeCount
@@ -371,6 +383,7 @@ struct SeriesDownloadButton: View {
         let availableSeasons = viewModel.seasons
         let counts = availableSeasons.compactMap(\.season.childCount)
         guard counts.count == availableSeasons.count, counts.isNotEmpty else { return nil }
+
         let total = counts.reduce(0, +)
         return total > 0 ? total : nil
     }
@@ -529,6 +542,7 @@ struct SeriesDownloadPickerView: View {
             return downloadManager.summary(for: fallbackEpisodes(for: season))
         }
         guard let seriesID = viewModel.item.id else { return .empty }
+
         return downloadManager.summary(
             forSeriesID: seriesID,
             seasonNumber: season.indexNumber,
@@ -550,6 +564,7 @@ struct SeriesDownloadPickerView: View {
               let seasonViewModel = viewModel.seasons[id: seasonID],
               seasonViewModel.state == .content
         else { return [] }
+
         return Array(seasonViewModel.elements)
             .sorted { ($0.indexNumber ?? -1) < ($1.indexNumber ?? -1) }
     }
@@ -637,6 +652,7 @@ private struct SeasonDownloadPickerView: View {
             return downloadManager.summary(for: episodes)
         }
         guard let seriesID = seriesViewModel.item.id else { return .empty }
+
         return downloadManager.summary(
             forSeriesID: seriesID,
             seasonNumber: season.indexNumber
@@ -813,6 +829,7 @@ private struct DownloadEpisodeRow: View {
         guard let task else {
             return Empty<Void, Never>(completeImmediately: false).eraseToAnyPublisher()
         }
+
         return task.objectWillChange.eraseToAnyPublisher()
     }
 
@@ -834,12 +851,14 @@ private struct DownloadEpisodeRow: View {
             .map(Int64.init),
             bytes > 0
         else { return nil }
+
         return bytes.formatted(.byteCount(style: .file))
     }
 
     private var actionTitle: String {
         if isSourceResolutionActive { return L10n.stopDownload }
         guard let task else { return L10n.download }
+
         switch task.state {
         case .complete:
             return L10n.removeDownload
@@ -855,6 +874,7 @@ private struct DownloadEpisodeRow: View {
     private var actionIcon: String {
         if isSourceResolutionActive { return "stop.fill" }
         guard let task else { return "arrow.down" }
+
         switch task.state {
         case .complete:
             return "trash"

@@ -54,7 +54,7 @@ struct ListRow<Leading: View, Content: View>: View {
             .foregroundStyle(.primary, .secondary)
             .contentShape(.contextMenuPreview, Rectangle())
             #if os(tvOS)
-            .buttonStyle(.card)
+                .buttonStyle(.card)
             #endif
 
             #if !os(tvOS)

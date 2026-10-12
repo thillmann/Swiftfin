@@ -23,6 +23,7 @@ class EpisodeMediaPlayerQueue: ViewModel, MediaPlayerQueue {
         didSet {
             cancellables = []
             guard let manager else { return }
+
             manager.$playbackItem
                 .sink { [weak self] newItem in
                     self?.didReceive(newItem: newItem)
@@ -295,6 +296,7 @@ extension EpisodeMediaPlayerQueue {
 
         private var selectionViewModel: SeasonItemViewModel? {
             guard let id = selection.wrappedValue else { return nil }
+
             return seriesViewModel.seasons[id: id]
         }
 
@@ -364,9 +366,11 @@ extension EpisodeMediaPlayerQueue {
                     if selectionViewModel.elements.isNotEmpty {
                         contentView
                     }
+
                 case .initial, .refreshing:
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+
                 case .error:
                     SeasonErrorView(viewModel: selectionViewModel)
                 }

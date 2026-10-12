@@ -164,6 +164,7 @@ extension DownloadTaskView {
             guard case .complete = downloadTask.state,
                   let record = downloadTask.record
             else { return }
+
             router.route(to: .videoPlayer(downloadRecord: record))
         }
 

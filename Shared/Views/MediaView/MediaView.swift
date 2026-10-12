@@ -46,8 +46,10 @@ struct MediaView: View {
                 filters: .default
             )
             router.route(to: .library(viewModel: viewModel), in: namespace)
+
         case .downloads:
             router.route(to: .downloadList)
+
         case .favorites:
             // TODO: favorites should have its own view instead of a library
             let viewModel = ItemLibraryViewModel(
@@ -56,11 +58,14 @@ struct MediaView: View {
                 filters: .favorites
             )
             router.route(to: .library(viewModel: viewModel), in: namespace)
+
         case .liveTV:
             router.route(to: .liveTV)
+
         #if os(tvOS)
         case .trending:
             router.route(to: .seerrTrending, in: namespace)
+
         case .upcoming:
             router.route(to: .seerrUpcoming(), in: namespace)
         #endif
@@ -106,11 +111,13 @@ struct MediaView: View {
         switch viewModel.state {
         case .initial:
             EmptyView()
+
         case .refreshing:
             ProgressView()
                 .padding(12)
                 .background(.regularMaterial, in: Capsule())
                 .allowsHitTesting(false)
+
         case .error:
             if let error = viewModel.error {
                 HStack(spacing: 12) {

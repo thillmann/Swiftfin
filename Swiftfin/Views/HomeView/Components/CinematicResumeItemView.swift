@@ -312,6 +312,7 @@ extension HomeView {
 
         private func updateSelectedItemViewModel() {
             guard let selectedItem else { return }
+
             selectedItemViewModel.send(.replace(selectedItem))
         }
 
@@ -332,12 +333,14 @@ extension HomeView {
                         switch state {
                         case .changed:
                             updateCarouselDrag(translation: translation, width: width)
+
                         case .ended, .cancelled, .failed:
                             finishCarouselDrag(
                                 translation: translation,
                                 velocity: velocity,
                                 width: width
                             )
+
                         default:
                             break
                         }

@@ -26,6 +26,7 @@ extension PlatformItemView {
                 items: items
             ) { item, _ in
                 guard let mediaSource = item.mediaSources?.first else { return }
+
                 router.route(to: .videoPlayer(item: item, mediaSource: mediaSource))
             }
         }

@@ -118,8 +118,10 @@ struct ChannelLibraryView: View {
                 } else {
                     contentView
                 }
+
             case let .error(error):
                 ErrorView(error: error)
+
             case .initial, .refreshing:
                 ProgressView()
             }

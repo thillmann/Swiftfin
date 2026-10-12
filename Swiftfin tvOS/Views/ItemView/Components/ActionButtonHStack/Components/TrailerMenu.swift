@@ -134,7 +134,6 @@ extension PlatformItemView {
                 error = ErrorMessage(L10n.unableToOpenTrailer)
                 return
             }
-
             guard let externalURL = ExternalTrailerURL(string: urlString) else {
                 error = ErrorMessage(L10n.unableToOpenTrailer)
                 return

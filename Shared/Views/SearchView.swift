@@ -42,7 +42,7 @@ struct SearchView: View {
                 }
                 #if os(tvOS)
                 .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                .foregroundStyle(.secondary)
                 #endif
             }
         }
@@ -121,10 +121,10 @@ struct SearchView: View {
         )
         .environmentObject(focusCoordinator)
         #if os(tvOS)
-        .modifier(SearchSafeAreaModifier())
-        .onReceive(viewModel.filterViewModel.$currentFilters) { filters in
-            searchQuery = filters.query ?? ""
-        }
+            .modifier(SearchSafeAreaModifier())
+            .onReceive(viewModel.filterViewModel.$currentFilters) { filters in
+                searchQuery = filters.query ?? ""
+            }
         #endif
         #if os(iOS)
         .navigationBarFilterDrawer(

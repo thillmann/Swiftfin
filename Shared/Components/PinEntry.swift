@@ -47,42 +47,42 @@ private struct PinEntryModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            #if os(tvOS)
-                .background {
-                    if isPresented {
-                        PinTextField(
-                            isPresented: isPresented,
-                            reason: reason,
-                            completion: finish
-                        )
-                        .id(requestID)
-                    }
-                }
-            #else
-                .alert(L10n.pin, isPresented: $isPresented) {
-                    SecureField(L10n.pin, text: $pin)
+        #if os(tvOS)
+        .background {
+            if isPresented {
+                PinTextField(
+                    isPresented: isPresented,
+                    reason: reason,
+                    completion: finish
+                )
+                .id(requestID)
+            }
+        }
+        #else
+        .alert(L10n.pin, isPresented: $isPresented) {
+                SecureField(L10n.pin, text: $pin)
 
-                    Button(L10n.done) {
-                        finish(.success(pin))
-                    }
-                    Button(L10n.cancel, role: .cancel) {
-                        finish(.failure(CancellationError()))
-                    }
-                    .tint(.red)
-                } message: {
-                    if let reason {
-                        Text(reason)
-                    }
+                Button(L10n.done) {
+                    finish(.success(pin))
                 }
-            #endif
-                .onChange(of: isPresented) {
+                Button(L10n.cancel, role: .cancel) {
+                    finish(.failure(CancellationError()))
+                }
+                .tint(.red)
+            } message: {
+                if let reason {
+                    Text(reason)
+                }
+            }
+        #endif
+            .onChange(of: isPresented) {
                     if !isPresented {
                         finish(.failure(CancellationError()))
                     }
-            }
-            .onDisappear {
-                finish(.failure(CancellationError()))
-            }
+                }
+                .onDisappear {
+                    finish(.failure(CancellationError()))
+                }
     }
 }
 

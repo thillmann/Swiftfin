@@ -121,6 +121,7 @@ extension SeriesEpisodeSelector {
                 }
                 .onFirstAppear {
                     guard !didScrollToPlayButtonSeason else { return }
+
                     didScrollToPlayButtonSeason = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -195,7 +196,6 @@ extension SeriesEpisodeSelector {
             guard let newIndex = viewModel.seasons.firstIndex(where: { $0.id == newSeasonID }) else {
                 return .focusedFromPreviousSeason
             }
-
             guard let oldSeasonID,
                   let oldIndex = viewModel.seasons.firstIndex(where: { $0.id == oldSeasonID }),
                   newIndex < oldIndex

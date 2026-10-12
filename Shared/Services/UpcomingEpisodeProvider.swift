@@ -35,6 +35,7 @@ enum UpcomingEpisodeProvider {
         switch item.type {
         case .series:
             return item
+
         case .episode:
             let episode: BaseItemDto
 
@@ -54,6 +55,7 @@ enum UpcomingEpisodeProvider {
             seriesItem.providerIDs = nil
             seriesItem.type = .series
             return seriesItem
+
         default:
             return nil
         }

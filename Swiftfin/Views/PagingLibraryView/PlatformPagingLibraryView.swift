@@ -100,6 +100,7 @@ struct PlatformPagingLibraryView<Element: PlatformPoster>: View {
         case .collectionFolder, .folder:
             let viewModel = ItemLibraryViewModel(parent: item, filters: .default)
             router.route(to: .library(viewModel: viewModel), in: namespace)
+
         default:
             router.route(to: .item(item: item), in: namespace)
         }
@@ -311,8 +312,10 @@ struct PlatformPagingLibraryView<Element: PlatformPoster>: View {
             } else {
                 elementsView
             }
+
         case .initial, .refreshing:
             ProgressView()
+
         default:
             AssertionFailureView("Expected view for unexpected state")
         }

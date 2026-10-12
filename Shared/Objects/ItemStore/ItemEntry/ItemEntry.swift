@@ -14,7 +14,7 @@ import JellyfinAPI
 struct ItemEntry: Identifiable, Hashable {
 
     /// Distinguishes repeated appearances of the same item in a collection
-    struct ID: Hashable, Sendable {
+    struct ID: Hashable {
 
         let itemID: String
         let occurrence: String?

@@ -118,6 +118,7 @@ extension SeerrUpcomingView {
             results = results.mapValues { items in
                 items.map { item in
                     guard item.id == requestedItem.id, item.mediaType == requestedItem.mediaType else { return item }
+
                     return item.updatingStatus(.pending)
                 }
             }
@@ -137,7 +138,6 @@ extension SeerrUpcomingView {
 
             let firstPageResult = await discover(mediaType: mediaType, page: 1)
             guard self.mediaType == mediaType else { return }
-
             guard case let .success(firstPage) = firstPageResult else {
                 if case let .failure(error) = firstPageResult {
                     self.error = error
@@ -210,6 +210,7 @@ extension SeerrUpcomingView {
         private func releaseDate(for item: UnifiedMediaResult) -> String? {
             guard case let .seerr(item) = item else { return nil }
             guard let date = item.releaseDate ?? item.firstAirDate, date.isNotEmpty else { return nil }
+
             return date
         }
 

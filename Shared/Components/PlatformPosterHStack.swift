@@ -9,7 +9,8 @@
 import Defaults
 import SwiftUI
 
-struct PlatformPosterHStack<Element: PlatformPoster, Data: Collection, PosterButtonView: View>: View where Data.Element == Element, Data.Index == Int {
+struct PlatformPosterHStack<Element: PlatformPoster, Data: Collection, PosterButtonView: View>: View where Data.Element == Element,
+Data.Index == Int {
     private var data: Data
     private var header: AnyView?
     private var title: String?
@@ -248,7 +249,11 @@ private struct PosterHStackItem<Element> {
     let item: Element
 }
 
-extension PlatformPosterHStack where PosterButtonView == PlatformPosterButton<Element, PosterButtonDefaultOverlay<Element>, PosterFallbackContentView> {
+extension PlatformPosterHStack where PosterButtonView == PlatformPosterButton<
+    Element,
+    PosterButtonDefaultOverlay<Element>,
+    PosterFallbackContentView
+> {
 
     init(
         title: String? = nil,

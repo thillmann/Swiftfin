@@ -122,6 +122,7 @@ final class AetherMediaPlayerProxy: VideoMediaPlayerLayoutConfigurable {
         desiredPlaybackRate = Float(rate)
 
         guard engine.state == .playing else { return }
+
         engine.setRate(Float(rate))
     }
 
@@ -131,6 +132,7 @@ final class AetherMediaPlayerProxy: VideoMediaPlayerLayoutConfigurable {
 
     func setAudioStream(_ stream: MediaStream) {
         guard let index = stream.index, index >= 0 else { return }
+
         engine.selectAudioTrack(index: index)
     }
 
@@ -174,10 +176,12 @@ private extension AetherMediaPlayerProxy {
         // tracking, and MPNowPlayingInfoCenter. Updating all of those at
         // Aether's transport-clock cadence can monopolize the main actor
         // and starve the software playback path.
-        engine.clock.$currentTime
+        engine.clock
+            .$currentTime
             .throttle(for: .seconds(1), scheduler: RunLoop.main, latest: true)
             .sink { [weak self] seconds in
                 guard seconds.isFinite else { return }
+
                 self?.manager?.seconds = .seconds(seconds)
             }
             .store(in: &engineCancellables)
@@ -187,17 +191,23 @@ private extension AetherMediaPlayerProxy {
         switch state {
         case .idle:
             isBuffering.value = false
+
         case .loading, .seeking:
             isBuffering.value = true
+
         case .playing:
             isBuffering.value = false
             engine.setRate(desiredPlaybackRate)
+
         case .paused:
             isBuffering.value = false
+
         case .ended:
             isBuffering.value = false
             guard manager?.playbackItem?.baseItem.isLiveStream == false else { return }
+
             Task { await manager?.ended() }
+
         case let .error(message):
             isBuffering.value = false
             Task { await manager?.error(ErrorMessage("AetherEngine playback failed: \(message)")) }
@@ -209,6 +219,7 @@ private extension AetherMediaPlayerProxy {
 
         let sidecars: [(stream: MediaStream, track: ExternalSubtitleTrack)] = item.subtitleStreams.sidecarSubtitles.compactMap { stream in
             guard let url = stream.resolvedDeliveryURL else { return nil }
+
             return (
                 stream,
                 ExternalSubtitleTrack(
@@ -228,6 +239,7 @@ private extension AetherMediaPlayerProxy {
         )
         let initialAudioIndex: Int32? = {
             guard let index = item.selectedAudioStreamIndex, index >= 0 else { return nil }
+
             if item.mediaSource.transcodingURL != nil { return 1 }
             let externalCount = item.mediaSource.mediaStreams?.count(where: { $0.isExternal == true }) ?? 0
             return Int32(max(0, index - externalCount))
@@ -293,6 +305,7 @@ private extension AetherMediaPlayerProxy {
     func seek(to seconds: Double) {
         Task { @MainActor [weak self] in
             guard let self else { return }
+
             await engine.seek(to: max(0, seconds))
         }
     }
@@ -318,7 +331,8 @@ extension AetherMediaPlayerProxy {
                 AetherSubtitleOverlay(engine: engine)
             }
             .onReceive(
-                engine.clock.$currentTime
+                engine.clock
+                    .$currentTime
                     .throttle(for: .milliseconds(200), scheduler: RunLoop.main, latest: true)
             ) { seconds in
                 if !viewState.isScrubbing {
@@ -353,10 +367,12 @@ extension AetherMediaPlayerProxy {
             }
             .allowsHitTesting(false)
             .onReceive(
-                engine.clock.$currentTime
+                engine.clock
+                    .$currentTime
                     .throttle(for: .milliseconds(100), scheduler: RunLoop.main, latest: true)
             ) { seconds in
                 guard subtitleCues.isNotEmpty else { return }
+
                 currentTime = seconds
             }
             .onReceive(engine.$subtitleCues) { cues in
@@ -424,8 +440,13 @@ private final class AetherPictureInPictureCoordinator: NSObject,
     let isAvailable: PublishedBox<Bool> = .init(initialValue: false)
     private var availabilityObservation: NSKeyValueObservation?
 
-    func start() { controller?.startPictureInPicture() }
-    func stop() { controller?.stopPictureInPicture() }
+    func start() {
+        controller?.startPictureInPicture()
+    }
+
+    func stop() {
+        controller?.stopPictureInPicture()
+    }
 
     private var controller: AVPictureInPictureController?
     private var softwareSource: SoftwarePiPSource?
@@ -478,6 +499,7 @@ private final class AetherPictureInPictureCoordinator: NSObject,
         }
 
         guard sourceIdentity != identity else { return }
+
         sourceIdentity = identity
 
         if let controller, controller.isPictureInPictureActive {
@@ -487,7 +509,10 @@ private final class AetherPictureInPictureCoordinator: NSObject,
             controller.delegate = self
             controller.canStartPictureInPictureAutomaticallyFromInline = true
             self.controller = controller
-            availabilityObservation = controller.observe(\.isPictureInPicturePossible, options: [.initial, .new]) { [weak self] controller, _ in
+            availabilityObservation = controller.observe(\.isPictureInPicturePossible, options: [
+                .initial,
+                .new
+            ]) { [weak self] controller, _ in
                 Task { @MainActor in self?.isAvailable.value = controller.isPictureInPicturePossible }
             }
         }
@@ -556,9 +581,20 @@ private final class AetherPictureInPictureCoordinator: NSObject,
 
 #if os(iOS)
 extension AetherMediaPlayerProxy: MediaPlayerPictureInPictureCapable {
-    var isPiPActive: PublishedBox<Bool> { pictureInPictureCoordinator.isActive }
-    var isPiPAvailable: PublishedBox<Bool> { pictureInPictureCoordinator.isAvailable }
-    func startPiP() { pictureInPictureCoordinator.start() }
-    func stopPiP() { pictureInPictureCoordinator.stop() }
+    var isPiPActive: PublishedBox<Bool> {
+        pictureInPictureCoordinator.isActive
+    }
+
+    var isPiPAvailable: PublishedBox<Bool> {
+        pictureInPictureCoordinator.isAvailable
+    }
+
+    func startPiP() {
+        pictureInPictureCoordinator.start()
+    }
+
+    func stopPiP() {
+        pictureInPictureCoordinator.stop()
+    }
 }
 #endif

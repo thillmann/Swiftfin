@@ -22,7 +22,6 @@ extension PlatformItemView {
 
         private var selectedMediaSource: MediaSourceInfo? {
             guard let mediaSources = viewModel.item.mediaSources else { return nil }
-
             guard let selectedMediaSource = viewModel.selectedMediaSource else {
                 return mediaSources.first
             }

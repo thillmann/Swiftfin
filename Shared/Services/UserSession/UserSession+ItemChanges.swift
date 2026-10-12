@@ -16,6 +16,7 @@ extension UserSession {
     func observeItemChanges() {
         platformItemChanges = items.changes.sink { [weak self] change in
             guard let self else { return }
+
             switch change {
             case let .updated(update):
                 if let value = self.items[update.itemID]?.value {
@@ -23,10 +24,13 @@ extension UserSession {
                 } else {
                     Notifications[.itemShouldRefreshMetadata].post(update.itemID)
                 }
+
             case let .deleted(id):
                 Notifications[.didDeleteItem].post(id)
+
             case .libraryChanged:
                 Notifications[.didRequestGlobalRefresh].post()
+
             case .invalidated:
                 break
             }

@@ -39,7 +39,8 @@ extension PlatformItemView {
                 details.append(.init(label: "Rated", value: officialRating))
             }
 
-            let productionLocations = viewModel.item.productionLocations?
+            let productionLocations = viewModel.item
+                .productionLocations?
                 .filter(\.isNotEmpty)
                 .joined(separator: ", ") ?? ""
             if productionLocations.isNotEmpty {

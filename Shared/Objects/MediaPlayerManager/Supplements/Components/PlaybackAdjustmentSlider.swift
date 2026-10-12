@@ -136,10 +136,10 @@ struct PlaybackAdjustmentSlider: View {
             }
             .frame(maxWidth: .infinity)
             #if os(tvOS)
-            .focusSection()
+                .focusSection()
             #endif
-            .buttonStyle(.capsule)
-            .padding(.top, UIDevice.isTV ? 8 : 4)
+                .buttonStyle(.capsule)
+                .padding(.top, UIDevice.isTV ? 8 : 4)
         }
         .controlSize(UIDevice.isTV ? .large : .regular)
         .accessibilityElement(children: .contain)

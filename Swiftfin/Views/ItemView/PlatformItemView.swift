@@ -116,8 +116,10 @@ struct PlatformItemView: View {
             case .cinematic:
                 return CinematicScrollView(viewModel: viewModel, content: content)
             }
+
         case .musicArtist:
             return CompactPosterScrollView(viewModel: viewModel, content: content)
+
         default:
             return SimpleScrollView(viewModel: viewModel, content: content)
         }
@@ -145,8 +147,10 @@ struct PlatformItemView: View {
                     innerBody
                         .navigationTitle(viewModel.item.displayTitle)
                 }
+
             case let .error(error):
                 ErrorView(error: error)
+
             case .initial, .refreshing:
                 ProgressView()
             }
@@ -294,8 +298,10 @@ extension PlatformItemView {
                     case .deleted:
                         UIDevice.feedback(.success)
                         router.pop()
+
                     case .metadataRefreshStarted:
                         UIDevice.feedback(.success)
+
                     case .updated:
                         break
                     }

@@ -54,6 +54,7 @@ struct CinematicBackgroundView: View {
                     showsShadowGradient: showsShadowGradient,
                     showsBlur: showsBlur
                 )
+
             case let .selection(viewModel, initialItem):
                 SelectionBackgroundContent(
                     viewModel: viewModel,

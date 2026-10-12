@@ -104,6 +104,7 @@ struct SeriesEpisodeSelector: View {
         .onReceive(viewModel.$isLoadingPlayButtonItem.removeDuplicates()) { isLoading in
             Task { @MainActor in
                 guard !isLoading, selectionViewModel == nil else { return }
+
                 selection = viewModel.seasons.first?.id
             }
         }

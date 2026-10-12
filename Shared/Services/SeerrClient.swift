@@ -107,6 +107,7 @@ enum SeerrClient {
 
         var mediaStatus: MediaStatus? {
             guard let status else { return nil }
+
             return MediaStatus(rawValue: status)
         }
     }
@@ -193,6 +194,7 @@ enum SeerrClient {
             func intValue(for keys: [String]) -> Int? {
                 for key in keys {
                     guard let codingKey = DynamicCodingKey(stringValue: key) else { continue }
+
                     if let value = try? container.decode(Int.self, forKey: codingKey) {
                         return value
                     }
@@ -208,6 +210,7 @@ enum SeerrClient {
             func stringValue(for keys: [String]) -> String? {
                 for key in keys {
                     guard let codingKey = DynamicCodingKey(stringValue: key) else { continue }
+
                     if let value = try? container.decode(String.self, forKey: codingKey), !value.isEmpty {
                         return value
                     }
@@ -355,6 +358,7 @@ enum SeerrClient {
             } catch {
                 return .failure(ProbeError(message: "Seerr responded, but Swiftfin could not read the status."))
             }
+
         case let .failure(error):
             return .failure(error)
         }
@@ -639,6 +643,7 @@ enum SeerrClient {
             default:
                 return .failure(ProbeError(message: "Seerr request failed with HTTP \(http.statusCode)."))
             }
+
         case let .failure(error):
             return .failure(error)
         }
@@ -668,6 +673,7 @@ enum SeerrClient {
             } catch {
                 return .failure(ProbeError(message: "Seerr responded, but Swiftfin could not read the response."))
             }
+
         case let .failure(error):
             return .failure(error)
         }
@@ -706,6 +712,7 @@ enum SeerrClient {
             } catch {
                 return .failure(ProbeError(message: "Seerr responded, but Swiftfin could not read available profiles."))
             }
+
         case let .failure(error):
             return .failure(error)
         }
@@ -724,10 +731,10 @@ enum SeerrClient {
             }
             return .failure(ProbeError(message: "Seerr configuration is invalid."))
         }
-
         guard var components = URLComponents(url: apiURL(path, baseURL: credentials.serverURL), resolvingAgainstBaseURL: false) else {
             return .failure(ProbeError(message: "Enter a valid Seerr server URL."))
         }
+
         let filteredQueryItems = queryItems.filter { !($0.value?.isEmpty ?? true) }
         if !filteredQueryItems.isEmpty {
             components.queryItems = filteredQueryItems
@@ -767,7 +774,6 @@ enum SeerrClient {
         guard !serverURLString.isEmpty else {
             return .failure(ProbeError(message: "Provide a Seerr server URL."))
         }
-
         guard let serverURL = SeerrIntegration.serverURL else {
             return .failure(ProbeError(message: "Enter a valid Seerr server URL."))
         }

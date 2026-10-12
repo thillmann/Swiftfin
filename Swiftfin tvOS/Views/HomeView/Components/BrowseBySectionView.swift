@@ -448,6 +448,7 @@ extension HomeView.BrowseBySectionView {
                 )
 
                 guard case let .success(response) = pageResult else { break }
+
                 appendFiltered(response.results, for: option, to: &results, seenIDs: &seenIDs)
 
                 if results.count >= resultLimit {

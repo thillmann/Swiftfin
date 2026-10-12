@@ -39,6 +39,7 @@ final class EpisodeItemViewModel: ItemViewModel {
                 }
             }
             .asAnyCancellable()
+
         default: ()
         }
 

@@ -119,7 +119,6 @@ extension Defaults.Keys {
             UserKey("showPosterLabels", default: true)
         }
 
-
         static var itemViewType: Key<ItemViewType> {
             UserKey("mediaItemViewType", default: .enhanced)
         }
@@ -221,16 +220,13 @@ extension Defaults.Keys {
                 UserKey("listColumnCount", default: 1)
             }
 
-
             static var posterType: Key<PosterDisplayType> {
                 UserKey("libraryPosterType", default: .portrait)
             }
 
-
             static var displayType: Key<LibraryDisplayType> {
                 UserKey("libraryViewType", default: .grid)
             }
-
 
             static var cinematicBackground: Key<Bool> {
                 UserKey("libraryCinematicBackground", default: true)
@@ -448,16 +444,13 @@ extension Defaults.Keys {
                 UserKey("subtitleSize", default: 9)
             }
 
-
             static var subtitleFontName: Key<String> {
                 UserKey("subtitleFontName", default: UIFont.systemFont(ofSize: 14).fontName)
             }
 
-
             static var subtitleColor: Key<Color> {
                 UserKey("subtitleColor", default: .white)
             }
-
 
             static var configuration: Key<SubtitleConfiguration> {
                 UserKey("subtitleConfiguration", default: .default)

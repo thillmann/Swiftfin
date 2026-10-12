@@ -81,7 +81,6 @@ extension NavigationRoute {
     }
 }
 
-
 extension NavigationRoute {
     #if os(tvOS)
     static var seerrTrending: NavigationRoute {
@@ -111,7 +110,6 @@ extension NavigationRoute {
     }
     #endif
 
-
     static var channels: NavigationRoute {
         NavigationRoute(
             id: "channels"
@@ -123,6 +121,7 @@ extension NavigationRoute {
             #endif
         }
     }
+
     static func videoPlayer(
         item: BaseItemDto,
         mediaSource: MediaSourceInfo? = nil,
@@ -133,6 +132,7 @@ extension NavigationRoute {
         }
         return Self.videoPlayer(provider: provider, queue: queue)
     }
+
     static func videoPlayer(downloadRecord: DownloadRecord) -> NavigationRoute {
         let provider = MediaPlayerItemProvider(item: downloadRecord.item, offlineRecord: downloadRecord) { _ in
             try await MediaPlayerItem.buildOffline(record: downloadRecord)

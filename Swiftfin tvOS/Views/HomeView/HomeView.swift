@@ -74,6 +74,7 @@ struct HomeView: View {
     private var movieLibraries: [LatestInLibraryViewModel] {
         viewModel.libraries.filter { library in
             guard let collectionType = collectionType(for: library) else { return false }
+
             return [.homevideos, .movies, .musicvideos].contains(collectionType)
         }
     }
@@ -223,11 +224,14 @@ struct HomeView: View {
             case .cinematicResume, .cinematicRecentlyAdded:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.hero)
+
             case .nextUp, .recentlyAdded, .upcomingMovies, .upcomingTVShows, .studios, .networks, .movieGenres, .tvShowGenres, .library:
                 suppressFocusExitReset = false
                 updateHeroPresentation(.belowHero)
+
             case nil:
                 guard !suppressFocusExitReset else { return }
+
                 scheduleFocusExitReset()
             }
         }

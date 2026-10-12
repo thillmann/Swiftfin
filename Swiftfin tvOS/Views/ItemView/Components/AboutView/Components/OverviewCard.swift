@@ -20,6 +20,7 @@ extension PlatformItemView.AboutView {
 
         private var genres: String? {
             guard let genres = item.genres, genres.isNotEmpty else { return nil }
+
             return genres.joined(separator: ", ")
         }
 

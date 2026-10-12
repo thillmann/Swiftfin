@@ -24,8 +24,10 @@ extension PlatformItemView {
                 switch viewModel.seasonsState {
                 case .initial, .loading:
                     SeriesEpisodeSelector.LoadingSelector()
+
                 case .content where viewModel.seasons.isNotEmpty:
                     SeriesEpisodeSelector(viewModel: viewModel)
+
                 case .error:
                     Button {
                         viewModel.send(.refresh)
@@ -33,6 +35,7 @@ extension PlatformItemView {
                         Label(L10n.retry, systemImage: "arrow.clockwise")
                     }
                     .edgePadding(.horizontal)
+
                 case .content:
                     EmptyView()
                 }

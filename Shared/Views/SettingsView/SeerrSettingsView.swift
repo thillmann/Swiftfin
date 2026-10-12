@@ -173,14 +173,17 @@ struct SeerrSettingsView: View {
         switch probeState {
         case .idle:
             L10n.provideSeerrServerURLAndAPIKey
+
         case .validating:
             L10n.validatingSeerrConnection
+
         case .succeeded:
             if let seerVersion {
                 L10n.seerrVersionEnabledAndValidated(seerVersion)
             } else {
                 L10n.seerrEnabledAndValidated
             }
+
         case let .failed(message):
             message
         }

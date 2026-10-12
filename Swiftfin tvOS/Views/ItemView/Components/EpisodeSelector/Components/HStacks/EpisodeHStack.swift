@@ -86,6 +86,7 @@ extension SeriesEpisodeSelector {
                         }
                         .episodeHStackItemFrame()
                         .id(EpisodeScrollTarget.episode(entry.id))
+
                     case let .seasonError(entry):
                         SeriesEpisodeSelector.ErrorCard(error: entry.error) {
                             entry.viewModel.send(.refresh)
@@ -252,6 +253,7 @@ extension SeriesEpisodeSelector {
             switch request.reason {
             case .focusedFromNextSeason:
                 return .episode(targets.lastEpisodeID)
+
             case let .initialPlayButtonItem(episodeID):
                 if let episodeID,
                    snapshot.episodeToSeason[episodeID] == request.seasonID
@@ -260,6 +262,7 @@ extension SeriesEpisodeSelector {
                 }
 
                 return .episode(targets.firstEpisodeID)
+
             case .focusedFromPreviousSeason, .selected:
                 return .episode(targets.firstEpisodeID)
             }

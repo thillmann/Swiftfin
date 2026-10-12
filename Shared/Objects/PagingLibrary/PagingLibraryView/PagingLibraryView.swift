@@ -127,20 +127,20 @@ struct PagingLibraryView<Library: PagingLibrary>: View where Library.Element: Li
                 )
             ) { element in
                 element.makeBody(libraryStyle: libraryStyle)
-                    #if os(tvOS)
-                        .if(element.id == viewModel.displayedElements.first?.id) { view in
-                            view
-                                .coordinatedFocus(Focus.firstElement.rawValue)
-                                .environmentObject(focusCoordinator)
+                #if os(tvOS)
+                    .if(element.id == viewModel.displayedElements.first?.id) { view in
+                        view
+                            .coordinatedFocus(Focus.firstElement.rawValue)
+                            .environmentObject(focusCoordinator)
+                    }
+                    .introspect(.viewController, on: .tvOS(.v26...)) { controller in
+                        // Do not have hosting controller apply safe regions
+                        // TODO: do in CollectionVGrid instead
+                        if let hostingController = controller as? UIHostingController<AnyView> {
+                            hostingController.safeAreaRegions.remove(.container)
                         }
-                        .introspect(.viewController, on: .tvOS(.v26...)) { controller in
-                            // Do not have hosting controller apply safe regions
-                            // TODO: do in CollectionVGrid instead
-                            if let hostingController = controller as? UIHostingController<AnyView> {
-                                hostingController.safeAreaRegions.remove(.container)
-                            }
-                        }
-                    #endif
+                    }
+                #endif
             }
             .onReachedBottomEdge(offset: .offset(300)) {
                 if viewModel.isSearchActive {
@@ -193,9 +193,9 @@ struct PagingLibraryView<Library: PagingLibrary>: View where Library.Element: Li
                 switch viewModel.state {
                 case .initial, .refreshing:
                     ProgressView()
-                        #if os(tvOS)
-                            .coordinatedFocus(.placeholder)
-                        #endif
+                    #if os(tvOS)
+                        .coordinatedFocus(.placeholder)
+                    #endif
 
                 case .content:
                     if viewModel.isSearchActive, viewModel.background.is(.searching) {
@@ -207,7 +207,7 @@ struct PagingLibraryView<Library: PagingLibrary>: View where Library.Element: Li
                         )
                         .focusable()
                         #if os(tvOS)
-                        .coordinatedFocus(.fallback)
+                            .coordinatedFocus(.fallback)
                         #endif
                     } else {
                         elementsView
@@ -215,9 +215,9 @@ struct PagingLibraryView<Library: PagingLibrary>: View where Library.Element: Li
 
                 case .error:
                     viewModel.error.map(ErrorView.init)
-                        #if os(tvOS)
-                            .coordinatedFocus(.fallback)
-                        #endif
+                    #if os(tvOS)
+                        .coordinatedFocus(.fallback)
+                    #endif
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

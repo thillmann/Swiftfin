@@ -27,6 +27,7 @@ final class SeasonItemViewModel: PlatformPagingLibraryViewModel<BaseItemDto>, Id
 
     override func get(page: Int) async throws -> [BaseItemDto] {
         guard let parentID = parent?.id else { return [] }
+
         let seriesID = season.seriesID ?? season.parentID ?? parentID
 
         var parameters = Paths.GetEpisodesParameters()

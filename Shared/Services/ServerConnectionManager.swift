@@ -208,7 +208,8 @@ final class ServerConnectionManager: ObservableObject {
         guard !Task.isCancelled, isAutoSwitchEnabled, let userSession else { return }
 
         if context == .unavailable {
-            context = await NetworkConnectionContext.current(includeWifiSSID: userSession.server.serverConnections.contains(where: \.requiresWifiSSID))
+            context = await NetworkConnectionContext
+                .current(includeWifiSSID: userSession.server.serverConnections.contains(where: \.requiresWifiSSID))
         }
 
         let currentConnection = userSession.server.activeServerConnection

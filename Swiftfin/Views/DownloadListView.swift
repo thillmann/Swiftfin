@@ -16,6 +16,7 @@ fileprivate enum DownloadGrouping {
         guard let name = task.item.seriesName?.trimmingCharacters(in: .whitespacesAndNewlines),
               !name.isEmpty
         else { return L10n.unknown }
+
         return name
     }
 
@@ -41,10 +42,13 @@ fileprivate enum DownloadGrouping {
         case let (left?, right?) where left != right:
             if left.0 != right.0 { return left.0 < right.0 }
             return left.1 < right.1
+
         case (_?, nil):
             return true
+
         case (nil, _?):
             return false
+
         default:
             let comparison = lhs.item.displayTitle.localizedStandardCompare(rhs.item.displayTitle)
             if comparison != .orderedSame { return comparison == .orderedAscending }
@@ -132,7 +136,8 @@ struct DownloadListView: View {
                 tasks: group.items.sorted(by: DownloadGrouping.episodeSort),
                 seriesKey: key
             )
-        }.sorted {
+        }
+        .sorted {
             let titleComparison = $0.title.localizedStandardCompare($1.title)
             if titleComparison != .orderedSame { return titleComparison == .orderedAscending }
             return $0.id < $1.id
@@ -400,6 +405,7 @@ extension DownloadListView {
 
         private func showDetails() {
             guard let seriesID = item.tasks.first?.item.seriesID else { return }
+
             router.route(
                 to: .item(
                     item: BaseItemDto(
@@ -441,6 +447,7 @@ struct DownloadedSeriesView: View {
         downloadManager.downloadedItems()
             .filter { task in
                 guard task.item.type == .episode else { return false }
+
                 let seriesTitle = DownloadGrouping.seriesName(for: task)
                 return DownloadGrouping.seriesID(for: task, title: seriesTitle) == seriesKey
             }

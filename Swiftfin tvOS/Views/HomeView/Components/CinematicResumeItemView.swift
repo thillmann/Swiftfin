@@ -342,7 +342,6 @@ extension HomeView {
                 detailedSelectedItem = nil
                 return
             }
-
             guard let userSession = viewModel.userSession else {
                 detailedSelectedItem = nil
                 return

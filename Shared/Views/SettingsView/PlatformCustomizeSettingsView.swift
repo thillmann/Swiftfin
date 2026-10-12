@@ -125,6 +125,7 @@ struct PlatformCustomizeSettingsView: View {
     private func updateConfiguration(_ modify: (inout UserConfiguration) -> Void) {
         guard viewModel.user.id != nil else { return }
         guard var configuration = viewModel.user.configuration else { return }
+
         modify(&configuration)
         viewModel.updateConfiguration(configuration)
     }

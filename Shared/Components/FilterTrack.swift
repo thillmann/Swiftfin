@@ -76,12 +76,12 @@ struct FilterTrack: View {
     @ViewBuilder
     private func buttonIcon(for target: FocusTarget) -> some View {
         Image(systemName: target.systemImage)
-            #if os(tvOS)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 32, height: 32)
-                .padding(.vertical, 8)
-            #endif
+        #if os(tvOS)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 32, height: 32)
+            .padding(.vertical, 8)
+        #endif
     }
 
     @ViewBuilder
@@ -147,7 +147,7 @@ struct FilterTrack: View {
         .controlSize(UIDevice.isTV ? .large : .small)
         .buttonStyle(.capsule(selectionTint: accentColor, focusTint: UIDevice.isTV ? .white : nil))
         #if os(tvOS)
-        .animation(.snappy(duration: 0.2), value: focus.wrappedValue)
+            .animation(.snappy(duration: 0.2), value: focus.wrappedValue)
         #endif
     }
 }

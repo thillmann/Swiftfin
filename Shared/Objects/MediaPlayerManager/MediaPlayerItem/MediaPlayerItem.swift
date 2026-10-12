@@ -162,6 +162,7 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
     /// Decides whether a track change can be performed by the player in place, or whether the server must produce a new stream.
     func isRebuildRequired(type: MediaStreamType, from oldIndex: Int?, to newIndex: Int?) -> Bool {
         guard origin == .server else { return false }
+
         let isTranscoding = mediaSource.transcodingURL != nil
 
         // Disabling a track is ALWAYS a local-only operation.

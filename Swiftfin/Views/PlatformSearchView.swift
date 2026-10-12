@@ -414,8 +414,10 @@ struct PlatformSearchView: View {
         switch item.type {
         case .program, .tvChannel:
             guard let userSession = viewModel.userSession else { return }
+
             let provider = item.getPlaybackItemProvider(userSession: userSession)
             router.route(to: .videoPlayer(provider: provider))
+
         default:
             router.route(to: .item(item: item), in: namespace)
         }
@@ -517,6 +519,7 @@ struct PlatformSearchView: View {
                 viewModel.error.map {
                     ErrorView(error: $0)
                 }
+
             case .initial:
                 if viewModel.hasNoResults {
                     if viewModel.canSearch {
@@ -527,6 +530,7 @@ struct PlatformSearchView: View {
                 } else {
                     resultsView
                 }
+
             case .searching:
                 if viewModel.hasNoResults {
                     ProgressView()
