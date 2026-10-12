@@ -85,3 +85,8 @@ Not performed: app build/type checking, dependency resolution on a fresh checkou
 
 - Homebrew SwiftFormat 0.61.1 does not recognize four optional upstream-enabled rules: `preferContains`, `preferFirstWhere`, `preferFlatMap`, and `preferMinOverSorted`. Removed those four entries from `.swiftformat`; all other formatting rules and strict unknown-rule validation remain. These formatting preferences do not change app behavior. The build phases and CI continue to use the same checked-in configuration.
 - Verified the installed formatter loads the corrected configuration and completes a scratch-file dry run without writing files. Whitespace checks passed. No app build or repository-wide formatting was run.
+
+## Poster image scaling follow-up
+
+- Restored the source branch's `Shared/Extensions/UIScreen.swift` scaling overloads. Preserved person-poster and item-image requests still call these helpers; their omission caused Swift to interpret `UIScreen.main.scale` as a `CGFloat` property being called. Both overloads preserve native-scale image sizing, including fractional scaling for `CGFloat` dimensions.
+- Verified the actual restored UIKit extension and the affected call shapes using standalone Swift 6 type checks for iOS and tvOS simulator SDKs. No app build was run. Existing Xcode formatter edits in other files were left untouched.
