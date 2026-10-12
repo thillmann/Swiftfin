@@ -10,7 +10,7 @@ import SwiftUI
 
 extension VideoPlayer.PlaybackControls {
 
-    struct OverlayButtonStyle: ButtonStyle {
+    struct PlatformOverlayButtonStyle: ButtonStyle {
 
         @Environment(\.isEnabled)
         private var isEnabled
