@@ -165,7 +165,7 @@ extension PlatformItemView.CompactPosterScrollView {
                             ? [viewModel.imageSource(.primary, maxWidth: 600)]
                             : nil
                     )
-                    .environment(\.isOverComplexContent, true)
+                    .withViewContext(.isOverComplexContent)
                     .frame(width: 130)
                     .accessibilityIgnoresInvertColors()
 

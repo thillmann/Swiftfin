@@ -174,7 +174,8 @@ private func makeAttributeHStackPreviewViewModel() -> ItemViewModel {
             .audioChannels,
             .subtitles,
         ],
-        viewModel: makeAttributeHStackPreviewViewModel(),
+        item: makeAttributeHStackPreviewViewModel().item,
+        selectedMediaSource: makeAttributeHStackPreviewViewModel().selectedMediaSource,
         alignment: .leading
     )
     .padding()

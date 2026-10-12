@@ -36,7 +36,8 @@ struct RotateContentView: UIViewRepresentable {
             _ content: () -> any View
         ) {
 
-            let newHostingController = UIHostingController(rootView: AnyView(content()), ignoreSafeArea: true)
+            let newHostingController = UIHostingController(rootView: AnyView(content()))
+            newHostingController.safeAreaRegions = []
             newHostingController.view.translatesAutoresizingMaskIntoConstraints = false
             newHostingController.view.backgroundColor = .clear
 

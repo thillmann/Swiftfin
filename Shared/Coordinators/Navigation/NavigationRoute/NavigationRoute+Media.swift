@@ -81,6 +81,7 @@ extension NavigationRoute {
     }
 }
 
+@MainActor
 extension NavigationRoute {
     #if os(tvOS)
     static var seerrTrending: NavigationRoute {

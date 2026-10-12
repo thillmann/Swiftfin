@@ -237,7 +237,7 @@ extension MediaInfoSupplement {
                 )
                 .frame(width: posterWidth)
                 .posterCornerRadius(posterDisplayType)
-                .environment(\.isOverComplexContent, true)
+                .withViewContext(.isOverComplexContent)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text(item.displayTitle)

@@ -39,7 +39,7 @@ struct UnwatchedIndicator: View {
                             .foregroundStyle(.secondary)
                     }
             } else {
-                Q3RightTriangle()
+                PlatformUnwatchedRightTriangle()
                     .frame(width: size, height: size)
                     .foregroundStyle(.secondary)
             }
@@ -47,7 +47,7 @@ struct UnwatchedIndicator: View {
     }
 }
 
-struct Q3RightTriangle: Shape {
+struct PlatformUnwatchedRightTriangle: Shape {
 
     func path(in rect: CGRect) -> Path {
         var path = Path()

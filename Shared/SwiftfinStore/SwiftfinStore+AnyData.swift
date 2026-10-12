@@ -26,7 +26,10 @@ extension AnyStoredData {
             )
             .compactMap(\.data)
             .compactMap {
-                try JSONDecoder().decode(Value.self, from: $0)
+                if Value.self == [DownloadRecord].self || Value.self == DownloadRecord.self {
+                    return try OfflineMetadataDecoder.decode(Value.self, from: $0)
+                }
+                return try JSONDecoder().decode(Value.self, from: $0)
             }
 
         assert(values.count < 2, "More than one stored object for same name, id, and field!")

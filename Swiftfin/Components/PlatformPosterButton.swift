@@ -634,7 +634,7 @@ struct PosterButtonMenuActions: View {
         guard item.id != nil else { return }
 
         var updatedItem = item
-        var userData = updatedItem.userData ?? .init()
+        var userData = updatedItem.userData ?? .init(key: updatedItem.id ?? "")
 
         if let isFavorite {
             userData.isFavorite = isFavorite

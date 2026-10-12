@@ -264,7 +264,7 @@ class ItemViewModel: ViewModel, PlatformStateful {
         presentedItem.mediaSources = [offlineRecord.mediaSource]
         if let progress = offlineRecord.offlineProgress {
             if presentedItem.userData == nil {
-                presentedItem.userData = UserItemDataDto()
+                presentedItem.userData = UserItemDataDto(key: presentedItem.id ?? offlineRecord.presentationItemID)
             }
             presentedItem.userData?.playbackPositionTicks = progress.positionTicks
             presentedItem.userData?.isPlayed = progress.isPlayed

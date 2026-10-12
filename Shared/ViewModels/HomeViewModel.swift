@@ -359,7 +359,7 @@ final class HomeViewModel: ViewModel, PlatformStateful {
 
         var elements = resumeItems.elements
         if elements[index].userData == nil {
-            elements[index].userData = UserItemDataDto()
+            elements[index].userData = UserItemDataDto(key: elements[index].id ?? "")
         }
         elements[index].userData?.isPlayed = isPlayed
         let updatedItem = elements[index]

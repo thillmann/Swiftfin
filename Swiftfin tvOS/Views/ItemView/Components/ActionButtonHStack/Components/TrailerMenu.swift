@@ -120,11 +120,7 @@ extension PlatformItemView {
                 return
             }
 
-            let manager = MediaPlayerManager(item: trailer) { item in
-                try await MediaPlayerItem.build(for: item, mediaSource: selectedMediaSource)
-            }
-
-            router.route(to: .videoPlayer(manager: manager))
+            router.route(to: .videoPlayer(item: trailer, mediaSource: selectedMediaSource))
         }
 
         // MARK: Play External Trailer

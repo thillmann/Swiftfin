@@ -46,7 +46,7 @@ extension SeriesEpisodeSelector {
                     )
                 }
                 .focused($isFocused)
-                .focusedValue(\.focusedPoster, PlatformAnyPoster(entry.episode))
+                .focusedValue(\.focusedPoster, AnyPoster(entry.episode))
                 .offset(y: contentFocusPosterOffset)
                 .animation(.easeOut(duration: 0.18), value: isContentFocused)
                 .onChange(of: isFocused) { _, newValue in

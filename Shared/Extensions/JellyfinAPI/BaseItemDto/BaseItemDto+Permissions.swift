@@ -12,6 +12,11 @@ import SwiftUI
 
 extension BaseItemDto {
 
+    /// Preserve the platform item's advanced menu visibility using current permissions.
+    var showEditorMenu: Bool {
+        canEditMetadata || canEditSubtitles
+    }
+
     /// Indicates whether the item can be downloaded by the current user
     var canBeDownloaded: Bool {
         canBeDownloaded(mediaSource: mediaSources?.first)

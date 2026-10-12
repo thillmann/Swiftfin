@@ -42,12 +42,12 @@ extension BaseItemDto {
 
     // TODO: will server actually only have a single blurhash per type?
     //       - makes `firstBlurHash` redundant
-    func blurHash(for type: ImageType) -> BlurHash? {
+    func blurHash(for type: ImageType) -> PlatformBlurHash? {
         guard let blurHashString = blurHashString(for: type) else {
             return nil
         }
 
-        return BlurHash(string: blurHashString)
+        return PlatformBlurHash(string: blurHashString)
     }
 
     func blurHashString(for type: ImageType) -> String? {

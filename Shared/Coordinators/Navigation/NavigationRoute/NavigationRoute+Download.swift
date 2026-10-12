@@ -9,6 +9,7 @@
 import JellyfinAPI
 import SwiftUI
 
+@MainActor
 extension NavigationRoute {
 
     static var downloadList: NavigationRoute {

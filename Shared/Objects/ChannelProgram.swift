@@ -45,7 +45,41 @@ struct ChannelProgram: Hashable, Identifiable {
 
 // TODO: implement all protocols, pass from channel
 
-extension ChannelProgram: Poster {
+extension ChannelProgram: Poster, PlatformPoster {
+
+    typealias Environment = BaseItemDto.Environment
+
+    func resolveEnvironment(_ environment: EnvironmentValues) -> Environment {
+        channel.resolveEnvironment(environment)
+    }
+
+    func imageSources(for displayType: PosterDisplayType, environment: Environment) -> [ImageSource] {
+        channel.imageSources(for: displayType, environment: environment)
+    }
+
+    func portraitImageSources(maxWidth: CGFloat?, quality: Int?) -> [ImageSource] {
+        channel.portraitImageSources(maxWidth: maxWidth, quality: quality)
+    }
+
+    func landscapeImageSources(maxWidth: CGFloat?, quality: Int?) -> [ImageSource] {
+        channel.landscapeImageSources(maxWidth: maxWidth, quality: quality)
+    }
+
+    func cinematicImageSources(maxWidth: CGFloat?, quality: Int?) -> [ImageSource] {
+        channel.cinematicImageSources(maxWidth: maxWidth, quality: quality)
+    }
+
+    func squareImageSources(maxWidth: CGFloat?, quality: Int?) -> [ImageSource] {
+        channel.squareImageSources(maxWidth: maxWidth, quality: quality)
+    }
+
+    func thumbImageSources() -> [ImageSource] {
+        channel.thumbImageSources()
+    }
+
+    var subtitle: String? {
+        nil
+    }
 
     var preferredPosterDisplayType: PosterDisplayType {
         .square

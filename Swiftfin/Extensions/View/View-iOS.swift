@@ -13,6 +13,10 @@ import SwiftUI
 
 extension View {
 
+    func navigationBarOffset(_ scrollViewOffset: Binding<CGFloat>, start: CGFloat, end: CGFloat) -> some View {
+        modifier(NavigationBarOffsetModifier(scrollViewOffset: scrollViewOffset, start: start, end: end))
+    }
+
     /// - Important: This does nothing on iOS.
     func focusSection() -> some View {
         self

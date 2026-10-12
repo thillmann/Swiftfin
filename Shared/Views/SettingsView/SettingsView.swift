@@ -19,6 +19,9 @@ struct SettingsView: View {
     private var appearance
     #endif
 
+    @Default(.VideoPlayer.videoPlayerType)
+    private var videoPlayerType
+
     @Default(.userAccentColor)
     private var accentColor
 

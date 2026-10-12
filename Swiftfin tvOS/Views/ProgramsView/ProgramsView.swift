@@ -25,8 +25,8 @@ struct ProgramsView: View {
 
     private func play(_ item: BaseItemDto) {
         guard let userSession else { return }
+        guard let provider = item.getPlaybackItemProvider(userSession: userSession) else { return }
 
-        let provider = item.getPlaybackItemProvider(userSession: userSession)
         router.route(to: .videoPlayer(provider: provider))
     }
 

@@ -214,7 +214,7 @@ struct DownloadTaskButton: View {
 
     private var taskUpdates: AnyPublisher<Void, Never> {
         guard let task else {
-            return Empty<Void, Never>(completeImmediately: false).eraseToAnyPublisher()
+            return Combine.Empty<Void, Never>(completeImmediately: false).eraseToAnyPublisher()
         }
 
         return task.objectWillChange.eraseToAnyPublisher()
@@ -827,7 +827,7 @@ private struct DownloadEpisodeRow: View {
 
     private var taskUpdates: AnyPublisher<Void, Never> {
         guard let task else {
-            return Empty<Void, Never>(completeImmediately: false).eraseToAnyPublisher()
+            return Combine.Empty<Void, Never>(completeImmediately: false).eraseToAnyPublisher()
         }
 
         return task.objectWillChange.eraseToAnyPublisher()

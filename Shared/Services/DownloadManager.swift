@@ -2387,7 +2387,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
     private func loadFileIndex() {
         guard let data = try? Data(contentsOf: DownloadStorage.indexURL),
-              let stored = try? JSONDecoder().decode([DownloadRecord].self, from: data)
+              let stored = try? OfflineMetadataDecoder.decode([DownloadRecord].self, from: data)
         else { return }
 
         records = Dictionary(uniqueKeysWithValues: stored.map { ($0.id, $0) })
@@ -2415,7 +2415,7 @@ final class DownloadManager: NSObject, ObservableObject {
                 .appendingPathComponent("Metadata", isDirectory: true)
                 .appendingPathComponent("Item.json", isDirectory: false)
             guard let data = try? Data(contentsOf: metadataURL),
-                  let item = try? JSONDecoder().decode(BaseItemDto.self, from: data),
+                  let item = try? OfflineMetadataDecoder.decode(BaseItemDto.self, from: data),
                   let itemID = item.id,
                   [.movie, .episode].contains(item.type),
                   let mediaFile = try? FileManager.default
@@ -2726,7 +2726,7 @@ final class DownloadManager: NSObject, ObservableObject {
         item.mediaSources = [record.mediaSource]
 
         if item.userData == nil {
-            item.userData = record.item.userData ?? UserItemDataDto()
+            item.userData = record.item.userData ?? UserItemDataDto(key: record.presentationItemID)
         }
         if let progress = record.offlineProgress {
             item.userData?.playbackPositionTicks = progress.positionTicks
@@ -2954,7 +2954,7 @@ final class DownloadManager: NSObject, ObservableObject {
 
         record.offlineProgress = .init(positionTicks: positionTicks, isPlayed: isPlayed, updatedAt: .now)
         if record.item.userData == nil {
-            record.item.userData = UserItemDataDto()
+            record.item.userData = UserItemDataDto(key: record.presentationItemID)
         }
         record.item.userData?.playbackPositionTicks = positionTicks
         record.item.userData?.isPlayed = isPlayed

@@ -414,8 +414,8 @@ struct PlatformSearchView: View {
         switch item.type {
         case .program, .tvChannel:
             guard let userSession = viewModel.userSession else { return }
+            guard let provider = item.getPlaybackItemProvider(userSession: userSession) else { return }
 
-            let provider = item.getPlaybackItemProvider(userSession: userSession)
             router.route(to: .videoPlayer(provider: provider))
 
         default:
