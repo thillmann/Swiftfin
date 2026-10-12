@@ -83,6 +83,8 @@ extension PlatformItemView {
             .edgesIgnoringSafeArea(.top)
             .trackingSize($size, $safeAreaInsets)
             .scrollViewOffset($scrollViewOffset)
+            .backport
+            .scrollEdgeEffectHidden(for: .top)
             .navigationBarOffset(
                 $scrollViewOffset,
                 start: headerHeight - safeAreaInsets.top - 45,

@@ -38,6 +38,18 @@ extension Backport where Content: View {
     }
 
     @ViewBuilder
+    func scrollEdgeEffectHidden(
+        _ hidden: Bool = true,
+        for edges: Edge.Set = .all
+    ) -> some View {
+        if #available(iOS 26.0, tvOS 26.0, *) {
+            content.scrollEdgeEffectHidden(hidden, for: edges)
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder
     func scrollEdgeEffectStyle(
         _ style: ScrollEdgeEffectStyle?,
         for edges: Edge.Set

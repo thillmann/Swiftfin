@@ -165,13 +165,15 @@ struct MainTabView: View {
                 }
 
                 Tab(value: "search", role: .search) {
-                    NativeSearchTabContent(searchQueryState: searchQueryState) {
-                        tabContent(for: "search")
-                    }
+                    tabContent(for: "search")
                 }
             }
         }
-        .tabViewSearchActivation(.automatic)
+        .if(!UIDevice.isPad) { tabView in
+            NativeSearchTabView(searchQueryState: searchQueryState) {
+                tabView
+            }
+        }
     }
     #endif
 
@@ -259,7 +261,7 @@ struct MainTabView: View {
 
 #if os(iOS)
 @available(iOS 26.0, *)
-private struct NativeSearchTabContent<Content: View>: View {
+private struct NativeSearchTabView<Content: View>: View {
 
     @ObservedObject
     private var searchQueryState: MainTabView.SearchQueryState
@@ -280,6 +282,7 @@ private struct NativeSearchTabContent<Content: View>: View {
     var body: some View {
         content
             .searchable(text: $searchQueryState.query, prompt: L10n.search)
+            .tabViewSearchActivation(.searchTabSelection)
             .searchFocused($isSearchFocused)
             .onSubmit(of: .search) {
                 isSearchFocused = false

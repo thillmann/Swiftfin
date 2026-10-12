@@ -78,17 +78,12 @@ struct PlatformSearchView: View {
             }
             .edgePadding(.horizontal)
             #if os(iOS)
-                .padding(.top, UIDevice.isPad ? Self.iPadSearchFieldHeight + 12 : 60)
+                .padding(.top, UIDevice.isPad ? Self.iPadSearchFieldHeight + 12 : 12)
                 .edgePadding(.bottom)
             #else
                 .edgePadding(.vertical)
             #endif
         }
-        #if os(iOS)
-        .if(!UIDevice.isPad) { view in
-            view.ignoresSafeArea(.container, edges: .top)
-        }
-        #endif
         .scrollDismissesKeyboard(.interactively)
     }
 
