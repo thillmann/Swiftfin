@@ -23,11 +23,7 @@
     blankLinesAroundMark,              \
     isEmpty,                            \
     leadingDelimiters,                  \
-    preferContains,                     \
     preferCountWhere,                   \
-    preferFirstWhere,                   \
-    preferFlatMap,                      \
-    preferMinOverSorted,                \
     preferSwiftStringAPI,               \
     redundantInit,                      \
     redundantLet,                       \
