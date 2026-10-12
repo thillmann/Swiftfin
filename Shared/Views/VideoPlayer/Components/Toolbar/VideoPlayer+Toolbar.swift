@@ -53,7 +53,11 @@ extension VideoPlayer.PlaybackControls {
                         .modifier(OverlayBarButtonStyleModifier())
                 }
 
-                TitleView(item: manager.item)
+                TitleView(
+                    item: manager.requestedItem.type == .program ? manager.requestedItem : manager.item,
+                    isLive: manager.item.isLiveStream || manager.requestedItem.type == .program,
+                    liveChannelName: manager.item.displayTitle
+                )
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ActionButtons()
@@ -84,11 +88,13 @@ extension VideoPlayer.PlaybackControls.Toolbar {
 
         @SharedBaseItem
         var item: BaseItemDto
+        let isLive: Bool
+        let liveChannelName: String
 
         private var _titleSubtitle: (title: String, subtitle: String?) {
             if item.type == .episode {
                 if let parentTitle = item.parentTitle {
-                    return (title: parentTitle, subtitle: item.seasonEpisodeLabel)
+                    return (title: parentTitle, subtitle: [item.seasonEpisodeLabel, item.displayTitle].compactMap(\.self).joined(separator: " • "))
                 }
             }
 
@@ -120,7 +126,18 @@ extension VideoPlayer.PlaybackControls.Toolbar {
 
         var tvOSView: some View {
             VStack(alignment: .leading) {
-                if let subtitle = _titleSubtitle.subtitle {
+                if isLive {
+                    HStack(spacing: 12) {
+                        Text(L10n.live)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 4)
+                            .background(.red, in: Capsule())
+                        Text(liveChannelName)
+                            .font(.callout.weight(.medium))
+                    }
+                } else if let subtitle = _titleSubtitle.subtitle {
                     Text(subtitle)
                         .font(.callout)
                         .fontWeight(.medium)

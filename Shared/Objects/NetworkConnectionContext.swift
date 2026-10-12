@@ -10,18 +10,19 @@ import Foundation
 import Network
 
 #if os(iOS)
+import CoreLocation
 import NetworkExtension
 #endif
 
-struct NetworkConnectionContext: Equatable {
+struct NetworkConnectionContext {
 
     let isSatisfied: Bool
-    let interface: ServerConnection.Interface
+    let interface: ServerConnectionInterface
     let wifiSSID: String?
 
     init(
         isSatisfied: Bool,
-        interface: ServerConnection.Interface,
+        interface: ServerConnectionInterface,
         wifiSSID: String?
     ) {
         self.isSatisfied = isSatisfied
@@ -30,15 +31,28 @@ struct NetworkConnectionContext: Equatable {
     }
 
     init(path: Network.NWPath) async {
-        let interface = Self.interface(for: path)
-        let wifiSSID = path.status == .satisfied && interface == .wifi ? await Self.currentWifiSSID() : nil
-
-        self.isSatisfied = path.status == .satisfied
-        self.interface = interface
-        self.wifiSSID = wifiSSID
+        self = await Self.current(path: path, includeWifiSSID: true)
     }
 
-    static func current() async -> NetworkConnectionContext {
+    static func current(
+        path: Network.NWPath,
+        includeWifiSSID: Bool
+    ) async -> NetworkConnectionContext {
+        let interface = Self.interface(for: path)
+        let wifiSSID: String? = if includeWifiSSID && path.status == .satisfied && interface == .wifi {
+            await currentWifiSSID()
+        } else {
+            nil
+        }
+
+        return .init(
+            isSatisfied: path.status == .satisfied,
+            interface: interface,
+            wifiSSID: wifiSSID
+        )
+    }
+
+    static func current(includeWifiSSID: Bool) async -> NetworkConnectionContext {
         let monitor = NWPathMonitor()
         let queue = DispatchQueue(label: "Swiftfin.NetworkConnectionContext")
         let resumeState = ContinuationResumeState()
@@ -46,11 +60,13 @@ struct NetworkConnectionContext: Equatable {
         return await withCheckedContinuation { continuation in
             monitor.pathUpdateHandler = { path in
                 guard resumeState.resume() else { return }
-
                 monitor.cancel()
 
                 Task {
-                    let context = await NetworkConnectionContext(path: path)
+                    let context = await Self.current(
+                        path: path,
+                        includeWifiSSID: includeWifiSSID
+                    )
                     continuation.resume(returning: context)
                 }
             }
@@ -67,7 +83,7 @@ struct NetworkConnectionContext: Equatable {
         )
     }
 
-    private static func interface(for path: Network.NWPath) -> ServerConnection.Interface {
+    private static func interface(for path: Network.NWPath) -> ServerConnectionInterface {
         if path.usesInterfaceType(.wifi) {
             .wifi
         } else if path.usesInterfaceType(.cellular) {
@@ -77,13 +93,21 @@ struct NetworkConnectionContext: Equatable {
         }
     }
 
+    @MainActor
     static func currentWifiSSID() async -> String? {
-        #if os(iOS)
-        await (NEHotspotNetwork.fetchCurrent())?
+        #if os(iOS) && !targetEnvironment(simulator)
+        let locationManager = CLLocationManager()
+        guard CLLocationManager.locationServicesEnabled() else { return nil }
+        guard locationManager.authorizationStatus == .authorizedAlways
+            || locationManager.authorizationStatus == .authorizedWhenInUse
+        else { return nil }
+        guard locationManager.accuracyAuthorization == .fullAccuracy else { return nil }
+
+        return await (NEHotspotNetwork.fetchCurrent())?
             .ssid
             .nilIfBlank
         #else
-        nil
+        return nil
         #endif
     }
 
@@ -97,7 +121,6 @@ struct NetworkConnectionContext: Equatable {
             defer { lock.unlock() }
 
             guard !didResume else { return false }
-
             didResume = true
             return true
         }

@@ -417,6 +417,17 @@ extension View {
         }
     }
 
+    func maskLinearGradient(
+        @ArrayBuilder<OpacityLinearGradientModifier.Stop> stops: () -> [OpacityLinearGradientModifier.Stop]
+    ) -> some View {
+        modifier(OpacityLinearGradientModifier(stops: stops()))
+    }
+
+    // TODO: look at changing to symbolEffect
+    func videoPlayerActionButtonTransition() -> some View {
+        transition(.opacity.combined(with: .scale(scale: 0.01)).animation(.snappy))
+    }
+
     // MARK: debug
 
     // Useful modifiers during development for layout

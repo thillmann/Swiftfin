@@ -14,6 +14,24 @@ import JellyfinAPI
 extension UserSession {
 
     func observeItemChanges() {
+        platformItemChanges = items.changes.sink { [weak self] change in
+            guard let self else { return }
+            switch change {
+            case let .updated(update):
+                if let value = self.items[update.itemID]?.value {
+                    Notifications[.itemMetadataDidChange].post(value)
+                } else {
+                    Notifications[.itemShouldRefreshMetadata].post(update.itemID)
+                }
+            case let .deleted(id):
+                Notifications[.didDeleteItem].post(id)
+            case .libraryChanged:
+                Notifications[.didRequestGlobalRefresh].post()
+            case .invalidated:
+                break
+            }
+        }
+
         itemChanges = serverSocketManager.events
             .receive(on: DispatchQueue.main)
             .sink { [weak self] event in

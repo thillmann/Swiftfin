@@ -8,6 +8,7 @@
 
 import Defaults
 import FactoryKit
+import Foundation
 import JellyfinAPI
 import SwiftUI
 
@@ -24,6 +25,14 @@ struct SettingsView: View {
     @InjectedObject(\.userSessionManager)
     private var userSessionManager: UserSessionManager
 
+    #if os(tvOS)
+    @Default(.Integrations.Seerr.isEnabled)
+    private var isSeerrIntegrationEnabled
+
+    @Default(.Integrations.Seerr.serverURL)
+    private var seerrServerURL
+    #endif
+
     @Router
     private var router
 
@@ -32,6 +41,10 @@ struct SettingsView: View {
     var body: some View {
         Form(image: .jellyfinBlobBlue) {
             serverSection
+            videoPlayerSection
+            #if os(tvOS)
+            integrationsSection
+            #endif
             customizeSection
             diagnosticsSection
         }
@@ -109,6 +122,75 @@ struct SettingsView: View {
             #endif
         }
     }
+
+    @ViewBuilder
+    private var videoPlayerSection: some View {
+        Section(L10n.videoPlayer) {
+            #if os(iOS)
+            Picker(L10n.videoPlayerType, selection: $videoPlayerType)
+            #else
+            ListRowMenu(L10n.videoPlayerType, selection: $videoPlayerType)
+            #endif
+
+            ChevronButton(L10n.videoPlayer) {
+                router.route(to: .videoPlayerSettings)
+            }
+
+            ChevronButton(L10n.playbackQuality) {
+                router.route(to: .playbackQualitySettings)
+            }
+        } learnMore: {
+            LabeledContent(
+                L10n.swiftfin,
+                value: L10n.playerSwiftfinDescription
+            )
+            LabeledContent(
+                L10n.native,
+                value: L10n.playerNativeDescription
+            )
+            LabeledContent(
+                L10n.aether,
+                value: L10n.playerAetherDescription
+            )
+        }
+    }
+
+    #if os(tvOS)
+    @ViewBuilder
+    private var integrationsSection: some View {
+        Section {
+            ChevronButton(
+                "Seerr",
+                action: {
+                    router.route(to: .seerSettings)
+                }
+            ) {
+                Label {
+                    Text(seerrIntegrationStatus)
+                } icon: {
+                    if SeerrIntegration.isAvailable {
+                        Image(systemName: "checkmark.circle.fill")
+                    }
+                }
+                .labelStyle(.sectionFooterWithImage(imageStyle: .green))
+            }
+        } header: {
+            Text(L10n.integrations)
+        }
+    }
+
+    private var seerrIntegrationStatus: String {
+        let storedServerURL = seerrServerURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !storedServerURL.isEmpty,
+              SeerrIntegration.isConfigured
+        else {
+            return L10n.notConfigured
+        }
+
+        return isSeerrIntegrationEnabled ? L10n.enabled : L10n.disabled
+    }
+    #endif
 
     // MARK: - Customization Section
 

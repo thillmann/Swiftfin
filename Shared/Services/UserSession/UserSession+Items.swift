@@ -24,12 +24,12 @@ extension UserSession {
     }
 
     /// Fetches the full item into a retained shared entry
-    func getFullItem(id: String?, occurrence: String? = nil) async throws -> ItemEntry {
+    func getFullItem(id: String?, occurrence: String? = nil, requestTimeout: TimeInterval? = nil) async throws -> ItemEntry {
         guard let id, id.nilIfBlank != nil else { throw ItemStore.StoreError.invalidItemID }
 
         // Don't validate id, plugins may return a different item ID
         let request = Paths.getItem(itemID: id, userID: user.id)
-        let response = try await send(request, itemScope: .fullItem)
+        let response = try await send(request, itemScope: .fullItem, requestTimeout: requestTimeout)
 
         guard let record = response.items.first, record.value != nil else {
             throw ItemStore.StoreError.itemUnavailable
@@ -40,11 +40,14 @@ extension UserSession {
 
     private func send<Value: Decodable & Sendable>(
         _ request: Request<Value>,
-        itemScope: ItemPatch.Scope
+        itemScope: ItemPatch.Scope,
+        requestTimeout: TimeInterval? = nil
     ) async throws -> (value: Value, items: [ItemRecord]) {
         try items.validate()
         let token = try items.beginRequest()
-        let response = try await client.send(request)
+        let response = try await client.send(request, configure: { urlRequest in
+            if let requestTimeout { urlRequest.timeoutInterval = requestTimeout }
+        })
         try items.validate()
 
         let records: [ItemRecord]

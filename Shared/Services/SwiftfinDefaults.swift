@@ -111,6 +111,15 @@ extension Defaults.Keys {
 
     enum Customization {
 
+        static var platformItemViewType: Key<PlatformItemViewType> {
+            UserKey("itemViewType", default: .compactLogo)
+        }
+
+        static var showPosterLabels: Key<Bool> {
+            UserKey("showPosterLabels", default: true)
+        }
+
+
         static var itemViewType: Key<ItemViewType> {
             UserKey("mediaItemViewType", default: .enhanced)
         }
@@ -173,7 +182,55 @@ extension Defaults.Keys {
             }
         }
 
+        enum CinematicItemViewType {
+
+            static var usePrimaryImage: Key<Bool> {
+                UserKey("cinematicItemViewTypeUsePrimaryImage", default: false)
+            }
+        }
+
+        enum Episodes {
+
+            static var useSeriesLandscapeBackdrop: Key<Bool> {
+                UserKey("useSeriesBackdrop", default: true)
+            }
+        }
+
+        enum Indicators {
+
+            static var showFavorited: Key<Bool> {
+                UserKey("showFavoritedIndicator", default: true)
+            }
+
+            static var showProgress: Key<Bool> {
+                UserKey("showProgressIndicator", default: true)
+            }
+
+            static var showUnplayed: Key<UnplayedIndicatorType> {
+                UserKey("showUnplayedIndicator", default: .indicator)
+            }
+
+            static var showPlayed: Key<Bool> {
+                UserKey("showPlayedIndicator", default: true)
+            }
+        }
+
         enum Library {
+
+            static var listColumnCount: Key<Int> {
+                UserKey("listColumnCount", default: 1)
+            }
+
+
+            static var posterType: Key<PosterDisplayType> {
+                UserKey("libraryPosterType", default: .portrait)
+            }
+
+
+            static var displayType: Key<LibraryDisplayType> {
+                UserKey("libraryViewType", default: .grid)
+            }
+
 
             static var cinematicBackground: Key<Bool> {
                 UserKey("libraryCinematicBackground", default: true)
@@ -244,7 +301,7 @@ extension Defaults.Keys {
             static var enabledDrawerFilters: Key<[ItemFilterType]> {
                 UserKey(
                     "searchEnabledDrawerFilters",
-                    default: ItemFilterType.allCases
+                    default: []
                 )
             }
         }
@@ -387,6 +444,21 @@ extension Defaults.Keys {
 
         enum Subtitle {
 
+            static var subtitleSize: Key<Int> {
+                UserKey("subtitleSize", default: 9)
+            }
+
+
+            static var subtitleFontName: Key<String> {
+                UserKey("subtitleFontName", default: UIFont.systemFont(ofSize: 14).fontName)
+            }
+
+
+            static var subtitleColor: Key<Color> {
+                UserKey("subtitleColor", default: .white)
+            }
+
+
             static var configuration: Key<SubtitleConfiguration> {
                 UserKey("subtitleConfiguration", default: .default)
             }
@@ -418,6 +490,20 @@ extension Defaults.Keys {
 
         static var videoPlayerEPG: Key<Bool> {
             UserKey("experimentalVideoPlayerEPG", default: false)
+        }
+    }
+
+    enum Integrations {
+
+        enum Seerr {
+
+            static var isEnabled: Key<Bool> {
+                UserKey("seerrIntegrationEnabled", default: false)
+            }
+
+            static var serverURL: Key<String> {
+                UserKey("seerrServerURL", default: "")
+            }
         }
     }
 

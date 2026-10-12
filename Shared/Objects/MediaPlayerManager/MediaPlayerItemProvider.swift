@@ -22,6 +22,8 @@ struct MediaPlayerItemProvider {
     let subtitleStreamIndex: Int?
     let requestedBitrate: PlaybackBitrate
     private var modifyItem: (@Sendable (inout BaseItemDto) -> Void)?
+    private var localItem: BaseItemDto?
+    private(set) var preferredVideoPlayerType: VideoPlayerType?
     private let resolver: MediaPlayerItemProviderResolver
 
     init(
@@ -38,6 +40,8 @@ struct MediaPlayerItemProvider {
         self.subtitleStreamIndex = subtitleStreamIndex
         self.requestedBitrate = requestedBitrate
         self.modifyItem = nil
+        self.localItem = nil
+        self.preferredVideoPlayerType = nil
         self.resolver = resolver
     }
 
@@ -56,11 +60,27 @@ struct MediaPlayerItemProvider {
     }
 
     func callAsFunction() async throws -> MediaPlayerItem {
-        guard let item = $item.value else { throw ItemStore.StoreError.itemUnavailable }
+        guard let item = localItem ?? $item.value else { throw ItemStore.StoreError.itemUnavailable }
 
         let playbackItem = try await resolver(item, modifyItem)
-        guard $item.value != nil else { throw ItemStore.StoreError.itemUnavailable }
+        guard localItem != nil || $item.value != nil else { throw ItemStore.StoreError.itemUnavailable }
 
         return playbackItem
+    }
+}
+
+// Adapter for platform/offline providers; preserves upstream item modifications.
+extension MediaPlayerItemProvider {
+
+    init(item: BaseItemDto, offlineRecord: DownloadRecord? = nil, resolver: @escaping @MainActor @Sendable (BaseItemDto) async throws -> MediaPlayerItem) {
+        self.init(item: item) { item, modifyItem in
+            var item = item
+            modifyItem?(&item)
+            return try await resolver(item)
+        }
+        if let offlineRecord {
+            localItem = offlineRecord.item
+            preferredVideoPlayerType = offlineRecord.preferredVideoPlayerType
+        }
     }
 }

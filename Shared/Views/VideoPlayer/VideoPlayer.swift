@@ -35,11 +35,17 @@ struct VideoPlayer: View {
     private var scrubbingStartTime: CFTimeInterval? = nil
     #endif
 
+    #if os(tvOS)
+    @State private var isBuffering = false
+    #endif
+
     @State
     private var viewState: ViewState = .init()
 
-    init() {
-        switch Defaults[.VideoPlayer.videoPlayerType] {
+    init(playerType: VideoPlayerType = Defaults[.VideoPlayer.videoPlayerType]) {
+        switch playerType {
+        case .aether:
+            self._proxy = .init(wrappedValue: AetherMediaPlayerProxy())
         case .avPlayer:
             self._proxy = .init(wrappedValue: AVMediaPlayerProxy())
         case .mpv:
@@ -60,6 +66,15 @@ struct VideoPlayer: View {
         } playbackControls: {
             PlaybackControls()
         }
+        #if os(tvOS)
+        .overlay {
+            if manager.state == .loadingItem || isBuffering {
+                LoadingIndicator().allowsHitTesting(false)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: manager.state == .loadingItem || isBuffering)
+        .onReceive(proxy.isBuffering.$value) { isBuffering = $0 }
+        #endif
         .onAppear {
             manager.proxy = proxy
             manager.start()
@@ -133,3 +148,24 @@ struct VideoPlayer: View {
         }
     }
 }
+#if os(tvOS)
+private extension VideoPlayer {
+
+    struct LoadingIndicator: View {
+
+        var body: some View {
+            ProgressView()
+                .controlSize(.large)
+                .tint(.white)
+                .padding(36)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.black.opacity(0.65))
+                }
+                .shadow(color: Color.black.opacity(0.5), radius: 12, y: 6)
+                .transition(.opacity)
+                .accessibilityLabel("Loading")
+        }
+    }
+}
+#endif

@@ -23,9 +23,17 @@ class ViewModel: ObservableObject {
     var userSession: UserSession?
 
     var cancellables = Set<AnyCancellable>()
+    private var platformRecords: [String: ItemRecord] = [:]
 
     init() {
         Notifications[.didChangeServerConnection]
+            .publisher
+            .sink { [weak self] _ in
+                self?.$userSession.resolve(reset: .scope)
+            }
+            .store(in: &cancellables)
+
+        Notifications[.didChangeUserSession]
             .publisher
             .sink { [weak self] _ in
                 self?.$userSession.resolve(reset: .scope)
@@ -61,7 +69,9 @@ class ViewModel: ObservableObject {
     }
 
     func send<Value: Decodable & Sendable>(_ request: Request<Value>) async throws -> (value: Value, items: [ItemRecord]) {
-        try await requireUserSession().send(request)
+        let response = try await requireUserSession().send(request)
+        for record in response.items { platformRecords[record.id] = record }
+        return response
     }
 
     func send(_ request: Request<Void>) async throws {

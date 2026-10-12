@@ -26,6 +26,17 @@ extension NavigationCoordinator {
             route.transitionType = transition ?? route.transitionType
             navigationCoordinator?.push(route)
         }
+
+
+        @discardableResult
+        func pop() -> Bool {
+            guard let navigationCoordinator,
+                  navigationCoordinator.path.isNotEmpty
+            else { return false }
+
+            navigationCoordinator.path.removeLast()
+            return true
+        }
     }
 }
 
@@ -74,6 +85,13 @@ struct Router: DynamicProperty {
                 transition: .withNamespace(withNamespace),
                 in: namespace
             )
+        }
+
+
+        func pop() {
+            if !router.pop() {
+                dismiss()
+            }
         }
     }
 

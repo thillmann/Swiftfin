@@ -7,6 +7,7 @@
 //
 
 import Combine
+import CoreGraphics
 
 @MainActor
 protocol MediaPlayerQueue: ObservableObject, MediaPlayerObserver, MediaPlayerSupplement {
@@ -87,5 +88,14 @@ class AnyMediaPlayerQueue: MediaPlayerQueue {
         wrapped
             .videoPlayerBody
             .eraseToAnyView()
+    }
+}
+
+extension AnyMediaPlayerQueue: MediaPlayerSupplementHeightProviding {
+
+    func videoPlayerSupplementHeight(for size: CGSize, isCompact: Bool) -> CGFloat {
+        (wrapped as? any MediaPlayerSupplementHeightProviding)?
+            .videoPlayerSupplementHeight(for: size, isCompact: isCompact)
+            ?? .zero
     }
 }

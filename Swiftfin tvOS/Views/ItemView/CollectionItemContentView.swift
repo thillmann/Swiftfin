@@ -1,0 +1,99 @@
+//
+// Swiftfin is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) 2026 Jellyfin & Jellyfin Contributors
+//
+
+import JellyfinAPI
+import OrderedCollections
+import SwiftUI
+
+extension PlatformItemView {
+
+    struct CollectionItemContentView: View {
+
+        typealias Element = OrderedDictionary<BaseItemKind, ItemLibraryViewModel>.Elements.Element
+
+        @Router
+        private var router
+
+        @ObservedObject
+        var viewModel: CollectionItemViewModel
+
+        // MARK: - Episode PlatformPoster HStack
+
+        private func episodeHStack(element: Element) -> some View {
+            let entries = element.value.elements.compactMap { episode in
+                SeriesEpisodeSelector.LoadedEpisode(
+                    episode: episode,
+                    seasonID: episode.seasonID
+                )
+            }
+
+            return VStack(alignment: .leading, spacing: 20) {
+
+                HStack {
+                    Text(L10n.episodes)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .accessibility(addTraits: [.isHeader])
+                        .padding(.leading, 80)
+
+                    Spacer()
+                }
+
+                SeriesEpisodeSelector.EpisodeRow {
+                    ForEach(entries) { entry in
+                        SeriesEpisodeSelector.EpisodeCard(entry: entry)
+                            .episodeHStackItemFrame()
+                    }
+                }
+                .padding(.vertical, 30)
+            }
+            .focusSection()
+        }
+
+        // MARK: - Default PlatformPoster HStack
+
+        private func posterHStack(element: Element) -> some View {
+            PlatformPosterHStack(
+                title: element.key.pluralDisplayTitle,
+                type: .portrait,
+                items: element.value.elements
+            ) { item in
+                router.route(to: .item(item: item))
+            }
+            .focusSection()
+
+            // TODO: Is this possible?
+            /* .trailing {
+                 SeeMoreButton() {
+                     router.route(to: .library(viewModel: element.value))
+                 }
+             } */
+        }
+
+        var body: some View {
+            VStack(spacing: 40) {
+                ForEach(
+                    viewModel.sections.elements,
+                    id: \.key
+                ) { element in
+                    if element.key == .episode {
+                        episodeHStack(element: element)
+                    } else {
+                        posterHStack(element: element)
+                    }
+                }
+
+                if viewModel.similarItems.isNotEmpty {
+                    PlatformItemView.SimilarItemsHStack(items: viewModel.similarItems)
+                }
+
+                PlatformItemView.AboutView(viewModel: viewModel)
+            }
+        }
+    }
+}

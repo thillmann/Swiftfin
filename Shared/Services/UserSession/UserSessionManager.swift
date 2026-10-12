@@ -102,6 +102,11 @@ final class UserSessionManager: ObservableObject {
     }
 
     @MainActor
+    func refreshLaunchMetadata() async {
+        await refreshServerInformationIfNeeded(reason: .stale)
+    }
+
+    @MainActor
     private func refreshCurrentSession() async {
         do {
             try await updateCurrentSession(with: resolveStoredSession())
@@ -329,6 +334,8 @@ final class UserSessionManager: ObservableObject {
 
         currentSession = newSession
         Container.shared.currentUserSession.reset()
+        PlatformSettingsMigration.migrate()
+        Notifications[.didChangeUserSession].post()
         Container.shared.mediaPlayerManager.reset()
 
         if newSession == nil {

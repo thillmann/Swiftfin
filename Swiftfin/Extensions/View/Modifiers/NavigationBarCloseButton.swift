@@ -6,13 +6,9 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import SwiftUI
 
 struct NavigationBarCloseButtonModifier: ViewModifier {
-
-    @Default(.accentColor)
-    private var accentColor
 
     let disabled: Bool
     let action: () -> Void
@@ -20,19 +16,15 @@ struct NavigationBarCloseButtonModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.toolbar {
             ToolbarItemGroup(placement: .topBarLeading) {
-                if #available(iOS 26, *) {
-                    Button(role: .close, action: action)
-                        .disabled(disabled)
-                } else {
-                    Button(action: action) {
-                        Image(systemName: "xmark.circle.fill")
-                            .fontWeight(.bold)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(accentColor.overlayColor, accentColor)
-                            .opacity(disabled ? 0.75 : 1)
-                    }
-                    .disabled(disabled)
+                Button {
+                    action()
+                } label: {
+                    Image(systemName: "xmark")
+                        .fontWeight(.bold)
+                        .foregroundStyle(.primary)
+                        .opacity(disabled ? 0.75 : 1)
                 }
+                .disabled(disabled)
             }
         }
     }

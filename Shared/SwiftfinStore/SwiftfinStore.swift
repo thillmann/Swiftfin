@@ -162,27 +162,29 @@ extension SwiftfinStore {
         let sourceStorage = SQLiteStore(fileURL: sourceStoreURL)
         try await addStorage(sourceStorage, to: sourceStack)
 
-        let servers = try sourceStack.fetchAll(From<SwiftfinStore.V1.StoredServer>())
-            .map {
-                V1ServerSnapshot(
-                    id: $0.id,
-                    name: $0.name,
-                    currentURI: $0.currentURI,
-                    uris: $0.uris
-                )
-            }
+        return try sourceStack.perform { transaction in
+            let servers = try transaction.fetchAll(From<SwiftfinStore.V1.StoredServer>())
+                .map {
+                    V1ServerSnapshot(
+                        id: $0.id,
+                        name: $0.name,
+                        currentURI: $0.currentURI,
+                        uris: $0.uris
+                    )
+                }
 
-        let users = try sourceStack.fetchAll(From<SwiftfinStore.V1.StoredUser>())
-            .map {
-                V1UserSnapshot(
-                    id: $0.id,
-                    username: $0.username,
-                    serverID: $0.server?.id,
-                    accessToken: $0.accessToken?.value
-                )
-            }
+            let users = try transaction.fetchAll(From<SwiftfinStore.V1.StoredUser>())
+                .map {
+                    V1UserSnapshot(
+                        id: $0.id,
+                        username: $0.username,
+                        serverID: $0.server?.id,
+                        accessToken: $0.accessToken?.value
+                    )
+                }
 
-        return (servers, users)
+            return (servers, users)
+        }
     }
 
     private static func createV2Store(
@@ -230,15 +232,17 @@ extension SwiftfinStore {
         let sourceStorage = SQLiteStore(fileURL: sourceStoreURL)
         try await addStorage(sourceStorage, to: sourceStack)
 
-        return try sourceStack.fetchAll(From<SwiftfinStore.V2.AnyData>())
-            .map {
-                V2AnyDataSnapshot(
-                    data: $0.data,
-                    ownerID: $0.ownerID,
-                    domain: $0.domain,
-                    key: $0.key
-                )
-            }
+        return try sourceStack.perform { transaction in
+            try transaction.fetchAll(From<SwiftfinStore.V2.AnyData>())
+                .map {
+                    V2AnyDataSnapshot(
+                        data: $0.data,
+                        ownerID: $0.ownerID,
+                        domain: $0.domain,
+                        key: $0.key
+                    )
+                }
+        }
     }
 
     private static func createV3Store(
@@ -337,10 +341,12 @@ extension SwiftfinStore {
         let sourceStorage = SQLiteStore(fileURL: sourceStoreURL)
         try await addStorage(sourceStorage, to: sourceStack)
 
-        let servers = try sourceStack.fetchAll(From<SwiftfinStore.V2.StoredServer>()).map(\.state)
-        let users = try sourceStack.fetchAll(From<SwiftfinStore.V2.StoredUser>()).map(\.state)
+        return try sourceStack.perform { transaction in
+            let servers = try transaction.fetchAll(From<SwiftfinStore.V2.StoredServer>()).map(\.state)
+            let users = try transaction.fetchAll(From<SwiftfinStore.V2.StoredUser>()).map(\.state)
 
-        return (servers, users)
+            return (servers, users)
+        }
     }
 
     private static func addStorage(_ storage: SQLiteStore, to stack: DataStack) async throws {

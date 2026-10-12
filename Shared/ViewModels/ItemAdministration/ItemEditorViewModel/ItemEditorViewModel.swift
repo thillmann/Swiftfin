@@ -98,10 +98,13 @@ class ItemEditorViewModel: ViewModel {
         parameters.isReplaceAllImages = replaceImages
         parameters.isRegenerateTrickplay = regenerateTrickplay
 
-        let request = Paths.refreshItem(
+        var request = Paths.refreshItem(
             itemID: itemId,
             parameters: parameters
         )
+        // Jellyfin Web always requests a recursive refresh, but the generated SDK
+        // does not currently expose that query parameter.
+        request.query = (request.query ?? []) + [("recursive", "true")]
         _ = try await send(request)
 
         events.send(.metadataRefreshStarted)

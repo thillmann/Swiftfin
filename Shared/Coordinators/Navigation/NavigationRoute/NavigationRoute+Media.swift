@@ -76,7 +76,67 @@ extension NavigationRoute {
             id: "videoPlayer",
             style: .fullscreen
         ) {
-            VideoPlayer()
+            VideoPlayer(playerType: manager.preferredVideoPlayerType)
         }
+    }
+}
+
+
+extension NavigationRoute {
+    #if os(tvOS)
+    static var seerrTrending: NavigationRoute {
+        NavigationRoute(
+            id: "seerr-trending",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            SeerrTrendingView()
+        }
+    }
+
+    static func seerrUpcoming(mediaType: SeerrUpcomingView.MediaType = .movies) -> NavigationRoute {
+        NavigationRoute(
+            id: "seerr-upcoming-\(mediaType)",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            SeerrUpcomingView(mediaType: mediaType)
+        }
+    }
+
+    static func browseBy(_ option: BrowseByOption) -> NavigationRoute {
+        NavigationRoute(
+            id: "\(option.kind.routePrefix)-\(option.seerrID)"
+        ) {
+            BrowseByOptionView(option: option)
+        }
+    }
+    #endif
+
+
+    static var channels: NavigationRoute {
+        NavigationRoute(
+            id: "channels"
+        ) {
+            #if os(iOS)
+            ChannelLibraryView()
+            #else
+            ProgramsView()
+            #endif
+        }
+    }
+    static func videoPlayer(
+        item: BaseItemDto,
+        mediaSource: MediaSourceInfo? = nil,
+        queue: (any MediaPlayerQueue)? = nil
+    ) -> NavigationRoute {
+        let provider = MediaPlayerItemProvider(item: item) { item in
+            try await MediaPlayerItem.build(for: item, mediaSource: mediaSource)
+        }
+        return Self.videoPlayer(provider: provider, queue: queue)
+    }
+    static func videoPlayer(downloadRecord: DownloadRecord) -> NavigationRoute {
+        let provider = MediaPlayerItemProvider(item: downloadRecord.item, offlineRecord: downloadRecord) { _ in
+            try await MediaPlayerItem.buildOffline(record: downloadRecord)
+        }
+        return Self.videoPlayer(provider: provider)
     }
 }

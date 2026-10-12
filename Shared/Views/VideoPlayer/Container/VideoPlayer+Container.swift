@@ -94,11 +94,18 @@ extension VideoPlayer {
                                 if viewState.isPresentingFullScreenSupplement {
                                     Color.black.opacity(0.8)
                                 } else {
-                                    EasedGradient(
-                                        colors: [.clear, .black],
-                                        startPoint: .center,
-                                        endPoint: .bottom
-                                    )
+                                    GeometryReader { geometry in
+                                        LinearGradient(stops: [
+                                            .init(color: .clear, location: 0),
+                                            .init(color: .black.opacity(0.04), location: 0.25),
+                                            .init(color: .black.opacity(0.18), location: 0.45),
+                                            .init(color: .black.opacity(0.42), location: 0.68),
+                                            .init(color: .black.opacity(0.68), location: 0.86),
+                                            .init(color: .black.opacity(0.82), location: 1),
+                                        ], startPoint: .top, endPoint: .bottom)
+                                        .frame(height: geometry.size.height * 0.55)
+                                        .frame(maxHeight: .infinity, alignment: .bottom)
+                                    }
                                 }
                             }
                             .isVisible(shouldPresentDimOverlay)
@@ -320,6 +327,11 @@ extension VideoPlayer {
 
             if !isCompact, viewState.selectedSupplement?.presentationStyle == .expanded {
                 return availableHeight
+            }
+
+            if let heightProvider = viewState.selectedSupplement as? any MediaPlayerSupplementHeightProviding {
+                let height = heightProvider.videoPlayerSupplementHeight(for: view.bounds.size, isCompact: isCompact)
+                if height > 0 { return min(availableHeight, height) }
             }
 
             if !isCompact, !UIDevice.isTV {

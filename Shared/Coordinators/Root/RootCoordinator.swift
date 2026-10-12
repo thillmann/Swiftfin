@@ -67,6 +67,9 @@ final class RootCoordinator: ObservableObject {
 
         do {
             try await SwiftfinStore.setupDataStack()
+            #if os(iOS)
+            Container.shared.downloadManager().prepare()
+            #endif
             startPreferenceObservation()
         } catch {
             throw AppStartupError.dataStack(error)

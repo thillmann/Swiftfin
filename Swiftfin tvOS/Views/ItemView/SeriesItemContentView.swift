@@ -1,0 +1,55 @@
+//
+// Swiftfin is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) 2026 Jellyfin & Jellyfin Contributors
+//
+
+import SwiftUI
+
+extension PlatformItemView {
+    struct SeriesItemContentView: View {
+
+        private let castAndCrewSectionSpacing: CGFloat = 20
+        private let sectionSpacing: CGFloat = 40
+
+        @ObservedObject
+        var viewModel: SeriesItemViewModel
+
+        @ViewBuilder
+        private var remainingSections: some View {
+            if viewModel.additionalParts.isNotEmpty {
+                AdditionalPartsHStack(items: viewModel.additionalParts)
+            }
+
+            if viewModel.specialFeatures.isNotEmpty {
+                PlatformItemView.SpecialFeaturesHStack(items: viewModel.specialFeatures)
+            }
+
+            if viewModel.similarItems.isNotEmpty {
+                PlatformItemView.SimilarItemsHStack(items: viewModel.similarItems)
+            }
+
+            PlatformItemView.AboutView(viewModel: viewModel)
+        }
+
+        var body: some View {
+            VStack(spacing: sectionSpacing) {
+                SeriesEpisodeSelector(viewModel: viewModel)
+
+                if let castAndCrew = viewModel.item.people, castAndCrew.isNotEmpty {
+                    VStack(spacing: castAndCrewSectionSpacing) {
+                        PlatformItemView.CastAndCrewHStack(people: castAndCrew)
+
+                        VStack(spacing: sectionSpacing) {
+                            remainingSections
+                        }
+                    }
+                } else {
+                    remainingSections
+                }
+            }
+        }
+    }
+}

@@ -44,3 +44,8 @@ extension MediaPlayerSupplement {
         VideoPlayer.ViewState.Focus.supplementContent(id)
     }
 }
+
+@MainActor
+protocol MediaPlayerSupplementHeightProviding {
+    func videoPlayerSupplementHeight(for size: CGSize, isCompact: Bool) -> CGFloat
+}

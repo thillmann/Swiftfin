@@ -25,6 +25,9 @@ final class UserSession {
     @MainActor
     var itemChanges: AnyCancellable?
 
+    @MainActor
+    var platformItemChanges: AnyCancellable?
+
     lazy var client: JellyfinClient = JellyfinClient(
         configuration: .swiftfinConfiguration(
             url: server.effectiveServerURL,
@@ -71,6 +74,7 @@ final class UserSession {
     @MainActor
     func willStop() {
         itemChanges = nil
+        platformItemChanges = nil
         for service in services.reversed() {
             service.willStop(userSession: self)
         }

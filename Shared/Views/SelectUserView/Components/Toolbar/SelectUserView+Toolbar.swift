@@ -71,6 +71,7 @@ extension SelectUserView {
                     AddUserMenu(servers: servers)
                         .frame(width: buttonHeight, height: buttonHeight)
                 }
+                .modifier(BottomBarButtonStyle())
                 .edgePadding([.bottom, .horizontal])
             }
         }
@@ -84,6 +85,7 @@ extension SelectUserView {
                     regularContentView
                 }
             }
+            .modifier(BottomBarButtonStyle())
             .animation(.linear(duration: 0.1), value: selectedUsers.isNotEmpty)
             .frame(height: buttonHeight)
             .frame(maxWidth: .infinity)
@@ -117,6 +119,8 @@ extension SelectUserView {
                 Text(L10n.delete)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .modifier(DestructiveBottomBarButtonStyle())
+            .isSelected(true)
             .frame(minWidth: 100, maxWidth: 300)
             .disabled(selectedUsers.isEmpty)
         }
@@ -150,5 +154,39 @@ extension SelectUserView {
                 .frame(width: buttonHeight, height: buttonHeight)
                 .hidden(allUsers.isEmpty)
         }
+    }
+}
+
+private struct BottomBarButtonStyle: ViewModifier {
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+        if #available(tvOS 26.0, *) {
+            content.buttonStyle(.glass)
+        } else {
+            content.buttonStyle(.material)
+        }
+        #else
+        content.buttonStyle(.material)
+        #endif
+    }
+}
+
+private struct DestructiveBottomBarButtonStyle: ViewModifier {
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+        if #available(tvOS 26.0, *) {
+            content
+                .tint(.red)
+                .buttonStyle(.glassProminent)
+        } else {
+            content.buttonStyle(.tintedMaterial(tint: .red, foregroundColor: .primary))
+        }
+        #else
+        content.buttonStyle(.tintedMaterial(tint: .red, foregroundColor: .primary))
+        #endif
     }
 }

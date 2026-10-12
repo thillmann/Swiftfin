@@ -116,3 +116,13 @@ private struct ChapterPosterLabel: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+extension ChapterInfo.FullInfo: PlatformPoster {
+    var unwrappedIDHashOrZero: Int { id }
+    func landscapeImageSources(maxWidth: CGFloat?, quality: Int?) -> [ImageSource] {
+        imageSource.map { [$0] } ?? []
+    }
+    func transform(image: Image) -> some View {
+        ZStack { Color.black; image.aspectRatio(contentMode: .fit) }
+    }
+}

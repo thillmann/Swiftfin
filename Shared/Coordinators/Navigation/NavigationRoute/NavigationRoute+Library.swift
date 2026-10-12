@@ -11,6 +11,17 @@ import SwiftUI
 
 extension NavigationRoute {
 
+    static func library(
+        viewModel: PlatformPagingLibraryViewModel<some PlatformPoster>
+    ) -> NavigationRoute {
+        NavigationRoute(
+            id: "library-(\(viewModel.parent?.id ?? "Unparented"))",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            PlatformPagingLibraryView(viewModel: viewModel)
+        }
+    }
+
     static func filter(type: ItemFilterType, viewModel: FilterViewModel) -> NavigationRoute {
         NavigationRoute(
             id: "filter",
@@ -47,4 +58,22 @@ extension NavigationRoute {
             PagingLibraryView(library: library, displayTitle: displayTitle)
         }
     }
+
+    #if os(tvOS)
+    static func genreLibrary(
+        genre: MediaGenre,
+        itemTypes: [BaseItemKind] = [.movie, .series]
+    ) -> NavigationRoute {
+        let itemTypeID = itemTypes
+            .map { String(describing: $0) }
+            .joined(separator: "-")
+
+        return NavigationRoute(
+            id: "genre-library-(\(genre.id))-(\(itemTypeID))",
+            withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
+        ) {
+            GenreLibraryView(genre: genre, itemTypes: itemTypes)
+        }
+    }
+    #endif
 }

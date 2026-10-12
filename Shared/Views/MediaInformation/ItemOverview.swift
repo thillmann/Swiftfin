@@ -28,7 +28,9 @@ struct ItemOverviewView: View {
                 }
 
                 if let itemOverview = item.overview {
-                    Text(itemOverview)
+                    let prefix = item.seasonEpisodeLabel.map { "\($0): " } ?? ""
+
+                    (Text(prefix).fontWeight(.bold) + Text(itemOverview))
                         .font(.body)
                         .multilineTextAlignment(.leading)
                 }

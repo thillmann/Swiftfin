@@ -75,6 +75,57 @@ extension StoredValues.Keys {
 
     enum User {
 
+        static var enableCollectionManagement: Key<Bool> {
+            CurrentUserKey(
+                field: "enableCollectionManagement",
+                default: false
+            )
+        }
+
+
+        static var enableItemDeletion: Key<Bool> {
+            CurrentUserKey(
+                field: "enableItemDeletion",
+                default: false
+            )
+        }
+
+
+        static var enableItemEditing: Key<Bool> {
+            CurrentUserKey(
+                field: "enableItemEditing",
+                default: false
+            )
+        }
+
+
+        static func libraryPosterType(parentID: String?) -> Key<PosterDisplayType> {
+            CurrentUserKey(
+                parentID,
+                field: "setting-libraryPosterType",
+                default: Defaults[.Customization.Library.posterType]
+            )
+        }
+
+
+        static func libraryListColumnCount(parentID: String?) -> Key<Int> {
+            CurrentUserKey(
+                parentID,
+                field: "setting-libraryListColumnCount",
+                default: Defaults[.Customization.Library.listColumnCount]
+            )
+        }
+
+
+        static func libraryDisplayType(parentID: String?) -> Key<LibraryDisplayType> {
+            CurrentUserKey(
+                parentID,
+                field: "setting-libraryDisplayType",
+                default: Defaults[.Customization.Library.displayType]
+            )
+        }
+
+
         static var users: Key<[UserState]> {
             Key(
                 "users",

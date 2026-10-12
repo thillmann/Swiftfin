@@ -29,27 +29,61 @@ struct ErrorView<ErrorType: Error>: View {
 
     let error: ErrorType
 
+    private var networkFailure: NetworkFailure? {
+        if let errorMessage = error as? ErrorMessage {
+            return errorMessage.networkFailure
+        }
+
+        return error.networkFailure
+    }
+
     private var systemImage: String {
+        if networkFailure != nil {
+            return "wifi.slash"
+        }
+
         if let error = error as? SystemImageable {
-            error.systemImage
+            return error.systemImage
         } else {
-            "xmark.circle"
+            return "xmark.circle"
         }
     }
 
+    private var title: String {
+        networkFailure == nil ? error.localizedDescription : L10n.connectionFailed
+    }
+
+    private var recoverySuggestion: String? {
+        if let networkFailure {
+            return networkFailure.message
+        }
+
+        return (error as? LocalizedError)?.recoverySuggestion
+    }
+
     var body: some View {
-        VStack {
+        VStack(spacing: 20) {
             Image(systemName: systemImage)
                 .font(.system(size: iconSize, weight: .regular))
                 .foregroundStyle(Color.red)
                 .symbolRenderingMode(.monochrome)
 
-            Text(error.localizedDescription)
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+
+                if let recoverySuggestion {
+                    Text(recoverySuggestion)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.center)
+                }
+            }
 
             if let refresh {
                 Button {
@@ -69,16 +103,6 @@ struct ErrorView<ErrorType: Error>: View {
                 #endif
                 .frame(height: buttonHeight)
                 .frame(maxWidth: buttonMaxSize)
-            }
-
-            if let localizedError = error as? LocalizedError,
-               let recoverySuggestion = localizedError.recoverySuggestion
-            {
-                Text(recoverySuggestion)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: 600, maxHeight: .infinity)

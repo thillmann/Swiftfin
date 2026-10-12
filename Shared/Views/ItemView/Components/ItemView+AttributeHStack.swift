@@ -128,3 +128,56 @@ extension ItemView {
         }
     }
 }
+
+#if DEBUG
+@MainActor
+private func makeAttributeHStackPreviewViewModel() -> ItemViewModel {
+    var item = BaseItemDto(
+        id: "preview-item",
+        name: "Preview Movie",
+        type: .movie
+    )
+    item.criticRating = 86
+    item.communityRating = 7.8
+    item.officialRating = "PG-13"
+
+    let mediaStreams: [MediaStream] = [
+        .init(
+            type: .video,
+            videoRangeType: .doviWithHDR10,
+            width: 3840
+        ),
+        .init(
+            channelLayout: "7.1",
+            type: .audio
+        ),
+        .init(type: .subtitle),
+    ]
+    let mediaSource = MediaSourceInfo(
+        id: "preview-media-source",
+        mediaStreams: mediaStreams
+    )
+
+    let viewModel = ItemViewModel(item: item)
+    viewModel.send(.selectMediaSource(mediaSource))
+
+    return viewModel
+}
+
+#Preview("Attributes", traits: .sizeThatFitsLayout) {
+    ItemView.AttributesHStack(
+        attributes: [
+            .ratingCritics,
+            .ratingCommunity,
+            .ratingOfficial,
+            .videoQuality,
+            .audioChannels,
+            .subtitles,
+        ],
+        viewModel: makeAttributeHStackPreviewViewModel(),
+        alignment: .leading
+    )
+    .padding()
+    .background(Color.black)
+}
+#endif

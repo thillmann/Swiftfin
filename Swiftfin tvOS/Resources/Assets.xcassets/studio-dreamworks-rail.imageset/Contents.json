@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "studio-dreamworks-rail.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "preserves-vector-representation" : true
+  }
+}

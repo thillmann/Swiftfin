@@ -61,6 +61,10 @@ extension VideoPlayer.PlaybackControls.Toolbar {
                 filteredButtons.removeAll { $0 == .playPreviousItem }
             }
 
+            if manager.playbackItem?.origin != .server {
+                filteredButtons.removeAll { $0 == .playbackSettings }
+            }
+
             if manager.item.isLiveStream {
                 filteredButtons.removeAll { $0 == .autoPlay }
                 filteredButtons.removeAll { $0 == .playbackSpeed }

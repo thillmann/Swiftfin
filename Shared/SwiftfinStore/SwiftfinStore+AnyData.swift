@@ -36,6 +36,14 @@ extension AnyStoredData {
 
     static func store(value: some Codable, ownerID: String, field: String, key: String) throws {
 
+        let encodedData = try JSONEncoder().encode(value)
+        try store(data: encodedData, ownerID: ownerID, field: field, key: key)
+    }
+
+    /// Stores data that has already been encoded away from the main thread.
+    /// CoreStore access itself must still occur on its designated queue.
+    static func store(data: Data, ownerID: String, field: String, key: String) throws {
+
         let ownerFilter: Where<AnyStoredData> = Where(\.$ownerID == ownerID)
         let keyFilter: Where<AnyStoredData> = Where(\.$key == key)
         let fieldFilter: Where<AnyStoredData> = Where(\.$field == field)
@@ -48,15 +56,13 @@ extension AnyStoredData {
 
             assert(existing.count < 2, "More than one stored object for same name, id, and field!")
 
-            let encodedData = try JSONEncoder().encode(value)
-
             if let existingObject = existing.first {
                 let edit = transaction.edit(existingObject)
-                edit?.data = encodedData
+                edit?.data = data
             } else {
                 let newData = transaction.create(Into<AnyStoredData>())
 
-                newData.data = encodedData
+                newData.data = data
                 newData.field = field
                 newData.ownerID = ownerID
                 newData.key = key

@@ -115,13 +115,14 @@ final class MediaPlayerManager: ViewModel {
                 seconds = playbackItem.baseItem.startSeconds ?? .zero
                 playbackItem.manager = self
                 setSupplements()
+                loadMediaSegments(for: playbackItem.baseItem)
 
                 logger.info(
                     "Playing new item",
                     metadata: [
                         "itemID": .stringConvertible(playbackItem.baseItem.id ?? "Unknown"),
                         "itemTitle": .stringConvertible(playbackItem.baseItem.displayTitle),
-                        "url": .stringConvertible(playbackItem.url.absoluteString),
+                        "endpoint": .stringConvertible(playbackEndpointDescription(playbackItem.url)),
                         "isTranscoding": .stringConvertible(playbackItem.mediaSource.transcodingURL != nil),
                     ]
                 )
@@ -144,6 +145,8 @@ final class MediaPlayerManager: ViewModel {
         set { selectedItem = newValue }
     }
 
+    @Published
+    private(set) var requestedItem: BaseItemDto
     @Published
     private(set) var playbackRequestStatus: PlaybackRequestStatus = .playing
     @Published
@@ -183,6 +186,9 @@ final class MediaPlayerManager: ViewModel {
     var queue: AnyMediaPlayerQueue? = nil
 
     @Published
+    private(set) var mediaSegments: [MediaSegmentDto] = []
+
+    @Published
     var supplements: [any MediaPlayerSupplement] = []
 
     // TODO: replace with graph dependency package
@@ -190,8 +196,12 @@ final class MediaPlayerManager: ViewModel {
         var newSupplements = Defaults[.VideoPlayer.supplements].compactMap { kind -> (any MediaPlayerSupplement)? in
             switch kind {
             case .info:
+                #if os(tvOS)
+                let infoItem = requestedItem.type == .program ? requestedItem : item
+                return MediaInfoSupplement(item: infoItem)
+                #else
                 return MediaInfoSupplement(item: item)
-
+                #endif
             case .chapters:
                 guard let chapters = item.fullChapterInfo, chapters.isNotEmpty else { return nil }
 
@@ -207,6 +217,7 @@ final class MediaPlayerManager: ViewModel {
                 return MediaPeopleSupplement(people: people)
 
             case .playbackInformation:
+                guard playbackItem?.origin == .server else { return nil }
                 guard let itemID = item.id else { return nil }
 
                 return PlaybackInformationSupplement(itemID: itemID)
@@ -241,7 +252,18 @@ final class MediaPlayerManager: ViewModel {
         }
     }
 
+    private var mediaSegmentsTask: Task<Void, Never>?
     private var initialMediaPlayerItemProvider: MediaPlayerItemProvider?
+
+    var preferredVideoPlayerType: VideoPlayerType {
+        if let preference = initialMediaPlayerItemProvider?.preferredVideoPlayerType { return preference }
+        let preference = Defaults[.VideoPlayer.videoPlayerType]
+        if preference == .avPlayer, let playbackItem, case .download = playbackItem.origin {
+            let container = playbackItem.mediaSource.container?.lowercased() ?? ""
+            if playbackItem.subtitleStreams.sidecarSubtitles.isNotEmpty || !["mp4", "mov", "m4v"].contains(container) { return .vlc }
+        }
+        return preference
+    }
 
     // MARK: init
 
@@ -258,6 +280,7 @@ final class MediaPlayerManager: ViewModel {
         queue: (any MediaPlayerQueue)? = nil
     ) {
         self.selectedItem = provider.item
+        self.requestedItem = provider.item
         self.queue = queue.map { AnyMediaPlayerQueue($0) }
         self.state = .loadingItem
         self.initialMediaPlayerItemProvider = provider
@@ -271,6 +294,7 @@ final class MediaPlayerManager: ViewModel {
         queue: (any MediaPlayerQueue)? = nil
     ) {
         self.selectedItem = playbackItem.baseItem
+        self.requestedItem = playbackItem.baseItem
         self.queue = queue.map { AnyMediaPlayerQueue($0) }
         self.state = .playback
         super.init()
@@ -315,7 +339,7 @@ final class MediaPlayerManager: ViewModel {
                     "error": .stringConvertible(error.localizedDescription),
                     "itemID": .stringConvertible(playbackItem.baseItem.id ?? "Unknown"),
                     "itemTitle": .stringConvertible(playbackItem.baseItem.displayTitle),
-                    "url": .stringConvertible(playbackItem.url.absoluteString),
+                    "endpoint": .stringConvertible(playbackEndpointDescription(playbackItem.url)),
                 ]
             )
         } else {
@@ -337,6 +361,7 @@ final class MediaPlayerManager: ViewModel {
     @Function(\Action.Cases.playNewItem)
     private func _playNewItem(_ provider: MediaPlayerItemProvider) async throws {
         resetPlaybackOffsets()
+        requestedItem = provider.item
         item = provider.item
         setSupplements()
         proxy?.stop()
@@ -345,6 +370,7 @@ final class MediaPlayerManager: ViewModel {
 
     @Function(\Action.Cases.setBitrate)
     private func _setBitrate(_ requestedBitrate: PlaybackBitrate) async throws {
+        guard playbackItem?.origin == .server else { return }
         guard let currentItem = playbackItem else { return }
 
         try await updateMediaPlayerItem(
@@ -434,6 +460,8 @@ final class MediaPlayerManager: ViewModel {
     private func _stop() async throws {
         await self.cancel()
 
+        mediaSegmentsTask?.cancel()
+        mediaSegments = []
         proxy?.stop()
         Container.shared.mediaPlayerManagerPublisher().send(nil)
         Container.shared.mediaPlayerManager.reset()
@@ -493,7 +521,7 @@ final class MediaPlayerManager: ViewModel {
             metadata: [
                 "playSessionID": "\(newItem.playSessionID)",
                 "isTranscoding": "\(newItem.mediaSource.transcodingURL != nil)",
-                "url": "\(newItem.url.absoluteString)",
+                "endpoint": "\(playbackEndpointDescription(newItem.url))",
             ]
         )
 
@@ -555,5 +583,94 @@ extension MediaPlayerManager {
 
         try? await Task.sleep(for: .milliseconds(300))
         await startPiPWhenReady(attemptsLeft: attemptsLeft - 1)
+    }
+}
+
+extension MediaPlayerManager {
+
+    var currentIntroSegment: MediaSegmentDto? {
+        currentIntroSegment(at: seconds)
+    }
+
+    func currentIntroSegment(at seconds: Duration) -> MediaSegmentDto? {
+        mediaSegments.first { segment in
+            guard segment.type == .intro,
+                  let startSeconds = segment.startSeconds,
+                  let endSeconds = segment.endSeconds
+            else {
+                return false
+            }
+
+            return seconds >= startSeconds && seconds < endSeconds
+        }
+    }
+
+    func skipCurrentIntro() {
+        guard let endSeconds = currentIntroSegment?.endSeconds else { return }
+        proxy?.setSeconds(endSeconds)
+        seconds = endSeconds
+    }
+
+    private func loadMediaSegments(for item: BaseItemDto) {
+        mediaSegmentsTask?.cancel()
+        mediaSegments = []
+
+        guard playbackItem?.origin == .server else { return }
+
+        guard let itemID = item.id,
+              let itemType = item.type,
+              [.episode, .movie, .musicVideo, .video].contains(itemType)
+        else {
+            return
+        }
+
+        guard let userSession else { return }
+        let logger = logger
+
+        mediaSegmentsTask = Task { [weak self, userSession, logger] in
+            let request = Paths.getItemSegments(
+                itemID: itemID,
+                includeSegmentTypes: [.intro]
+            )
+
+            do {
+                let response = try await userSession.client.send(request)
+                let segments = (response.value.items ?? [])
+                    .filter { $0.type == .intro && $0.startSeconds != nil && $0.endSeconds != nil }
+                    .sorted {
+                        ($0.startSeconds ?? .zero) < ($1.startSeconds ?? .zero)
+                    }
+
+                await MainActor.run {
+                    guard self?.item.id == itemID else { return }
+                    self?.mediaSegments = segments
+                }
+            } catch {
+                logger.debug(
+                    "Unable to load media segments",
+                    metadata: [
+                        "error": .stringConvertible(error.localizedDescription),
+                        "itemID": .stringConvertible(itemID),
+                    ]
+                )
+            }
+        }
+    }
+}
+
+private func playbackEndpointDescription(_ url: URL) -> String {
+    "\(url.scheme ?? "unknown")://\(url.host ?? "unknown")\(url.path)"
+}
+
+private extension MediaSegmentDto {
+
+    static let ticksPerSecond: Double = 10_000_000
+
+    var startSeconds: Duration? {
+        startTicks.map { .seconds(Double($0) / Self.ticksPerSecond) }
+    }
+
+    var endSeconds: Duration? {
+        endTicks.map { .seconds(Double($0) / Self.ticksPerSecond) }
     }
 }

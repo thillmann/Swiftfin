@@ -17,6 +17,8 @@ extension SwiftfinApp {
 
     static func configure() {
 
+        SwizzleDefaults.set(true, for: "com.apple.SwiftUI.IgnoreSolariumOptOut")
+
         // Logging
         LoggingSystem.bootstrap { label in
 

@@ -24,7 +24,7 @@ extension EdgeInsets {
     /// typically the edges of the View's scene
     static let edgePadding: CGFloat = {
         #if os(tvOS)
-        60
+        80
         #else
         if UIDevice.isPad {
             24

@@ -83,7 +83,7 @@ extension NavigationRoute {
         NavigationRoute(
             id: "customizeSettingsView"
         ) {
-            CustomizeSettingsView()
+            PlatformCustomizeSettingsView()
         }
     }
 
@@ -271,6 +271,14 @@ extension NavigationRoute {
             style: .sheet
         ) {
             ResetUserPasswordView(userID: userID, requiresCurrentPassword: true)
+        }
+    }
+    #endif
+
+    #if os(tvOS)
+    static var seerSettings: NavigationRoute {
+        NavigationRoute(id: "seerSettings") {
+            SeerrSettingsView()
         }
     }
     #endif

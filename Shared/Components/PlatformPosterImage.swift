@@ -1,0 +1,157 @@
+//
+// Swiftfin is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) 2026 Jellyfin & Jellyfin Contributors
+//
+
+import SwiftUI
+
+/// Retrieving images by exact pixel dimensions is a bit
+/// intense for normal usage and eases cache usage and modifications.
+private let landscapeMaxWidth: CGFloat = 300
+private let portraitMaxWidth: CGFloat = 200
+
+struct PlatformPosterImage<Item: PlatformPoster, Fallback: View>: View {
+
+    private let appliesPosterStyle: Bool
+    private let contentMode: ContentMode
+    private let imageContentMode: ContentMode?
+    private let imageMaxWidth: CGFloat
+    private let imageSourcesOverride: [ImageSource]?
+    private let item: Item
+    private let type: PosterDisplayType
+    private let fallback: () -> Fallback
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        contentMode: ContentMode = .fill,
+        imageContentMode: ContentMode? = nil,
+        appliesPosterStyle: Bool = true,
+        maxWidth: CGFloat? = nil,
+        imageSources: [ImageSource]? = nil,
+        @ViewBuilder fallback: @escaping () -> Fallback
+    ) {
+        self.appliesPosterStyle = appliesPosterStyle
+        self.contentMode = contentMode
+        self.imageContentMode = imageContentMode
+        self.imageMaxWidth = maxWidth ?? (type == .landscape ? landscapeMaxWidth : portraitMaxWidth)
+        self.imageSourcesOverride = imageSources
+        self.item = item
+        self.type = type
+        self.fallback = fallback
+    }
+
+    private var imageSources: [ImageSource] {
+        if let imageSourcesOverride {
+            return imageSourcesOverride
+        }
+
+        return switch type {
+        case .landscape:
+            item.landscapeImageSources(maxWidth: imageMaxWidth, quality: 90)
+        case .portrait:
+            item.portraitImageSources(maxWidth: imageMaxWidth, quality: 90)
+        case .square:
+            item.squareImageSources(maxWidth: imageMaxWidth, quality: 90)
+        }
+    }
+
+    @ViewBuilder
+    private var placeholderContent: some View {
+        PosterFallbackContentView(
+            title: nil,
+            systemName: item.systemImage
+        )
+    }
+
+    @ViewBuilder
+    private var fallbackContent: some View {
+        fallback()
+    }
+
+    var body: some View {
+        let imageView = ImageView(imageSources)
+            .image { image in
+                switch imageContentMode {
+                case .some(.fill):
+                    item.transform(image: image)
+                        .scaledToFill()
+                case .some(.fit):
+                    item.transform(image: image)
+                        .scaledToFit()
+                case .none:
+                    item.transform(image: image)
+                }
+            }
+            .placeholder { _ in
+                placeholderContent
+            }
+            .failure {
+                fallbackContent
+            }
+
+        if appliesPosterStyle {
+            imageView
+                .posterStyle(
+                    type,
+                    contentMode: contentMode
+                )
+        } else {
+            imageView
+        }
+    }
+}
+
+extension PlatformPosterImage where Fallback == PosterFallbackContentView {
+
+    init(
+        item: Item,
+        type: PosterDisplayType,
+        contentMode: ContentMode = .fill,
+        maxWidth: CGFloat? = nil,
+        imageSources: [ImageSource]? = nil
+    ) {
+        self.init(
+            item: item,
+            type: type,
+            contentMode: contentMode,
+            maxWidth: maxWidth,
+            imageSources: imageSources
+        ) {
+            PosterFallbackContentView(
+                title: item.showTitle ? nil : item.displayTitle,
+                systemName: item.systemImage
+            )
+        }
+    }
+}
+
+struct PosterFallbackContentView: View {
+
+    let title: String?
+    let systemName: String?
+
+    var body: some View {
+        ZStack {
+            Color(.darkGray)
+
+            SystemImageContentView(systemName: systemName)
+
+            if let title {
+                VStack {
+                    Spacer()
+
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity)
+                }
+                .padding(16)
+            }
+        }
+    }
+}

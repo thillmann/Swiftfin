@@ -56,7 +56,8 @@ extension BaseItemDto {
 
         return ImageSource(
             url: url,
-            blurHash: blurHashes?[tag] ?? blurHashes?.values.first
+            blurHash: blurHashes?[tag] ?? blurHashes?.values.first,
+            trimsTransparentPixels: trimsTransparentPixels(for: type)
         )
     }
 }

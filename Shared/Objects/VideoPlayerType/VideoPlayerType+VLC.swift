@@ -86,6 +86,29 @@ extension VideoPlayerType {
         TranscodingProfile(
             isBreakOnNonKeyFrames: true,
             context: .streaming,
+            isCopyTimestamps: false,
+            enableSubtitlesInManifest: true,
+            maxAudioChannels: "8",
+            minSegments: 2,
+            protocol: MediaStreamProtocol.hls,
+            type: .video
+        ) {
+            AudioCodec.aac
+            AudioCodec.ac3
+            AudioCodec.eac3
+            AudioCodec.mp3
+        } videoCodecs: {
+            VideoCodec.h264
+            VideoCodec.hevc
+        } containers: {
+            MediaContainer.mpegts
+        }
+
+        TranscodingProfile(
+            isBreakOnNonKeyFrames: true,
+            context: .streaming,
+            isCopyTimestamps: false,
+            enableSubtitlesInManifest: true,
             maxAudioChannels: "8",
             minSegments: 2,
             protocol: MediaStreamProtocol.hls,

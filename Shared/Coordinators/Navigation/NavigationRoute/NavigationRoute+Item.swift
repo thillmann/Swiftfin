@@ -157,7 +157,7 @@ extension NavigationRoute {
             id: "item-\(item.id ?? "Unknown")",
             withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
         ) {
-            ItemView(provider: provider)
+            PlatformItemView(item: provider.item)
         }
     }
 
@@ -169,7 +169,7 @@ extension NavigationRoute {
             id: "item-\(id)",
             withNamespace: { .push(.zoom(sourceID: "item", namespace: $0)) }
         ) {
-            ItemView(provider: provider)
+            PlatformItemView(item: provider.item)
         }
     }
 

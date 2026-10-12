@@ -1,0 +1,202 @@
+//
+// Swiftfin is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) 2026 Jellyfin & Jellyfin Contributors
+//
+
+import Combine
+import Defaults
+import Get
+import JellyfinAPI
+import OrderedCollections
+import SwiftUI
+
+@MainActor
+final class ItemLibraryViewModel: PlatformPagingLibraryViewModel<BaseItemDto> {
+
+    private var pendingGenreConjunctionItems: [BaseItemDto] = []
+    private var genreConjunctionStartIndex = 0
+    private var matchesAnyGenre = false
+
+    convenience init(
+        title: String,
+        id: String?,
+        matchingAnyGenre genres: [ItemGenre],
+        itemTypes: [BaseItemKind]
+    ) {
+        self.init(
+            title: title,
+            id: id,
+            filters: .init(
+                genres: genres,
+                itemTypes: itemTypes
+            )
+        )
+        self.matchesAnyGenre = true
+    }
+
+    // MARK: get
+
+    override func get(page: Int) async throws -> [BaseItemDto] {
+
+        // Jellyfin treats multiple genre values as alternatives. Preserve that
+        // behavior for taxonomy aliases, while normal user-selected filters
+        // continue through the conjunction path below.
+        guard let filters = filterViewModel?.currentFilters,
+              filters.genres.count > 1,
+              !matchesAnyGenre
+        else {
+            return try await getItems(parameters: itemParameters(for: page))
+        }
+
+        if page == 0 {
+            pendingGenreConjunctionItems = []
+            genreConjunctionStartIndex = 0
+        }
+
+        var items = pendingGenreConjunctionItems
+        pendingGenreConjunctionItems = []
+
+        while items.count < pageSize {
+            var parameters = itemParameters(for: nil)
+            parameters.fields = .MinimumFields + [.genres]
+            parameters.limit = pageSize
+            parameters.startIndex = genreConjunctionStartIndex
+
+            let response = try await send(Paths.getItems(parameters: parameters))
+            let candidates = response.value.items ?? []
+            genreConjunctionStartIndex += candidates.count
+
+            let matchingItems = candidates.filter { item in
+                let itemGenres = Set((item.genres ?? []).map { $0.lowercased() })
+                return filters.genres.allSatisfy { itemGenres.contains($0.value.lowercased()) }
+            }
+            let availableSlots = pageSize - items.count
+
+            items.append(contentsOf: matchingItems.prefix(availableSlots))
+            pendingGenreConjunctionItems.append(contentsOf: matchingItems.dropFirst(availableSlots))
+
+            guard candidates.count >= pageSize else { break }
+        }
+
+        return processedItems(items)
+    }
+
+    private func getItems(parameters: Paths.GetItemsParameters) async throws -> [BaseItemDto] {
+
+        let request = Paths.getItems(parameters: parameters)
+        let response = try await send(request)
+
+        return processedItems(response.value.items ?? [])
+    }
+
+    private func processedItems(_ items: [BaseItemDto]) -> [BaseItemDto] {
+
+        // 1 - only care to keep collections that hold valid items
+        // 2 - if parent is type `folder`, then we are in a folder-view
+        //     context so change `collectionFolder` types to `folder`
+        //     for better view handling
+        items
+            .filter { item in
+                if let collectionType = item.collectionType {
+                    return CollectionType.supportedCases.contains(collectionType)
+                }
+
+                return true
+            }
+            .map { item in
+                if parent?.libraryType == .folder, item.type == .collectionFolder {
+                    return item.mutating(\.type, with: .folder)
+                }
+
+                return item
+            }
+    }
+
+    // MARK: item parameters
+
+    private func itemParameters(for page: Int?) -> Paths.GetItemsParameters {
+
+        var parameters = Paths.GetItemsParameters()
+
+        parameters.enableUserData = true
+        parameters.fields = .MinimumFields
+
+        // Default values, expected to be overridden
+        // by parent or filters
+        parameters.includeItemTypes = BaseItemKind.supportedCases
+        parameters.sortOrder = [.ascending]
+        parameters.sortBy = [ItemSortBy.name]
+
+        /// Recursive should only apply to parents/folders and not to baseItems
+        parameters.isRecursive = (parent as? BaseItemDto)?.isRecursiveCollection ?? true
+
+        // Parent
+        if let parent {
+            parameters = parent.setParentParameters(parameters)
+        }
+
+        // Page size
+        if let page {
+            parameters.limit = pageSize
+            parameters.startIndex = page * pageSize
+        }
+
+        // Filters
+        if let filterViewModel {
+            let filters = filterViewModel.currentFilters
+            parameters.filters = filters.traits
+            if filters.genres.isNotEmpty, filters.genres.allSatisfy({ $0.id != nil }) {
+                parameters.genreIDs = filters.genres.compactMap(\.id)
+            } else {
+                parameters.genres = filters.genres.map(\.value)
+            }
+            parameters.sortBy = filters.sortBy
+            parameters.sortOrder = filters.sortOrder
+            parameters.tags = filters.tags.map(\.value)
+            parameters.years = filters.years.compactMap { Int($0.value) }
+
+            // Only set filtering on item types if selected, where
+            // supported values should have been set by the parent.
+            if filters.itemTypes.isNotEmpty {
+                parameters.includeItemTypes = filters.itemTypes
+            }
+
+            if filters.letter.first?.value == "#" {
+                parameters.nameLessThan = "A"
+            } else {
+                parameters.nameStartsWith = filters.letter
+                    .map(\.value)
+                    .filter { $0 != "#" }
+                    .first
+            }
+
+            // Random sort won't take into account previous items, so
+            // manual exclusion is necessary. This could possibly be
+            // a performance issue for loading pages after already loading
+            // many items, but there's nothing we can do about that.
+            if filters.sortBy.first == ItemSortBy.random {
+                parameters.excludeItemIDs = elements.compactMap(\.id)
+            }
+        }
+
+        return parameters
+    }
+
+    // MARK: getRandomItem
+
+    override func getRandomItem() async -> BaseItemDto? {
+        guard userSession != nil else { return nil }
+
+        var parameters = itemParameters(for: nil)
+        parameters.limit = 1
+        parameters.sortBy = [ItemSortBy.random]
+
+        let request = Paths.getItems(parameters: parameters)
+        let response = try? await send(request)
+
+        return response?.value.items?.first
+    }
+}

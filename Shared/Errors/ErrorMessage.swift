@@ -15,9 +15,16 @@ import Foundation
 struct ErrorMessage: LocalizedError, Hashable {
 
     private let message: String
+    let networkFailure: NetworkFailure?
 
     init(_ message: String) {
         self.message = message
+        self.networkFailure = nil
+    }
+
+    init(_ error: Error) {
+        self.message = error.localizedDescription
+        self.networkFailure = error.networkFailure
     }
 
     var errorDescription: String? {

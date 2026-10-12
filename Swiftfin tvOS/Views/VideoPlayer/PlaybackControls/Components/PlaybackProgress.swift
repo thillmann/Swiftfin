@@ -154,6 +154,64 @@ extension VideoPlayer.PlaybackControls {
             .foregroundStyle(manager.state == .loadingItem ? .gray : .primary)
         }
 
+        private var liveProgramDates: (start: Date, end: Date)? {
+            guard manager.item.isLiveStream,
+                  manager.requestedItem.type == .program,
+                  let start = manager.requestedItem.startDate,
+                  let end = manager.requestedItem.endDate,
+                  end > start
+            else {
+                return nil
+            }
+
+            return (start, end)
+        }
+
+        private func liveProgramProgress(at date: Date, start: Date, end: Date) -> Double {
+            let duration = end.timeIntervalSince(start)
+            let elapsed = date.timeIntervalSince(start)
+            return clamp((elapsed / duration) * 100, min: 0, max: 100)
+        }
+
+        @ViewBuilder
+        private var liveProgramProgress: some View {
+            if let liveProgramDates {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    VStack(spacing: 10) {
+                        SliderContainer(
+                            value: .constant(
+                                liveProgramProgress(
+                                    at: context.date,
+                                    start: liveProgramDates.start,
+                                    end: liveProgramDates.end
+                                )
+                            ),
+                            total: 100,
+                            isScrollingEnabled: false,
+                            originProgress: nil
+                        )
+                        .sliderContainerStyle(.capsule(showsProgressWhenUnfocused: true))
+                        .disabled(true)
+                        .frame(height: sliderHeight)
+
+                        HStack {
+                            Text(liveProgramDates.start, format: .dateTime.hour().minute())
+
+                            Spacer()
+
+                            Text(liveProgramDates.end, format: .dateTime.hour().minute())
+                        }
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .monospacedDigit()
+                    }
+                }
+            } else {
+                liveIndicator
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+
         @ViewBuilder
         private var previewImage: some View {
             if isScrubbing, let previewImageProvider = manager.playbackItem?.previewImageProvider {
@@ -170,8 +228,7 @@ extension VideoPlayer.PlaybackControls {
         var body: some View {
             VStack(spacing: 10) {
                 if manager.item.isLiveStream {
-                    liveIndicator
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    liveProgramProgress
                 } else {
                     videoPlayerSlider
 

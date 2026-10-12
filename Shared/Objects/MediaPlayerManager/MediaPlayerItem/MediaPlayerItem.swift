@@ -18,6 +18,11 @@ import SwiftUI
 @MainActor
 class MediaPlayerItem: ViewModel, MediaPlayerObserver {
 
+    enum Origin: Equatable {
+        case server
+        case download(recordID: String)
+    }
+
     typealias ThumbnailProvider = () async -> UIImage?
 
     @Published
@@ -54,10 +59,11 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
     private var sharedItem: BaseItemDto
     private let startPositionTicks: Int?
     private let runtimeTicks: Int?
+    private let localItem: BaseItemDto?
 
     /// Applies local playback overrides to the latest shared metadata
     var baseItem: BaseItemDto {
-        var value = sharedItem
+        var value = localItem ?? sharedItem
         value.runTimeTicks = runtimeTicks ?? value.runTimeTicks
         if let startPositionTicks {
             var data = value.userData ?? UserItemDataDto(key: value.id ?? "")
@@ -79,6 +85,7 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
     let videoStreams: [MediaStream]
 
     let requestedBitrate: PlaybackBitrate
+    let origin: Origin
 
     // MARK: init
 
@@ -92,9 +99,11 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
         initialAudioStreamIndex: Int? = nil,
         initialSubtitleStreamIndex: Int? = nil,
         previewImageProvider: (any PreviewImageProvider)? = nil,
-        thumbnailProvider: ThumbnailProvider? = nil
+        thumbnailProvider: ThumbnailProvider? = nil,
+        origin: Origin = .server
     ) {
         self.sharedItem = baseItem
+        self.localItem = origin == .server ? nil : baseItem
         self.startPositionTicks = baseItem.userData?.playbackPositionTicks
         self.runtimeTicks = mediaSource.runTimeTicks ?? baseItem.runTimeTicks
         self.mediaSource = mediaSource
@@ -104,6 +113,7 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
         self.previewImageProvider = previewImageProvider
         self.thumbnailProvider = thumbnailProvider
         self.url = url
+        self.origin = origin
 
         let mediaStreams = mediaSource.mediaStreams
         let isTranscoding = mediaSource.transcodingURL != nil
@@ -133,15 +143,25 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
 
         selectedAudioStreamIndex = resolvedAudioStreamIndex
 
-        selectedSubtitleStreamIndex = initialSubtitleStreamIndex
-            ?? mediaSource.defaultSubtitleStreamIndex
-            ?? -1
+        if baseItem.isLiveStream {
+            selectedSubtitleStreamIndex = initialSubtitleStreamIndex ?? -1
+        } else {
+            selectedSubtitleStreamIndex = initialSubtitleStreamIndex
+                ?? mediaSource.defaultSubtitleStreamIndex
+                ?? -1
+        }
 
-        observers.append(MediaProgressObserver(item: self))
+        switch origin {
+        case .server:
+            observers.append(MediaProgressObserver(item: self))
+        case let .download(recordID):
+            observers.append(OfflineMediaProgressObserver(item: self, recordID: recordID))
+        }
     }
 
     /// Decides whether a track change can be performed by the player in place, or whether the server must produce a new stream.
     func isRebuildRequired(type: MediaStreamType, from oldIndex: Int?, to newIndex: Int?) -> Bool {
+        guard origin == .server else { return false }
         let isTranscoding = mediaSource.transcodingURL != nil
 
         // Disabling a track is ALWAYS a local-only operation.

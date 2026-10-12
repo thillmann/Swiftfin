@@ -24,6 +24,9 @@ struct SwiftfinApp: App {
                     RootView()
                 }
             }
+            .onOpenURL { url in
+                TopShelfDeepLinkStore.shared.receive(url)
+            }
         }
     }
 }

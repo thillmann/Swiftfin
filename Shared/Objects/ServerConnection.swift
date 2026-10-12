@@ -61,6 +61,10 @@ struct ServerConnection: Displayable, Hashable, Identifiable, Storable {
         name.nilIfBlank ?? url.absoluteString
     }
 
+    var requiresWifiSSID: Bool {
+        interface == .wifi && wifiSSIDs.isNotEmpty
+    }
+
     func matches(_ context: NetworkConnectionContext) -> Bool {
         switch interface {
         case .any:

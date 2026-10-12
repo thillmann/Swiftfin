@@ -1,0 +1,146 @@
+//
+// Swiftfin is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, you can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) 2026 Jellyfin & Jellyfin Contributors
+//
+
+import FactoryKit
+import JellyfinAPI
+import SwiftUI
+
+// Note: there are some unsafe first element accesses, but `ChannelProgram` data should always have a single program
+
+struct ProgramsView: View {
+
+    @Router
+    private var router
+
+    @Injected(\.currentUserSession)
+    private var userSession
+
+    @StateObject
+    private var programsViewModel = ProgramsViewModel()
+
+    private func play(_ item: BaseItemDto) {
+        guard let userSession else { return }
+
+        let provider = item.getPlaybackItemProvider(userSession: userSession)
+        router.route(to: .videoPlayer(provider: provider))
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                if programsViewModel.channels.isNotEmpty {
+                    channelsSection
+                }
+
+                if programsViewModel.recommended.isNotEmpty {
+                    programsSection(title: L10n.onNow, keyPath: \.recommended)
+                }
+
+                if programsViewModel.series.isNotEmpty {
+                    programsSection(title: L10n.series, keyPath: \.series)
+                }
+
+                if programsViewModel.movies.isNotEmpty {
+                    programsSection(title: L10n.movies, keyPath: \.movies)
+                }
+
+                if programsViewModel.kids.isNotEmpty {
+                    programsSection(title: L10n.kids, keyPath: \.kids)
+                }
+
+                if programsViewModel.sports.isNotEmpty {
+                    programsSection(title: L10n.sports, keyPath: \.sports)
+                }
+
+                if programsViewModel.news.isNotEmpty {
+                    programsSection(title: L10n.news, keyPath: \.news)
+                }
+            }
+            .padding(.bottom, EdgeInsets.edgePadding)
+        }
+    }
+
+    private var channelsSection: some View {
+        PlatformPosterHStack(
+            title: L10n.channels,
+            type: .square,
+            items: programsViewModel.channels
+        ) { channel in
+            CirclePosterButton(
+                item: channel,
+                subtitle: nil,
+                action: {
+                    play(channel.currentProgram ?? channel)
+                }
+            )
+        }
+        .itemContentAspectRatio(CirclePosterButtonDefaults.rowAspectRatio)
+    }
+
+    @ViewBuilder
+    private func programsSection(
+        title: String,
+        keyPath: KeyPath<ProgramsViewModel, [BaseItemDto]>
+    ) -> some View {
+        PlatformPosterHStack(
+            title: title,
+            type: .landscape,
+            items: programsViewModel[keyPath: keyPath],
+            posterButton: { item in
+                let channel = programsViewModel.channel(for: item)
+
+                PlatformPosterButton(item: item, type: .landscape) {
+                    play(item)
+                } fallback: {
+                    ProgramFallback()
+                } overlay: {
+                    ProgramOverlay(
+                        program: item,
+                        channel: channel
+                    )
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            switch programsViewModel.state {
+            case .content:
+                if programsViewModel.hasNoResults {
+                    ContentUnavailableView(L10n.noPrograms.localizedCapitalized, systemImage: "tv")
+                } else {
+                    contentView
+                }
+            case let .error(error):
+                ErrorView(error: error)
+            case .initial, .refreshing:
+                ProgressView()
+            }
+        }
+        .animation(.linear(duration: 0.1), value: programsViewModel.state)
+        .ignoresSafeArea(edges: [.bottom, .horizontal])
+        .refreshable {
+            programsViewModel.send(.refresh)
+        }
+        .onFirstAppear {
+            if programsViewModel.state == .initial {
+                programsViewModel.send(.refresh)
+            }
+        }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .minutes(5))
+
+                guard !Task.isCancelled else { return }
+                programsViewModel.send(.backgroundRefresh)
+            }
+        }
+    }
+}

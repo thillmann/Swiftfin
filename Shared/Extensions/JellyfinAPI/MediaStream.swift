@@ -6,6 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import FactoryKit
 import CoreTransferable
 import Foundation
 import JellyfinAPI
@@ -18,6 +19,8 @@ extension MediaStream {
 
     func url(with client: JellyfinClient) -> URL? {
         guard let deliveryURL else { return nil }
+
+        if let localURL = URL(string: deliveryURL), localURL.isFileURL { return localURL }
 
         let deliveryPath = deliveryURL.removingFirst(if: client.configuration.url.absoluteString.last == "/")
         return client.url(path: deliveryPath)
@@ -388,5 +391,14 @@ extension [MediaStream] {
 
     var hasSubtitles: Bool {
         contains { $0.type == .subtitle }
+    }
+}
+
+extension MediaStream {
+    var resolvedDeliveryURL: URL? {
+        guard let deliveryURL else { return nil }
+        if let localURL = URL(string: deliveryURL), localURL.isFileURL { return localURL }
+        guard let client = Container.shared.currentUserSession()?.client else { return nil }
+        return url(with: client)
     }
 }

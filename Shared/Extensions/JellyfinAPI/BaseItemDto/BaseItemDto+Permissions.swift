@@ -14,9 +14,27 @@ extension BaseItemDto {
 
     /// Indicates whether the item can be downloaded by the current user
     var canBeDownloaded: Bool {
-        guard let userPolicy = Container.shared.currentUserSession()?.user.data.policy else { return false }
+        canBeDownloaded(mediaSource: mediaSources?.first)
+    }
 
-        return userPolicy.enableContentDownloading == true && canDownload == true
+    /// Indicates whether an exact selected media source can be downloaded.
+    /// Jellyfin's item `canDownload` only covers file-backed item paths; finite
+    /// HTTP media sources are delivered through the static video proxy.
+    func canBeDownloaded(mediaSource: MediaSourceInfo?) -> Bool {
+        guard let userPolicy = Container.shared.currentUserSession()?.user.data.policy else { return false }
+        guard userPolicy.enableContentDownloading == true,
+              [.movie, .episode].contains(type),
+              let mediaSource
+        else { return false }
+
+        switch DownloadSourceClassifier.kind(itemIsLive: isLiveStream, source: mediaSource) {
+        case .file:
+            return canDownload == true
+        case .finiteHTTP:
+            return true
+        case .disc, .hls, .live, .unsupported:
+            return false
+        }
     }
 
     /// Indicates whether the item's metadata can be edited by the current user

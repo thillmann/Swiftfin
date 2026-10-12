@@ -153,12 +153,13 @@ final class ServerConnectionManager: ObservableObject {
 
         isStarted = true
 
+        let includeWifiSSID = userSession?.server.serverConnections.contains(where: \.requiresWifiSSID) == true
         let monitor = NWPathMonitor()
         self.monitor = monitor
 
         monitor.pathUpdateHandler = { [weak self] path in
             Task { [weak self] in
-                let newContext = await NetworkConnectionContext(path: path)
+                let newContext = await NetworkConnectionContext.current(path: path, includeWifiSSID: includeWifiSSID)
                 await self?.contextDidUpdate(newContext)
             }
         }
@@ -207,7 +208,7 @@ final class ServerConnectionManager: ObservableObject {
         guard !Task.isCancelled, isAutoSwitchEnabled, let userSession else { return }
 
         if context == .unavailable {
-            context = await NetworkConnectionContext.current()
+            context = await NetworkConnectionContext.current(includeWifiSSID: userSession.server.serverConnections.contains(where: \.requiresWifiSSID))
         }
 
         let currentConnection = userSession.server.activeServerConnection

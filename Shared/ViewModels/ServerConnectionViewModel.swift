@@ -156,13 +156,14 @@ final class ServerConnectionViewModel: ViewModel {
         if userSession?.server.id == server.id {
             await userSession?.serverConnectionManager.resolveActiveConnection()
         } else {
+            let includeWifiSSID = server.serverConnections.contains(where: \.requiresWifiSSID)
+            let context = await NetworkConnectionContext.current(includeWifiSSID: includeWifiSSID)
             _ = await ServerConnectionManager.evaluate(
                 server: server,
                 accessToken: userSession?.user.accessToken,
-                context: NetworkConnectionContext.current()
+                context: context
             )
         }
-
         reloadConnections()
     }
 

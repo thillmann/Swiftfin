@@ -6,58 +6,80 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import FactoryKit
+import Foundation
 import JellyfinAPI
 import SwiftUI
+
+// TODO: move popup to router
+//       - or, make tab view environment object
 
 // TODO: fix weird tvOS icon rendering
 struct MainTabView: View {
 
-    #if os(tvOS)
-    @Default(.Customization.tabBarPlacement)
-    private var tabBarPlacement
+    #if os(iOS)
+    @MainActor
+    final class SearchQueryState: ObservableObject {
+
+        @Published
+        var query = ""
+    }
     #endif
 
     @InjectedObject(\.userSessionManager)
     private var userSessionManager
 
+    #if os(tvOS)
+    @ObservedObject
+    private var topShelfDeepLinkStore = TopShelfDeepLinkStore.shared
+    #endif
+
+    #if os(iOS)
     @StateObject
-    private var tabCoordinator: TabCoordinator
-
-    init() {
-        _tabCoordinator = StateObject(wrappedValue: Self.defaultTabCoordinator)
+    private var tabCoordinator = TabCoordinator {
+        TabItem.home
+        TabItem.library(
+            id: "tv-shows",
+            title: L10n.tvShowsCapitalized,
+            systemName: "tv",
+            filters: .init(itemTypes: [.series]),
+            showsGenreFilter: true
+        )
+        TabItem.library(
+            id: "movies",
+            title: L10n.movies,
+            systemName: "film",
+            filters: .init(itemTypes: [.movie]),
+            showsGenreFilter: true
+        )
+        TabItem.media
+        TabItem.search
     }
 
-    private static var defaultTabCoordinator: TabCoordinator {
-        #if os(iOS)
-        TabCoordinator {
-            TabItem.contentGroup(provider: DefaultContentGroupProvider())
-            TabItem.search
-            TabItem.media
-        }
-        #else
-        TabCoordinator {
-            TabItem.contentGroup(provider: DefaultContentGroupProvider())
-            TabItem.library(
-                title: L10n.tvShowsCapitalized,
-                systemName: "tv",
-                filters: .init(itemTypes: [.series])
-            )
-            TabItem.library(
-                title: L10n.movies,
-                systemName: "film",
-                filters: .init(itemTypes: [.movie])
-            )
-            TabItem.search
-            TabItem.media
-            TabItem.settings
-        }
-        #endif
+    @StateObject
+    private var searchQueryState = SearchQueryState()
+    #else
+    @StateObject
+    private var tabCoordinator = TabCoordinator {
+        TabItem.home
+        TabItem.library(
+            title: L10n.tvShowsCapitalized,
+            systemName: "tv",
+            filters: .init(itemTypes: [.series])
+        )
+        TabItem.library(
+            title: L10n.movies,
+            systemName: "film",
+            filters: .init(itemTypes: [.movie])
+        )
+        TabItem.search
+        TabItem.media
+        TabItem.settings
     }
+    #endif
 
-    private func routePendingDeepLink(_ deepLink: DeepLink?) {
-        guard let deepLink else { return }
+    private func routePendingDeepLink() {
+        guard let deepLink = userSessionManager.consumePendingDeepLink() else { return }
 
         Task { @MainActor in
             let route = deepLink.route()
@@ -66,103 +88,210 @@ struct MainTabView: View {
     }
 
     @ViewBuilder
-    private func tabRoot(_ tab: TabCoordinator.TabData) -> some View {
-        NavigationInjectionView(coordinator: tab.coordinator) {
-            tab.item.content
-                #if os(iOS)
-                    .if(tabCoordinator.tabs.first?.item.id == tab.item.id) { view in
-                        view.topBarTrailing {
-                            FirstTabSettingsBarButton()
-                        }
-                    }
-                #endif
+    private func tabContent(for id: String) -> some View {
+        if let tab = tabCoordinator.tabs.first(where: { $0.item.id == id }) {
+            NavigationInjectionView(
+                coordinator: tab.coordinator
+            ) {
+                tab.item.content
+            }
+            .environmentObject(tabCoordinator)
+            #if os(iOS)
+                .environmentObject(searchQueryState)
+            #endif
+                .environment(\.tabItemSelected, tab.publisher)
         }
-        .environmentObject(tabCoordinator)
-        .environment(\.tabItemSelected, tab.publisher)
     }
 
-    @ViewBuilder
-    private func tabView() -> some View {
+    private var legacyTabView: some View {
         TabView(selection: $tabCoordinator.selectedTabID) {
             ForEach(tabCoordinator.tabs, id: \.item.id) { tab in
-                Tab(
-                    value: tab.item.id,
-                    role: tab.item.id == TabItem.search.id ? .search : nil
-                ) {
-                    #if os(tvOS)
-                    GeometryReader { proxy in
-                        tabRoot(tab)
-                            .environment(\.tabSafeAreaInsets, proxy.safeAreaInsets)
+                tabContent(for: tab.item.id)
+                    .tabItem {
+                        Label(
+                            tab.item.title,
+                            systemImage: tab.item.systemImage
+                        )
+                        .labelStyle(tab.item.labelStyle)
+                        .symbolRenderingMode(.monochrome)
+                        .eraseToAnyView()
                     }
-                    #else
-                    tabRoot(tab)
-                    #endif
-                } label: {
-                    Label(
-                        tab.item.displayTitle,
-                        systemImage: tab.item.systemImage
-                    )
-                    .symbolRenderingMode(.monochrome)
-                }
+                    .tag(tab.item.id)
             }
         }
     }
 
-    @ViewBuilder
-    private func tabContent() -> some View {
-        #if os(tvOS)
-        switch tabBarPlacement {
-        case .sidebar:
-            tabView()
-                .tabViewStyle(.sidebarAdaptable)
+    #if os(iOS)
+    @available(iOS 26.0, *)
+    private var nativeTabView: some View {
+        TabView(selection: $tabCoordinator.selectedTabID) {
+            if UIDevice.isPad {
+                Tab(L10n.home, systemImage: "house", value: "home") {
+                    tabContent(for: "home")
+                }
 
-        case .tabBar:
-            tabView()
-                .tabViewStyle(.tabBarOnly)
+                Tab(L10n.movies, systemImage: "film", value: "movies") {
+                    tabContent(for: "movies")
+                }
+
+                Tab(L10n.tvShowsCapitalized, systemImage: "tv", value: "tv-shows") {
+                    tabContent(for: "tv-shows")
+                }
+
+                Tab(L10n.media, systemImage: "rectangle.stack.fill", value: "media") {
+                    tabContent(for: "media")
+                }
+
+                Tab(value: "search", role: .search) {
+                    tabContent(for: "search")
+                }
+            } else {
+                TabSection {
+                    Tab(L10n.home, systemImage: "house", value: "home") {
+                        tabContent(for: "home")
+                    }
+
+                    Tab(L10n.tvShowsCapitalized, systemImage: "tv", value: "tv-shows") {
+                        tabContent(for: "tv-shows")
+                    }
+
+                    Tab(L10n.movies, systemImage: "film", value: "movies") {
+                        tabContent(for: "movies")
+                    }
+
+                    Tab(L10n.media, systemImage: "rectangle.stack.fill", value: "media") {
+                        tabContent(for: "media")
+                    }
+                }
+
+                Tab(value: "search", role: .search) {
+                    NativeSearchTabContent(searchQueryState: searchQueryState) {
+                        tabContent(for: "search")
+                    }
+                }
+            }
+        }
+        .tabViewSearchActivation(.automatic)
+    }
+    #endif
+
+    @ViewBuilder
+    private var selectedTabView: some View {
+        #if os(iOS)
+        if #available(iOS 26.0, *) {
+            nativeTabView
+        } else {
+            legacyTabView
         }
         #else
-        tabView()
+        legacyTabView
         #endif
     }
 
     var body: some View {
-        tabContent()
-            .onChange(of: userSessionManager.pendingDeepLink) {
-                routePendingDeepLink(userSessionManager.consumePendingDeepLink())
+        selectedTabView
+            .onAppear {
+                routePendingDeepLink()
             }
-            .onReceive(userSessionManager.routePublisher) { route in
-                Task { @MainActor in
-                    await tabCoordinator.route(to: route)
-                }
+            .onReceive(userSessionManager.$pendingDeepLink.compactMap(\.self)) { _ in
+                routePendingDeepLink()
             }
-            #if os(tvOS)
-            .background(alignment: .top) {
-                FocusedPosterCinematicBackgroundView()
+        #if os(tvOS)
+            .task(id: topShelfDeepLinkStore.pendingURL) {
+                await processTopShelfDeepLink()
             }
-            #endif
+        #endif
     }
+
+    #if os(tvOS)
+    @MainActor
+    private func processTopShelfDeepLink() async {
+        guard let url = topShelfDeepLinkStore.pendingURL,
+              let destination = topShelfDeepLinkStore.destination(for: url)
+        else {
+            return
+        }
+
+        defer {
+            topShelfDeepLinkStore.consume(url)
+        }
+
+        guard let userSession = Container.shared.currentUserSession(),
+              userSession.user.id == destination.userID
+        else {
+            return
+        }
+
+        let request = Paths.getItem(
+            itemID: destination.itemID,
+            userID: userSession.user.id
+        )
+
+        guard let response = try? await userSession.client.send(request),
+              let homeTab = tabCoordinator.tabs.first(where: { $0.item.id == TabItem.home.id })
+        else {
+            return
+        }
+
+        tabCoordinator.selectedTabID = homeTab.item.id
+
+        switch destination.action {
+        case .display:
+            homeTab.coordinator.push(.item(item: response.value))
+        case .play:
+            let item = response.value
+            let queue: (any MediaPlayerQueue)? = {
+                guard item.type == .episode else { return nil }
+                return EpisodeMediaPlayerQueue(episode: item)
+            }()
+
+            homeTab.coordinator.push(
+                .videoPlayer(
+                    item: item,
+                    queue: queue
+                )
+            )
+        }
+    }
+    #endif
 }
 
 #if os(iOS)
-private struct FirstTabSettingsBarButton: View {
+@available(iOS 26.0, *)
+private struct NativeSearchTabContent<Content: View>: View {
 
-    @Injected(\.currentUserSession)
-    private var userSession
+    @ObservedObject
+    private var searchQueryState: MainTabView.SearchQueryState
 
-    @Router
-    private var router
+    @FocusState
+    private var isSearchFocused: Bool
+
+    private let content: Content
+
+    init(
+        searchQueryState: MainTabView.SearchQueryState,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.searchQueryState = searchQueryState
+        self.content = content()
+    }
 
     var body: some View {
-        if router.isRootOfPath,
-           let userSession
-        {
-            SettingsBarButton(
-                server: userSession.server,
-                user: userSession.user
-            ) {
-                router.route(to: .settings)
+        content
+            .searchable(text: $searchQueryState.query, prompt: L10n.search)
+            .searchFocused($isSearchFocused)
+            .onSubmit(of: .search) {
+                isSearchFocused = false
             }
-        }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button(L10n.done) {
+                        isSearchFocused = false
+                    }
+                }
+            }
     }
 }
 #endif

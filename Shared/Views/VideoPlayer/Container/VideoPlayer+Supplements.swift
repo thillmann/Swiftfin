@@ -89,6 +89,19 @@ extension VideoPlayer.UIContainerViewController {
                     }
                     #endif
 
+                    #if os(tvOS)
+                    HStack(spacing: Self.buttonSpacing) {
+                        ForEach(viewState.supplements, id: \.id) { supplement in
+                            Button(supplement.displayTitle) {
+                                viewState.selectedSupplementID = supplement.id
+                            }
+                            .focused($focusedElement, equals: supplement.id)
+                            .isSelected((focusedElement ?? viewState.selectedSupplementID) == supplement.id)
+                            .buttonStyle(SupplementTitleButtonStyle())
+                        }
+                    }
+                    .coordinatedFocus(ViewState.Focus.supplementTabs)
+                    #else
                     SelectionTrack(
                         viewState.supplements,
                         id: \.id,
@@ -105,6 +118,7 @@ extension VideoPlayer.UIContainerViewController {
                         }
                     }
                     .coordinatedFocus(ViewState.Focus.supplementTabs)
+                    #endif
                 }
                 .scrollIfLargerThanContainer(axes: .horizontal, alignment: .leading)
             }

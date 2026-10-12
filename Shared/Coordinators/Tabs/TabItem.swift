@@ -11,23 +11,28 @@ import SwiftUI
 
 // TODO: selected icon
 @MainActor
-struct TabItem: Displayable, @MainActor Identifiable, @MainActor Hashable {
+struct TabItem: Displayable, Identifiable, Hashable {
+
+    var displayTitle: String { title }
 
     let content: AnyView
-    let displayTitle: String
     let id: String
+    let title: String
     let systemImage: String
+    let labelStyle: any LabelStyle
 
     init(
         id: String,
         title: String,
         systemImage: String,
+        labelStyle: some LabelStyle = .titleAndIcon,
         @ViewBuilder content: () -> some View
     ) {
         self.content = AnyView(content())
         self.id = id
-        self.displayTitle = title
+        self.title = title
         self.systemImage = systemImage
+        self.labelStyle = labelStyle
     }
 
     func hash(into hasher: inout Hasher) {
@@ -41,6 +46,77 @@ struct TabItem: Displayable, @MainActor Identifiable, @MainActor Hashable {
 
 extension TabItem {
 
+    static var home: TabItem {
+        TabItem(
+            id: "home",
+            title: L10n.home,
+            systemImage: "house"
+        ) {
+            HomeView()
+        }
+    }
+
+    static func library(
+        id: String? = nil,
+        title: String,
+        systemName: String,
+        filters: ItemFilterCollection,
+        showsGenreFilter: Bool = false
+    ) -> TabItem {
+        TabItem(
+            id: id ?? "library-\(UUID().uuidString)",
+            title: title,
+            systemImage: systemName
+        ) {
+            let viewModel = ItemLibraryViewModel(
+                filters: filters
+            )
+
+            #if os(iOS)
+            PlatformPagingLibraryView(
+                viewModel: viewModel,
+                navigationTitle: title,
+                showsGenreFilter: showsGenreFilter
+            )
+            #else
+            PlatformPagingLibraryView(viewModel: viewModel)
+            #endif
+        }
+    }
+
+    static var media: TabItem {
+        TabItem(
+            id: "media",
+            title: L10n.media,
+            systemImage: "rectangle.stack.fill"
+        ) {
+            MediaView()
+        }
+    }
+
+    static var search: TabItem {
+        TabItem(
+            id: "search",
+            title: L10n.search,
+            systemImage: "magnifyingglass"
+        ) {
+            PlatformSearchView()
+        }
+    }
+
+    static var settings: TabItem {
+        TabItem(
+            id: "settings",
+            title: L10n.settings,
+            systemImage: "gearshape"
+        ) {
+            SettingsView()
+        }
+    }
+}
+
+
+extension TabItem {
     static var adminDashboard: TabItem {
         TabItem(
             id: "admin-dashboard",
@@ -80,41 +156,6 @@ extension TabItem {
         }
     }
 
-    static func library(
-        title: String,
-        systemName: String,
-        filters: ItemFilterCollection
-    ) -> TabItem {
-        TabItem(
-            id: "library-\(UUID().uuidString)",
-            title: title,
-            systemImage: systemName
-        ) {
-            PagingLibraryView(
-                library: ItemLibrary(
-                    parent: BaseItemDto(name: title),
-                    staticFilters: filters
-                )
-            )
-            .if(UIDevice.isTV) { view in
-                view.toolbar(.hidden, for: .navigationBar)
-            }
-        }
-    }
-
-    static var media: TabItem {
-        TabItem(
-            id: "media",
-            title: L10n.media,
-            systemImage: "rectangle.stack.fill"
-        ) {
-            PagingLibraryView(library: UserViewLibrary())
-                .if(UIDevice.isTV) { view in
-                    view.toolbar(.hidden, for: .navigationBar)
-                }
-        }
-    }
-
     static var liveTV: TabItem {
         TabItem(
             id: "live-tv",
@@ -122,29 +163,6 @@ extension TabItem {
             systemImage: "play.tv"
         ) {
             NavigationRoute.liveTV.destination
-        }
-    }
-
-    static var search: TabItem {
-        TabItem(
-            id: "search",
-            title: L10n.search,
-            systemImage: "magnifyingglass"
-        ) {
-            SearchView()
-                .if(UIDevice.isTV) { view in
-                    view.toolbar(.hidden, for: .navigationBar)
-                }
-        }
-    }
-
-    static var settings: TabItem {
-        TabItem(
-            id: "settings",
-            title: L10n.settings,
-            systemImage: "gearshape"
-        ) {
-            SettingsView()
         }
     }
 }
