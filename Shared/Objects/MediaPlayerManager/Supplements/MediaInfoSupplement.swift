@@ -11,88 +11,51 @@ import SwiftUI
 
 // TODO: scroll if description too long
 
-struct MediaInfoSupplement: MediaPlayerSupplement {
+@MainActor
+struct MediaInfoSupplement {
 
     let displayTitle: String = L10n.info
-    let item: BaseItemDto
+    @SharedBaseItem
+    var item: BaseItemDto
 
-    var id: String {
-        "MediaInfo-\(item.id ?? "any")"
-    }
+    nonisolated let id: String
 
-    var videoPlayerBody: some PlatformView {
-        InfoOverlay(item: item)
+    init(item: BaseItemDto) {
+        self.item = item
+        self.id = "MediaInfo-\(item.id ?? "any")"
     }
 }
 
-extension MediaInfoSupplement {
+extension MediaInfoSupplement: VideoPlayerSupplement {
 
-    private struct InfoOverlay: PlatformView {
+    var body: some View {
+        InfoOverlay(item: item)
+    }
 
-        private enum ActionFocus: Hashable {
-            case fromBeginning
-            case goToShow
-        }
+    private struct InfoOverlay: PresentationView {
 
-        @Environment(\.safeAreaInsets)
-        private var safeAreaInsets: EdgeInsets
-
-        @FocusState
-        private var focusedAction: ActionFocus?
-
-        @Router
-        private var router
+        @AdaptiveLayout
+        private var viewLayout
 
         @Environment(VideoPlayer.ViewState.self)
         private var viewState
-        @EnvironmentObject
-        private var manager: MediaPlayerManager
+        @Environment(MediaSession.self)
+        private var mediaSession
 
-        let item: BaseItemDto
+        @SharedBaseItem
+        private var item: BaseItemDto
 
-        private var contentVerticalAlignment: VerticalAlignment {
-            #if os(tvOS)
-            .center
-            #else
-            .bottom
-            #endif
+        @StateObject
+        private var recordingViewModel: RecordingTimerViewModel
+
+        @State
+        private var endsAtLabel: String?
+
+        init(item: BaseItemDto) {
+            self.item = item
+            self._recordingViewModel = StateObject(wrappedValue: RecordingTimerViewModel(item: item))
         }
 
-        private var posterDisplayType: PosterDisplayType {
-            #if os(tvOS)
-            .landscape
-            #else
-            item.preferredPosterDisplayType
-            #endif
-        }
-
-        private var posterWidth: CGFloat? {
-            #if os(tvOS)
-            300
-            #else
-            nil
-            #endif
-        }
-
-        private var posterImageSources: [ImageSource]? {
-            #if os(tvOS)
-            guard item.type == .episode else { return nil }
-
-            return [item.imageSource(.primary, maxWidth: 300, quality: 90)]
-            #else
-            nil
-            #endif
-        }
-
-        private var overviewFont: Font {
-            #if os(tvOS)
-            item.type == .episode ? .caption : .subheadline
-            #else
-            .subheadline
-            #endif
-        }
-
-        @ViewBuilder
         private var accessoryView: some View {
             VStack(alignment: .leading) {
                 DotHStack {
@@ -100,6 +63,7 @@ extension MediaInfoSupplement {
                         if let premiereDateLabel = item.premiereDateLabel {
                             Text(premiereDateLabel)
                         }
+
                         if let seasonEpisodeLocator = item.seasonEpisodeLabel {
                             Text(seasonEpisodeLocator)
                         }
@@ -114,98 +78,121 @@ extension MediaInfoSupplement {
                     if let officialRating = item.officialRating {
                         Text(officialRating)
                     }
+
+                    if let endsAtLabel {
+                        Text(endsAtLabel)
+                    }
+                }
+            }
+            .onChange(of: mediaSession.seconds, initial: true) { _, seconds in
+                let newLabel = makeEndsAtLabel(seconds: seconds)
+
+                if newLabel != endsAtLabel {
+                    endsAtLabel = newLabel
                 }
             }
         }
 
-        @ViewBuilder
-        private var fromBeginningButton: some View {
-            Button {
-                manager.proxy?.setSeconds(.zero)
-                manager.setPlaybackRequestStatus(status: .playing)
-                viewState.selectedSupplementID = nil
-            } label: {
-                #if os(tvOS)
-                Label(L10n.fromBeginning, systemImage: "play.fill")
-                #else
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7)
-                        .foregroundStyle(.white)
+        private var recordButtons: some View {
+            VStack {
+                Button(role: recordingViewModel.recordingTimer != nil ? .destructive : nil) {
+                    recordingViewModel.toggleRecording()
+                } label: {
+                    Group {
+                        if let recordingTimer = recordingViewModel.recordingTimer {
+                            Label(
+                                recordingTimer.status == .inProgress ? L10n.stopRecording : L10n.cancelRecording,
+                                systemImage: "record.circle.fill"
+                            )
+                        } else {
+                            Label(L10n.record, systemImage: "record.circle")
+                        }
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                }
+                .buttonStyle(.supplementAction)
+                .frame(height: viewLayout.supplementLogoHeight)
 
-                    Label(L10n.fromBeginning, systemImage: "play.fill")
+                if recordingViewModel.program?.isSeries == true {
+                    Button(role: recordingViewModel.seriesRecordingTimer != nil ? .destructive : nil) {
+                        recordingViewModel.toggleSeriesRecording()
+                    } label: {
+                        Group {
+                            if recordingViewModel.seriesRecordingTimer != nil {
+                                Label(L10n.cancelSeriesRecording, systemImage: "smallcircle.filled.circle.fill")
+                            } else {
+                                Label(L10n.recordSeries, systemImage: "smallcircle.filled.circle")
+                            }
+                        }
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.black)
+                    }
+                    .buttonStyle(.supplementAction)
+                    .frame(height: viewLayout.supplementLogoHeight)
                 }
-                #endif
             }
+            .enabled(recordingViewModel.canManageRecordings)
             #if os(tvOS)
-            .focused($focusedAction, equals: .fromBeginning)
-            .buttonStyle(
-                SeasonButtonStyle(
-                    isFocused: focusedAction == .fromBeginning,
-                    isSelected: true,
-                    width: 320
-                )
-            )
-            .focusEffectDisabled()
-            #else
-            .buttonStyle(.card)
-            .frame(height: 40)
+                .focusSection()
             #endif
+                .onAppear {
+                    recordingViewModel.refresh()
+                }
+                .onReceive(Notifications[.recordingTimersDidChange].publisher) {
+                    recordingViewModel.refresh()
+                }
+                .errorMessage($recordingViewModel.error)
         }
 
-        #if os(tvOS)
-        @ViewBuilder
-        private var goToShowButton: some View {
-            if item.type == .episode, let seriesID = item.seriesID {
-                Button {
-                    let series = BaseItemDto(
-                        id: seriesID,
-                        name: item.seriesName,
-                        type: .series
-                    )
-                    router.route(to: .item(item: series))
-                } label: {
-                    Label(L10n.goToShow, systemImage: "info.circle")
-                }
-                .focused($focusedAction, equals: .goToShow)
-                .buttonStyle(
-                    SeasonButtonStyle(
-                        isFocused: focusedAction == .goToShow,
-                        isSelected: true,
-                        width: 320
-                    )
-                )
-                .focusEffectDisabled()
+        private var fromBeginningButton: some View {
+            Button {
+                mediaSession.seek(to: .zero)
+                mediaSession.setPlaybackRequestStatus(status: .playing)
+                viewState.selectedSupplementID = nil
+            } label: {
+                Label(L10n.fromBeginning, systemImage: "play.fill")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
             }
+            .buttonStyle(.supplementAction)
+            .frame(height: viewLayout.supplementLogoHeight)
         }
-        #endif
 
         // TODO: may need to be a layout for correct overview frame
         //       with scrolling if too long
-        var iOSView: some View {
+        var standardView: some View {
             CompactOrRegularView(
                 isCompact: viewState.isCompact
             ) {
-                iOSCompactView
+                compactView
             } regularView: {
                 regularContent
                     .edgePadding()
             }
-            .padding(.leading, safeAreaInsets.leading)
-            .padding(.trailing, safeAreaInsets.trailing)
+            .padding(.leading, viewState.supplementInsets.leading)
+            .padding(.trailing, viewState.supplementInsets.trailing)
+            .task(id: item.currentProgram?.id) {
+                await recordingViewModel.refresh()
+            }
         }
 
-        @ViewBuilder
-        private var iOSCompactView: some View {
+        private var compactView: some View {
             VStack(alignment: .leading) {
                 Text(item.displayTitle)
                     .fontWeight(.semibold)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                if let overview = item.overview {
+                if let currentProgram = item.currentProgram {
+                    Text(currentProgram.displayTitle)
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let overview = item.overview ?? item.currentProgram?.overview {
                     Text(overview)
                         .font(.subheadline)
                         .fontWeight(.regular)
@@ -215,10 +202,14 @@ extension MediaInfoSupplement {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                if !manager.item.isLiveStream {
+                if !item.isLiveStream {
                     fromBeginningButton
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
+                        .padding(.vertical)
+                } else if item.canBeRecorded {
+                    recordButtons
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical)
                 }
             }
@@ -226,28 +217,37 @@ extension MediaInfoSupplement {
             .edgePadding()
         }
 
-        @ViewBuilder
         private var regularContent: some View {
-            HStack(alignment: contentVerticalAlignment, spacing: EdgeInsets.edgePadding / 2) {
-                PlatformPosterImage(
+            HStack(alignment: .bottom, spacing: viewLayout.edgePadding) {
+                // TODO: determine what to do with non-portrait (channel, home video) images
+                //       - use aspect ratio?
+                PosterImage(
                     item: item,
-                    type: posterDisplayType,
-                    contentMode: .fit,
-                    imageSources: posterImageSources
+                    type: item.preferredPosterDisplayType,
+                    contentMode: .fit
                 )
-                .frame(width: posterWidth)
-                .posterCornerRadius(posterDisplayType)
+                .posterCornerRadius(item.preferredPosterDisplayType)
                 .withViewContext(.isOverComplexContent)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(item.displayTitle)
-                        .font(.callout.weight(.semibold))
+                        .font(.callout)
+                        .fontWeight(.semibold)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
-                    if let overview = item.overview {
+                    if let currentProgram = item.currentProgram {
+                        Text(currentProgram.displayTitle)
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let overview = item.overview ?? item.currentProgram?.overview {
                         Text(overview)
-                            .font(overviewFont)
+                            .font(.subheadline)
                             .fontWeight(.regular)
                             .lineLimit(4)
                     }
@@ -258,69 +258,52 @@ extension MediaInfoSupplement {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if !manager.item.isLiveStream {
-                    #if os(tvOS)
-                    VStack(spacing: 12) {
-                        fromBeginningButton
-
-                        if item.type == .episode, item.seriesID != nil {
-                            goToShowButton
-                        }
-                    }
-                    #else
+                if !item.isLiveStream {
                     AlternateLayoutView {
                         Label(L10n.fromBeginning, systemImage: "play.fill")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .padding()
                             .edgePadding(.horizontal)
-                            .frame(height: UIDevice.isTV ? 80 : 50)
+                            .frame(height: viewLayout.supplementRowHeight)
                     } content: {
                         fromBeginningButton
                     }
-                    #endif
+                } else if item.canBeRecorded {
+                    recordButtons
                 }
             }
         }
 
-        #if os(tvOS)
-        @ViewBuilder
-        var tvOSView: some View {
-            Group {
-                if #available(tvOS 26.0, *) {
-                    regularContent
-                        .edgePadding(.horizontal)
-                        .padding(.vertical, EdgeInsets.edgePadding / 2)
-                        .glassEffect(
-                            .clear,
-                            in: RoundedRectangle(cornerRadius: 32, style: .continuous)
-                        )
-                } else {
-                    regularContent
-                        .edgePadding(.horizontal)
-                        .padding(.vertical, EdgeInsets.edgePadding / 2)
-                        .background {
-                            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                                .fill(Material.thin)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        var largeView: some View {
+            regularContent
+                .edgePadding(.horizontal)
+                .padding(.vertical, viewLayout.edgePadding / 2)
+                .background {
+                    RoundedRectangle(cornerRadius: 32)
+                        .fill(Material.thin)
                 }
-            }
-            .padding(.horizontal, EdgeInsets.edgePadding)
-            .padding(.bottom, EdgeInsets.edgePadding / 4)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .focusSection()
-            .backport
-            .defaultFocus(
-                $focusedAction,
-                .fromBeginning,
-                priority: .userInitiated
-            )
+                .clipShape(RoundedRectangle(cornerRadius: 32))
+                .edgePadding()
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .focusSection()
+                .task(id: item.currentProgram?.id) {
+                    await recordingViewModel.refresh()
+                }
         }
-        #else
-        var tvOSView: some View {
-            EmptyView()
+
+        private func makeEndsAtLabel(seconds: Duration) -> String? {
+            guard !item.isLiveStream,
+                  item.type != .recording,
+                  let runtime = item.runtime,
+                  runtime > .zero,
+                  mediaSession.rate > 0
+            else { return nil }
+
+            let remaining = max(runtime - seconds, .zero)
+            let endDate = Date.now.addingTimeInterval(remaining.seconds / mediaSession.rate)
+
+            return L10n.endsAt(endDate.formatted(date: .omitted, time: .shortened))
         }
-        #endif
     }
 }

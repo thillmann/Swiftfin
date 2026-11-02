@@ -17,6 +17,7 @@ extension BaseItemPerson: PlatformPoster {
         id?.hashValue ?? 0
     }
 
+    @MainActor
     func portraitImageSources(maxWidth: CGFloat? = nil, quality: Int? = nil) -> [ImageSource] {
 
         guard let client = Container.shared.currentUserSession()?.client else { return [] }

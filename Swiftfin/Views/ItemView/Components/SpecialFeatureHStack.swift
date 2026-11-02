@@ -17,6 +17,9 @@ extension PlatformItemView {
         @Router
         private var router
 
+        @PlayMedia
+        private var playMedia
+
         let items: [BaseItemDto]
 
         var body: some View {
@@ -27,7 +30,7 @@ extension PlatformItemView {
             ) { item, _ in
                 guard let mediaSource = item.mediaSources?.first else { return }
 
-                router.route(to: .videoPlayer(item: item, mediaSource: mediaSource))
+                playMedia(item: item, mediaSource: mediaSource)
             }
         }
     }

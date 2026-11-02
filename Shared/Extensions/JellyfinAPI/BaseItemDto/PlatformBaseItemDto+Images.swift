@@ -17,6 +17,7 @@ import UIKit
 // TODO: change "series" image sources to "parent"
 //       - for episodes and extras
 
+@MainActor
 extension BaseItemDto {
 
     // MARK: Item Images

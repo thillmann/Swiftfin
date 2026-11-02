@@ -19,7 +19,7 @@ struct SettingsView: View {
     private var appearance
     #endif
 
-    @Default(.VideoPlayer.videoPlayerType)
+    @Default(.VideoPlayer.mediaPlayerType)
     private var videoPlayerType
 
     @Default(.userAccentColor)
@@ -197,7 +197,6 @@ struct SettingsView: View {
 
     // MARK: - Customization Section
 
-    @ViewBuilder
     private var customizeSection: some View {
         Section {
             #if os(iOS)
@@ -218,7 +217,6 @@ struct SettingsView: View {
 
     // MARK: - Diagnostics Section
 
-    @ViewBuilder
     private var diagnosticsSection: some View {
         Section {
 

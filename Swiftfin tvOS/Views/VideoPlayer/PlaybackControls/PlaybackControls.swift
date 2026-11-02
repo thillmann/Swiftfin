@@ -22,8 +22,8 @@ extension VideoPlayer {
 
         @Environment(ViewState.self)
         var viewState
-        @EnvironmentObject
-        var manager: MediaPlayerManager
+        @Environment(MediaSession.self)
+        var mediaSession
 
         @EnvironmentObject
         private var focusCoordinator: FocusCoordinator
@@ -34,11 +34,6 @@ extension VideoPlayer {
         var speedBoostTimer: Timer?
         @State
         var isSpeedBoosting: Bool = false
-        @State
-        var pendingJumpWork: DispatchWorkItem?
-
-        @State
-        private var playbackSeconds: Duration = .zero
 
         @Toaster
         var toaster: ToastProxy
@@ -53,12 +48,6 @@ extension VideoPlayer {
                     .isVisible(viewState.visibleElements.contains(.toolbar))
                     .enabled(viewState.visibleElements.contains(.toolbar))
                     .padding(.bottom, 30)
-
-                if manager.currentIntroSegment(at: playbackSeconds) != nil, !viewState.isScrubbing {
-                    SkipIntroButton()
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.bottom, 30)
-                }
 
                 PlaybackProgress()
                     .fixedSize(horizontal: false, vertical: true)
@@ -76,7 +65,7 @@ extension VideoPlayer {
                 Button(L10n.cancel, role: .cancel) {}
 
                 Button(L10n.ok, role: .destructive) {
-                    manager.stop()
+                    mediaSession.stop()
                 }
             } message: {
                 Text(L10n.closePlayerWarning)
@@ -84,11 +73,14 @@ extension VideoPlayer {
             .onReceive(viewState.containerView?.onPressEvent ?? .init()) { press in
                 handlePressEvent(press)
             }
-            .onReceive(manager.secondsBox.$value) { playbackSeconds = $0 }
             .onDisappear {
                 stopSpeedBoost()
-                pendingJumpWork?.cancel()
                 viewState.cancelScrub()
+            }
+            .onChange(of: mediaSession.playbackItem.map(ObjectIdentifier.init), initial: true) { _, _ in
+                stopSpeedBoost()
+                seekingPress = nil
+                viewState.jumpProgressObserver.reset()
             }
             .onReceive(
                 focusCoordinator.$focusedIDs

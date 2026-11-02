@@ -151,6 +151,7 @@ struct DownloadListView: View {
         let tasks: [DownloadTask]
         let seriesKey: String
 
+        @MainActor
         var posterSources: [ImageSource] {
             let localSeriesPoster = tasks.lazy
                 .compactMap(\.record)

@@ -6,9 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import FactoryKit
 import JellyfinAPI
-import PreferencesView
 import SwiftUI
 import Transmission
 
@@ -49,34 +47,13 @@ extension NavigationRoute {
     }
 
     @MainActor
-    static func videoPlayer(
-        provider: MediaPlayerItemProvider,
-        queue: (any MediaPlayerQueue)? = nil
-    ) -> NavigationRoute {
-        let manager = MediaPlayerManager(
-            provider: provider,
-            queue: queue
-        )
-
-        return Self.videoPlayer(manager: manager)
-    }
-
-    @MainActor
-    static func videoPlayer(manager: MediaPlayerManager) -> NavigationRoute {
-
-        Container.shared.mediaPlayerManager.register {
-            manager
-        }
-
-        Container.shared
-            .mediaPlayerManagerPublisher()
-            .send(manager)
-
-        return NavigationRoute(
+    static func videoPlayer(session: MediaSession) -> NavigationRoute {
+        NavigationRoute(
             id: "videoPlayer",
             style: .fullscreen
         ) {
-            VideoPlayer(playerType: manager.preferredVideoPlayerType)
+            VideoPlayer(mediaSession: session)
+                .id(session.id)
         }
     }
 }
@@ -121,23 +98,5 @@ extension NavigationRoute {
             ProgramsView()
             #endif
         }
-    }
-
-    static func videoPlayer(
-        item: BaseItemDto,
-        mediaSource: MediaSourceInfo? = nil,
-        queue: (any MediaPlayerQueue)? = nil
-    ) -> NavigationRoute {
-        let provider = MediaPlayerItemProvider(item: item) { item in
-            try await MediaPlayerItem.build(for: item, mediaSource: mediaSource)
-        }
-        return Self.videoPlayer(provider: provider, queue: queue)
-    }
-
-    static func videoPlayer(downloadRecord: DownloadRecord) -> NavigationRoute {
-        let provider = MediaPlayerItemProvider(item: downloadRecord.item, offlineRecord: downloadRecord) { _ in
-            try await MediaPlayerItem.buildOffline(record: downloadRecord)
-        }
-        return Self.videoPlayer(provider: provider)
     }
 }

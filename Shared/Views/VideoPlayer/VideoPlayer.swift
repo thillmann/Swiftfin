@@ -9,145 +9,124 @@
 import Defaults
 import FactoryKit
 import SwiftUI
-import Transmission
 
 struct VideoPlayer: View {
-
-    @Environment(\.presentationCoordinator)
-    private var presentationCoordinator
-
-    @InjectedObject(\.mediaPlayerManager)
-    private var manager: MediaPlayerManager
-
-    @LazyState
-    private var proxy: any VideoMediaPlayerLayoutConfigurable
 
     @Router
     private var router
 
     @State
-    private var isBeingDismissedByTransition = false
-    @State
-    private var safeAreaInsets: EdgeInsets = .init()
-
-    #if os(iOS)
-    @State
-    private var scrubbingStartTime: CFTimeInterval? = nil
-    #endif
-
-    #if os(tvOS)
-    @State
-    private var isBuffering = false
-    #endif
-
-    @State
     private var viewState: ViewState = .init()
 
-    init(playerType: VideoPlayerType = Defaults[.VideoPlayer.videoPlayerType]) {
-        switch playerType {
-        case .aether:
-            self._proxy = .init(wrappedValue: AetherMediaPlayerProxy())
-        case .avPlayer:
-            self._proxy = .init(wrappedValue: AVMediaPlayerProxy())
-        case .mpv:
-            self._proxy = .init(wrappedValue: MPVMediaPlayerProxy())
-        case .vlc:
-            self._proxy = .init(wrappedValue: VLCMediaPlayerProxy())
+    let mediaSession: MediaSession
+
+    /// Downloads may need a different engine than the preference, without rewriting it.
+    private var preferredPlayerType: MediaPlayerType {
+        if let recordID = mediaSession.intent.configuration.offlineRecordID,
+           let record = FactoryKit.Container.shared.downloadManager().record(id: recordID)
+        {
+            return record.preferredMediaPlayerType
         }
+
+        return Defaults[.VideoPlayer.mediaPlayerType]
     }
+
+    #if os(tvOS)
+    private var isLoading: Bool {
+        mediaSession.activity == .loading || mediaSession.activity == .buffering
+    }
+    #endif
+
+    #if os(iOS)
+    private var remotePlaybackBody: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "tv")
+                .font(.system(size: 56))
+
+            // swiftlint:disable:next nested_l10n
+            Text(L10n.castingTo(mediaSession.player?.displayTitle ?? L10n.unknown))
+                .font(.title2)
+
+            if mediaSession.state == .playback, !mediaSession.playbackState.isReady {
+                Text(L10n.castConnectionSuspended)
+                    .font(.callout)
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black)
+    }
+    #endif
 
     var body: some View {
         Container(
             viewState: viewState,
-            manager: manager,
-            videoSize: proxy.videoSize
+            mediaSession: mediaSession,
+            videoSize: { (mediaSession.player as? any VideoMediaPlayer)?.videoState.videoSize ?? .zero }
         ) { videoLayout in
-            proxy.videoPlayerBody(layout: videoLayout)
-                .eraseToAnyView()
+            if let player = mediaSession.player as? any VideoMediaPlayer {
+                return player.videoPlayerBody(layout: videoLayout).eraseToAnyView()
+            }
+
+            #if os(iOS)
+            if mediaSession.isRemotePlayback {
+                return remotePlaybackBody.eraseToAnyView()
+            }
+            #endif
+
+            return Color.black.eraseToAnyView()
         } playbackControls: {
             PlaybackControls()
         }
         #if os(tvOS)
         .overlay {
-            if manager.state == .loadingItem || isBuffering {
-                LoadingIndicator().allowsHitTesting(false)
+            if isLoading {
+                LoadingIndicator()
+                    .allowsHitTesting(false)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: manager.state == .loadingItem || isBuffering)
-        .onReceive(proxy.isBuffering.$value) { isBuffering = $0 }
+        .animation(.easeInOut(duration: 0.2), value: isLoading)
         #endif
-        .onFirstAppear {
+        .onAppear {
             // PiP restoration can make the view appear again with playback still active.
-            manager.proxy = proxy
-            manager.start()
-        }
-        .prefersStatusBarHidden(!viewState.isPresentingControls)
-        #if os(iOS)
-            .onChange(of: viewState.isScrubbing) {
-                if viewState.isScrubbing {
-                    scrubbingStartTime = CACurrentMediaTime()
-                    return
-                }
-
-                guard let scrubbingStartTime else { return }
-
-                self.scrubbingStartTime = nil
-                let scrubbingDelta = CACurrentMediaTime() - scrubbingStartTime
-                let secondsDelta = abs(manager.seconds - viewState.scrubbedSeconds.value)
-
-                guard secondsDelta >= .seconds(1), scrubbingDelta >= 0.1 else { return }
-
-                let scrubbedSeconds = viewState.scrubbedSeconds.value
-                manager.seconds = scrubbedSeconds
-                proxy.setSeconds(scrubbedSeconds)
+            if mediaSession.player == nil, mediaSession.state != .stopped {
+                mediaSession.attach(player: preferredPlayerType.makePlayer())
             }
-        #endif
-            .preference(
-                    key: PresentationControllerShouldDismissPreferenceKey.self,
-                    value: viewState.presentationControllerShouldDismiss
-                )
-                .onChange(of: presentationCoordinator.isPresented) {
-                    guard !presentationCoordinator.isPresented else { return }
+        }
+        .prefersStatusBarHidden(UIDevice.isPad || !viewState.isPresentingControls)
+        .onChange(of: mediaSession.commandError, initial: true) { _, message in
+            guard let message else { return }
 
-                    isBeingDismissedByTransition = true
-                    manager.stop()
-                }
-                .onReceive(manager.$playbackItem) { newItem in
-                    // TODO: move to container view
-                    viewState.scrubbedSeconds.value = newItem?.baseItem.startSeconds ?? .zero
-                }
-                .onReceive(manager.$state) { newState in
-                    if newState == .stopped, !isBeingDismissedByTransition {
-                        router.dismiss()
-                    }
-                }
+            viewState.toastProxy.present(message, systemName: "exclamationmark.triangle")
+        }
+        .preference(
+            key: PresentationControllerShouldDismissPreferenceKey.self,
+            value: viewState.presentationControllerShouldDismiss
+        )
+        .onChange(of: mediaSession.state, initial: true) { _, newState in
+            if newState == .stopped, !viewState.isBeingDismissed {
+                router.dismiss()
+            }
+        }
+        .alert(
+            L10n.error,
+            isPresented: .constant(mediaSession.state == .error)
+        ) {
+            Button(L10n.retry) { mediaSession.retry() }
 
-                .alert(
-                    L10n.error,
-                    isPresented: .constant(manager.error != nil)
-                ) {
-                    Button(L10n.close, role: .cancel) {
-                        FactoryKit.Container.shared.mediaPlayerManager.reset()
-                        router.dismiss()
-                    }
-                } message: {
-                    Text(L10n.unableToLoadThisItem)
-                }
-                .environment(\.safeAreaInsets, safeAreaInsets)
-                .colorScheme(.dark) // use over `preferredColorScheme(.dark)` to not have destination change
-                .supportedOrientations(.allButUpsideDown)
-                .ignoresSafeArea()
-                .persistentSystemOverlays(.hidden)
-                .toolbar(.hidden, for: .navigationBar)
-                .onSceneDidEnterBackground {
-                    let isPictureInPictureActive = (proxy as? MediaPlayerPictureInPictureCapable)?.isPiPActive.value == true
-                    if Defaults[.VideoPlayer.Transition.pauseOnBackground], !isPictureInPictureActive {
-                        manager.setPlaybackRequestStatus(status: .paused)
-                    }
-                }
-                .onSizeChanged { _, safeArea in
-                    self.safeAreaInsets = safeArea.max(EdgeInsets.edgePadding)
-                }
+            Button(L10n.close, role: .cancel) {
+                mediaSession.stop()
+                router.dismiss()
+            }
+        } message: {
+            Text(L10n.unableToLoadThisItem)
+        }
+        .colorScheme(.dark)
+        .trackingFrame(for: .layoutContainer)
+        .supportedOrientations(.all)
+        .ignoresSafeArea()
+        .persistentSystemOverlays(.hidden)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
@@ -167,7 +146,7 @@ private extension VideoPlayer {
                 }
                 .shadow(color: Color.black.opacity(0.5), radius: 12, y: 6)
                 .transition(.opacity)
-                .accessibilityLabel("Loading")
+                .accessibilityLabel(L10n.playerLoading)
         }
     }
 }

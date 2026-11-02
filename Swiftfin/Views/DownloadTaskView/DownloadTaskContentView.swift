@@ -20,6 +20,9 @@ extension DownloadTaskView {
         @Router
         private var router
 
+        @PlayMedia
+        private var playMedia
+
         @ObservedObject
         var downloadTask: DownloadTask
 
@@ -165,7 +168,7 @@ extension DownloadTaskView {
                   let record = downloadTask.record
             else { return }
 
-            router.route(to: .videoPlayer(downloadRecord: record))
+            playMedia(downloadRecord: record)
         }
 
         private func performDownloadAction() {

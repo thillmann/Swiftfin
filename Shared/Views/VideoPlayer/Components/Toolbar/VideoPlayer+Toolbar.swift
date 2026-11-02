@@ -15,23 +15,23 @@ extension VideoPlayer.PlaybackControls {
 
         typealias ViewState = VideoPlayer.ViewState
 
-        static let buttonSize: CGFloat = UIDevice.isTV ? 56 : 44
+        @AdaptiveLayout
+        private var viewLayout
 
         @Environment(ViewState.self)
         private var viewState
-        @EnvironmentObject
-        private var manager: MediaPlayerManager
+        @Environment(MediaSession.self)
+        private var mediaSession
 
         @Router
         private var router
 
-        @ViewBuilder
         private var closeButton: some View {
             Button {
                 if viewState.isPresentingSupplement {
                     viewState.selectedSupplementID = nil
                 } else {
-                    manager.stop()
+                    mediaSession.stop()
                     router.dismiss()
                 }
             } label: {
@@ -41,34 +41,34 @@ extension VideoPlayer.PlaybackControls {
                 )
                 .labelStyle(.iconOnly)
             }
-            .frame(width: Self.buttonSize, height: Self.buttonSize)
+            .accessibilityIdentifier("closePlayerButton")
+            .frame(width: viewLayout.toolbarButtonSize, height: viewLayout.toolbarButtonSize)
         }
 
-        @ViewBuilder
         private var content: some View {
-            HStack(alignment: UIDevice.isTV ? .bottom : .center) {
+            HStack(alignment: viewLayout.value(standard: .center, large: .bottom)) {
 
-                if !UIDevice.isTV {
+                if !viewLayout.isLarge {
                     closeButton
                         .modifier(OverlayBarButtonStyleModifier())
                 }
 
                 TitleView(
-                    item: manager.requestedItem.type == .program ? manager.requestedItem : manager.item,
-                    isLive: manager.item.isLiveStream || manager.requestedItem.type == .program,
-                    liveChannelName: manager.item.displayTitle
+                    item: mediaSession.intent.item.type == .program ? mediaSession.intent.item : mediaSession.item,
+                    isLive: mediaSession.item.isLiveStream || mediaSession.intent.item.type == .program,
+                    liveChannelName: mediaSession.item.displayTitle
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 ActionButtons()
-                    .frame(height: Self.buttonSize)
+                    .frame(height: viewLayout.toolbarButtonSize)
                     .padding(.horizontal)
             }
         }
 
         var body: some View {
             content
-                .font(.system(size: UIDevice.isTV ? 30 : 24, weight: .semibold))
+                .font(.system(size: viewLayout.isLarge ? 30 : 24, weight: .semibold))
                 .menuStyle(OverlayMenuStyle())
             #if os(iOS)
                 .background {
@@ -81,45 +81,64 @@ extension VideoPlayer.PlaybackControls {
 
 extension VideoPlayer.PlaybackControls.Toolbar {
 
-    struct TitleView: PlatformView {
+    struct TitleView: PresentationView {
+
+        @AdaptiveLayout
+        private var viewLayout
 
         @State
         private var subtitleContentSize: CGSize = .zero
 
         @SharedBaseItem
         var item: BaseItemDto
+
         let isLive: Bool
         let liveChannelName: String
 
         private var _titleSubtitle: (title: String, subtitle: String?) {
-            if item.type == .episode {
-                if let parentTitle = item.parentTitle {
-                    return (
-                        title: parentTitle,
-                        subtitle: [item.seasonEpisodeLabel, item.displayTitle].compactMap(\.self).joined(separator: " • ")
-                    )
-                }
+            if item.type == .episode, let parentTitle = item.parentTitle {
+                return (
+                    title: parentTitle,
+                    subtitle: [item.seasonEpisodeLabel, item.displayTitle].compactMap(\.self).joined(separator: " • ")
+                )
             }
 
             return (title: item.displayTitle, subtitle: nil)
         }
 
-        @ViewBuilder
+        private var liveBadge: some View {
+            HStack(spacing: 12) {
+                Text(L10n.live)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 4)
+                    .background(.red, in: Capsule())
+
+                Text(liveChannelName)
+                    .font(.callout.weight(.medium))
+            }
+        }
+
         private func _subtitle(_ subtitle: String) -> some View {
             Text(subtitle)
-                .font(UIDevice.isTV ? .caption : .subheadline)
+                .font(viewLayout.value(standard: .subheadline, large: .caption))
                 .fontWeight(.medium)
                 .foregroundStyle(.white)
                 .trackingSize($subtitleContentSize)
         }
 
-        var iOSView: some View {
+        var standardView: some View {
             Text(_titleSubtitle.title)
                 .fontWeight(.semibold)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .bottomLeading) {
-                    if let subtitle = _titleSubtitle.subtitle {
+                    if isLive {
+                        liveBadge
+                            .trackingSize($subtitleContentSize)
+                            .offset(y: subtitleContentSize.height)
+                    } else if let subtitle = _titleSubtitle.subtitle {
                         _subtitle(subtitle)
                             .lineLimit(1)
                             .offset(y: subtitleContentSize.height)
@@ -127,19 +146,10 @@ extension VideoPlayer.PlaybackControls.Toolbar {
                 }
         }
 
-        var tvOSView: some View {
+        var largeView: some View {
             VStack(alignment: .leading) {
                 if isLive {
-                    HStack(spacing: 12) {
-                        Text(L10n.live)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 4)
-                            .background(.red, in: Capsule())
-                        Text(liveChannelName)
-                            .font(.callout.weight(.medium))
-                    }
+                    liveBadge
                 } else if let subtitle = _titleSubtitle.subtitle {
                     Text(subtitle)
                         .font(.callout)

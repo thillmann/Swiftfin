@@ -18,6 +18,9 @@ struct PlatformSearchView: View {
     @Router
     private var router
 
+    @PlayMedia
+    private var playMedia
+
     @State
     private var searchQuery = ""
 
@@ -137,9 +140,9 @@ struct PlatformSearchView: View {
         switch item.type {
         case .program, .tvChannel:
             guard let userSession = viewModel.userSession else { return }
-            guard let provider = item.getPlaybackItemProvider(userSession: userSession) else { return }
+            guard let intent = item.getPlaybackIntent(userSession: userSession) else { return }
 
-            router.route(to: .videoPlayer(provider: provider))
+            playMedia(intent: intent)
 
         default:
             router.route(to: .item(item: item))

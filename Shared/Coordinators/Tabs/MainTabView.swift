@@ -10,6 +10,7 @@ import FactoryKit
 import Foundation
 import JellyfinAPI
 import SwiftUI
+@_spi(Advanced) import SwiftUIIntrospect
 
 // TODO: move popup to router
 //       - or, make tab view environment object
@@ -241,19 +242,7 @@ struct MainTabView: View {
         case .display:
             homeTab.coordinator.push(.item(item: response.value))
         case .play:
-            let item = response.value
-            let queue: (any MediaPlayerQueue)? = {
-                guard item.type == .episode else { return nil }
-
-                return EpisodeMediaPlayerQueue(episode: item)
-            }()
-
-            homeTab.coordinator.push(
-                .videoPlayer(
-                    item: item,
-                    queue: queue
-                )
-            )
+            PlayMediaAction { homeTab.coordinator.push($0) }(item: response.value)
         }
     }
     #endif

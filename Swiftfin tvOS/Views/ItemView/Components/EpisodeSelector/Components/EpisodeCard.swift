@@ -15,6 +15,9 @@ extension SeriesEpisodeSelector {
         @Router
         private var router
 
+        @PlayMedia
+        private var playMedia
+
         let entry: LoadedEpisode
         let onEntryFocused: () -> Void
 
@@ -38,12 +41,7 @@ extension SeriesEpisodeSelector {
                     usesContextMenu: false,
                     usesDelayedOverlayFocus: false
                 ) {
-                    router.route(
-                        to: .videoPlayer(
-                            item: entry.episode,
-                            queue: EpisodeMediaPlayerQueue(episode: entry.episode)
-                        )
-                    )
+                    playMedia(item: entry.episode)
                 }
                 .focused($isFocused)
                 .focusedValue(\.focusedPoster, AnyPoster(entry.episode))

@@ -17,15 +17,8 @@ extension VideoPlayer.PlaybackControls.Toolbar {
 
         typealias ViewState = VideoPlayer.ViewState
 
-        private typealias Toolbar = VideoPlayer.PlaybackControls.Toolbar
-
-        private static var buttonSpacing: CGFloat {
-            if UIDevice.isTV {
-                UIDevice.supportsLiquidGlass ? 20 : 16
-            } else {
-                UIDevice.supportsLiquidGlass ? 4 : 0
-            }
-        }
+        @AdaptiveLayout
+        private var viewLayout
 
         @Default(.VideoPlayer.barActionButtons)
         private var rawBarActionButtons
@@ -34,8 +27,13 @@ extension VideoPlayer.PlaybackControls.Toolbar {
 
         @Environment(ViewState.self)
         private var viewState
-        @EnvironmentObject
-        private var manager: MediaPlayerManager
+        @Environment(MediaSession.self)
+        private var mediaSession
+
+        #if os(iOS)
+        @Default(.Experimental.chromecast)
+        private var isChromecastEnabled
+        #endif
 
         @FocusState
         private var focusedButton: String?
@@ -43,29 +41,45 @@ extension VideoPlayer.PlaybackControls.Toolbar {
         private func resolvedActionButtons(_ rawButtons: [VideoPlayerActionButton]) -> [VideoPlayerActionButton] {
             var filteredButtons = rawButtons
 
-            if manager.playbackItem?.audioStreams.isEmpty == true {
+            #if os(iOS)
+            if !isChromecastEnabled {
+                filteredButtons.removeAll(equalTo: .playbackDestination)
+            }
+            #elseif os(tvOS)
+            filteredButtons.removeAll(equalTo: .pictureInPicture)
+            #endif
+            if mediaSession.isRemotePlayback {
+                filteredButtons.removeAll { $0 == .aspectFill || $0 == .pictureInPicture }
+            }
+
+            if mediaSession.playbackItem?.audioStreams.isEmpty == true {
                 filteredButtons.removeAll { $0 == .audio || $0 == .audioOffset }
             }
 
-            if manager.playbackItem?.subtitleStreams.isEmpty == true {
+            if mediaSession.playbackItem?.subtitleStreams.isEmpty == true {
                 filteredButtons.removeAll { $0 == .subtitles || $0 == .subtitleOffset }
             }
 
-            if manager.playbackItem == nil || !(manager.proxy is MediaPlayerOffsetConfigurable) {
+            if mediaSession.playbackItem == nil || !(mediaSession.player is MediaPlayerOffsetProviding) {
                 filteredButtons.removeAll { $0 == .audioOffset || $0 == .subtitleOffset }
             }
 
-            if manager.queue == nil {
+            if !PlaybackSettings.isAvailable(for: mediaSession.playbackItem) {
+                filteredButtons.removeAll(equalTo: .playbackSettings)
+            }
+
+            if mediaSession.queue == nil {
                 filteredButtons.removeAll { $0 == .autoPlay }
                 filteredButtons.removeAll { $0 == .playNextItem }
                 filteredButtons.removeAll { $0 == .playPreviousItem }
             }
 
-            if manager.playbackItem?.origin != .server {
+            // Downloads play local files; online bitrate and version controls do not apply.
+            if mediaSession.playbackItem?.isOffline == true {
                 filteredButtons.removeAll { $0 == .playbackSettings }
             }
 
-            if manager.item.isLiveStream {
+            if mediaSession.item.isLiveStream {
                 filteredButtons.removeAll { $0 == .autoPlay }
                 filteredButtons.removeAll { $0 == .playbackSpeed }
                 filteredButtons.removeAll { $0 == .playbackSettings }
@@ -83,7 +97,7 @@ extension VideoPlayer.PlaybackControls.Toolbar {
         }
 
         private var menuSystemImage: String {
-            if UIDevice.isTV || UIDevice.supportsLiquidGlass {
+            if viewLayout.isLarge || UIDevice.supportsLiquidGlass {
                 "ellipsis"
             } else {
                 "ellipsis.circle"
@@ -120,6 +134,8 @@ extension VideoPlayer.PlaybackControls.Toolbar {
             #if os(iOS)
             case .gestureLock:
                 GestureLock()
+            case .playbackDestination:
+                PlaybackDestination()
             #endif
             case .subtitleOffset:
                 SubtitleOffset()
@@ -148,16 +164,15 @@ extension VideoPlayer.PlaybackControls.Toolbar {
             } label: {
                 menuLabel
             }
-            .frame(width: Toolbar.buttonSize, height: Toolbar.buttonSize)
+            .frame(width: viewLayout.toolbarButtonSize, height: viewLayout.toolbarButtonSize)
             .withViewContext(.isInMenu)
         }
 
-        @ViewBuilder
         private var regularView: some View {
-            HStack(spacing: Self.buttonSpacing) {
+            HStack(spacing: viewLayout.toolbarButtonSpacing) {
                 ForEach(barActionButtons) { button in
                     view(for: button)
-                        .frame(width: Toolbar.buttonSize, height: Toolbar.buttonSize)
+                        .frame(width: viewLayout.toolbarButtonSize, height: viewLayout.toolbarButtonSize)
                         .coordinatedFocus(ViewState.Focus.action(button.rawValue), selection: $focusedButton)
                 }
 
@@ -171,7 +186,7 @@ extension VideoPlayer.PlaybackControls.Toolbar {
                     } label: {
                         menuLabel
                     }
-                    .frame(width: Toolbar.buttonSize, height: Toolbar.buttonSize)
+                    .frame(width: viewLayout.toolbarButtonSize, height: viewLayout.toolbarButtonSize)
                     .coordinatedFocus(ViewState.Focus.action("menu"), selection: $focusedButton)
                 }
             }

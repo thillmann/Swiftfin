@@ -343,6 +343,10 @@ final class DownloadManager: NSObject, ObservableObject {
         task(for: item, mediaSource: mediaSource)?.record
     }
 
+    func record(id: String) -> DownloadRecord? {
+        records[id]
+    }
+
     func completedRecord(for item: BaseItemDto, mediaSource: MediaSourceInfo?) -> DownloadRecord? {
         guard let record = record(for: item, mediaSource: mediaSource),
               record.status == .completed,
@@ -1711,7 +1715,7 @@ final class DownloadManager: NSObject, ObservableObject {
         if let absoluteURL = URL(string: value), absoluteURL.scheme != nil {
             return DownloadSourceClassifier.finiteHTTPURL(from: value)
         }
-        guard !value.hasPrefix("//"), let serverURL = session.client.url(path: value) else { return nil }
+        guard !value.hasPrefix("//"), let serverURL = urlClient(for: session).url(path: value) else { return nil }
 
         return DownloadSourceClassifier.finiteHTTPURL(from: serverURL.absoluteString)
     }
@@ -1789,7 +1793,7 @@ final class DownloadManager: NSObject, ObservableObject {
                 fail(recordID: recordID, error: DownloadError.versionCouldNotBeResolved)
                 return
             }
-            guard let downloadURL = session.client.url(with: Paths.getDownload(itemID: resolvedItemID)) else {
+            guard let downloadURL = urlClient(for: session).url(with: Paths.getDownload(itemID: resolvedItemID)) else {
                 fail(recordID: recordID, error: DownloadError.invalidItem)
                 return
             }
@@ -1806,7 +1810,7 @@ final class DownloadManager: NSObject, ObservableObject {
             url = directURL
             requiresJellyfinAuthorization = isSameOrigin(
                 directURL,
-                session.client.configuration.url
+                urlClient(for: session).configuration.url
             )
 
         case .staticHTTPStream:
@@ -1817,13 +1821,13 @@ final class DownloadManager: NSObject, ObservableObject {
                 container: DownloadSourceClassifier.routeContainer(for: record.mediaSource),
                 isStatic: true,
                 mediaSourceID: record.mediaSourceID,
-                deviceID: session.client.configuration.deviceID
+                deviceID: urlClient(for: session).configuration.deviceID
             )
             let apiRequest = Paths.getVideoStream(
                 itemID: record.presentationItemID,
                 parameters: parameters
             )
-            guard let staticURL = session.client.url(with: apiRequest) else {
+            guard let staticURL = urlClient(for: session).url(with: apiRequest) else {
                 fail(recordID: recordID, error: DownloadError.invalidItem)
                 return
             }
@@ -1920,8 +1924,16 @@ final class DownloadManager: NSObject, ObservableObject {
         }
     }
 
+    /// `UserSession.client` is main-actor isolated. Transfers only need URL and header
+    /// construction, so build an equivalent client from the session's current server URL.
+    private func urlClient(for session: UserSession) -> JellyfinClient {
+        JellyfinClient(
+            configuration: .swiftfinConfiguration(url: session.server.effectiveServerURL, accessToken: session.user.accessToken)
+        )
+    }
+
     private func authorizationHeader(for session: UserSession) -> String {
-        let configuration = session.client.configuration
+        let configuration = urlClient(for: session).configuration
         let fields = [
             "DeviceId=\(configuration.deviceID)",
             "Device=\(configuration.deviceName)",
@@ -3036,7 +3048,7 @@ final class DownloadManager: NSObject, ObservableObject {
             let isThirdParty = destination.map { url in
                 guard let userSession = session(for: record) else { return true }
 
-                return !isSameOrigin(url, userSession.client.configuration.url)
+                return !isSameOrigin(url, userSession.server.effectiveServerURL)
             } ?? true
             if isThirdParty {
                 guard let statusCode = response?.statusCode else { return .invalidUpstreamResponse }
@@ -3241,7 +3253,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
         var redirectedRequest = request
         if isSameOrigin(sourceURL, destinationURL) {
             if let userSession = self.session(for: record),
-               isSameOrigin(destinationURL, userSession.client.configuration.url)
+               isSameOrigin(destinationURL, userSession.server.effectiveServerURL)
             {
                 redirectedRequest.setValue(
                     authorizationHeader(for: userSession),
@@ -3514,7 +3526,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
                 && (destination.map {
                     guard let userSession = self.session(for: record) else { return true }
 
-                    return !self.isSameOrigin($0, userSession.client.configuration.url)
+                    return !self.isSameOrigin($0, userSession.server.effectiveServerURL)
                 } ?? true)
             let reason = isDirectProvider
                 ? "provider transfer failed with URL error code \((error as NSError).code)"

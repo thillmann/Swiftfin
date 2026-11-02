@@ -30,6 +30,9 @@ struct ChannelLibraryView: View {
     @Router
     private var router
 
+    @PlayMedia
+    private var playMedia
+
     @State
     private var channelDisplayType: LibraryDisplayType = .list
 
@@ -41,26 +44,18 @@ struct ChannelLibraryView: View {
     private func compactChannelView(channel: ChannelProgram) -> some View {
         CompactChannelView(channel: channel.channel) {
             guard let userSession = viewModel.userSession else { return }
-            guard let provider = channel.channel.getPlaybackItemProvider(userSession: userSession) else { return }
+            guard let intent = channel.channel.getPlaybackIntent(userSession: userSession) else { return }
 
-            router.route(
-                to: .videoPlayer(
-                    provider: provider
-                )
-            )
+            playMedia(intent: intent)
         }
     }
 
     private func detailedChannelView(channel: ChannelProgram) -> some View {
         DetailedChannelView(channel: channel) {
             guard let userSession = viewModel.userSession else { return }
-            guard let provider = channel.channel.getPlaybackItemProvider(userSession: userSession) else { return }
+            guard let intent = channel.channel.getPlaybackIntent(userSession: userSession) else { return }
 
-            router.route(
-                to: .videoPlayer(
-                    provider: provider
-                )
-            )
+            playMedia(intent: intent)
         }
     }
 

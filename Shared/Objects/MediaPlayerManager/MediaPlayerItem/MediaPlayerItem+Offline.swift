@@ -6,17 +6,26 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
+import FactoryKit
 import Foundation
 import JellyfinAPI
 import UIKit
 
 extension MediaPlayerItem {
 
+    var isOffline: Bool {
+        configuration.offlineRecordID != nil
+    }
+
     /// Builds playback entirely from durable local metadata and file URLs.
     /// No PlaybackInfo or streaming request is made.
-    static func buildOffline(record: DownloadRecord) throws -> MediaPlayerItem {
-        guard record.status == .completed,
+    static func buildOffline(
+        recordID: String,
+        intent: PlaybackIntent,
+        profile: PlaybackProfile
+    ) throws -> MediaPlayerItem {
+        guard let record = Container.shared.downloadManager().record(id: recordID),
+              record.status == .completed,
               let mediaURL = DownloadStorage.mediaURL(for: record),
               FileManager.default.fileExists(atPath: mediaURL.path)
         else { throw ErrorMessage("The downloaded media file is unavailable.") }
@@ -45,11 +54,17 @@ extension MediaPlayerItem {
             mediaSource.mediaStreams = streams
         }
 
-        let playerType = Defaults[.VideoPlayer.videoPlayerType]
-        let deviceProfile = DeviceProfile.build(
-            for: playerType,
-            compatibilityMode: .directPlay
-        )
+        var configuration = intent.configuration
+        configuration.prepare(for: item, source: mediaSource, profile: profile)
+        configuration.finish(source: mediaSource, initialSource: mediaSource)
+
+        let deviceProfile: DeviceProfile = {
+            guard case let .local(playerType) = profile else { return DeviceProfile() }
+
+            var directPlay = configuration
+            directPlay.compatibilityMode = .directPlay
+            return .build(for: playerType, configuration: directPlay, mediaSource: mediaSource)
+        }()
 
         let thumbnailProvider: ThumbnailProvider? = {
             let imageURL = DownloadStorage.imageURL(for: record, name: "Backdrop")
@@ -64,10 +79,12 @@ extension MediaPlayerItem {
             mediaSource: mediaSource,
             playSessionID: "offline-\(record.id)",
             url: mediaURL,
-            requestedBitrate: .max,
+            configuration: configuration,
             deviceProfile: deviceProfile,
-            thumbnailProvider: thumbnailProvider,
-            origin: .download(recordID: record.id)
+            chapters: [],
+            temporaryFiles: PlaybackTemporaryFiles(accessToken: nil),
+            previewImageProvider: nil,
+            thumbnailProvider: thumbnailProvider
         )
     }
 }

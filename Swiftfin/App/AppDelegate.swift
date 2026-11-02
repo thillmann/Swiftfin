@@ -7,7 +7,6 @@
 //
 
 import FactoryKit
-import PreferencesView
 import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {

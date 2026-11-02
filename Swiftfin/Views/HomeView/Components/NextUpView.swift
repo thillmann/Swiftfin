@@ -20,6 +20,9 @@ extension HomeView {
         @Router
         private var router
 
+        @PlayMedia
+        private var playMedia
+
         @ObservedObject
         var viewModel: NextUpLibraryViewModel
 
@@ -38,12 +41,7 @@ extension HomeView {
                             router.route(to: .library(viewModel: viewModel))
                         }
                     ) { item, _ in
-                        router.route(
-                            to: .videoPlayer(
-                                item: item,
-                                queue: item.type == .episode ? EpisodeMediaPlayerQueue(episode: item) : nil
-                            )
-                        )
+                        playMedia(item: item)
                     } label: { item in
                         if item.type == .episode {
                             PosterButtonEpisodeContentSubtitleContent(item: item)

@@ -169,6 +169,7 @@ private extension CinematicBackgroundView {
 
 private enum CinematicBackgroundImageProvider {
 
+    @MainActor
     static func imageSources(for item: (any PlatformPoster)?) -> [ImageSource] {
         (
             homeImageSources(for: item) +
@@ -178,6 +179,7 @@ private enum CinematicBackgroundImageProvider {
         .filter { $0.url != nil }
     }
 
+    @MainActor
     private static func homeImageSources(for item: (any PlatformPoster)?) -> [ImageSource] {
         guard let item, let item = item as? BaseItemDto else {
             return []
@@ -229,6 +231,7 @@ private var cinematicBackgroundShadowGradient: some View {
     .allowsHitTesting(false)
 }
 
+@MainActor
 private func updateCinematicBackground(
     for item: (any PlatformPoster)?,
     transition: RotateContentView.Transition,

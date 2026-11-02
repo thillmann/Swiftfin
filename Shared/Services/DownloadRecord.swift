@@ -348,12 +348,12 @@ enum DownloadStorage {
 }
 
 extension DownloadRecord {
-    /// AVPlayer cannot render these local containers or subtitle sidecars.
-    var preferredVideoPlayerType: VideoPlayerType {
-        let preferred = Defaults[.VideoPlayer.videoPlayerType]
+    /// AVPlayer cannot render these local containers or subtitle sidecars; MPV plays them instead.
+    var preferredMediaPlayerType: MediaPlayerType {
+        let preferred = Defaults[.VideoPlayer.mediaPlayerType]
         guard preferred == .avPlayer else { return preferred }
 
         let container = mediaSource.container?.lowercased() ?? ""
-        return subtitleFilenames.isNotEmpty || !["mp4", "mov", "m4v"].contains(container) ? .vlc : .avPlayer
+        return subtitleFilenames.isNotEmpty || !["mp4", "mov", "m4v"].contains(container) ? .mpv : .avPlayer
     }
 }

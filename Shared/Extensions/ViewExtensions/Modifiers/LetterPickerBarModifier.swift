@@ -11,19 +11,23 @@ import SwiftUI
 
 struct LetterPickerBarModifier: ViewModifier {
 
+    @AdaptiveLayout
+    private var viewLayout
+
     @Default(.Customization.Library.letterPickerOrientation)
     private var letterPickerOrientation
 
     let viewModel: FilterViewModel?
 
-    @ViewBuilder
     func body(content: Content) -> some View {
         if let edge = letterPickerOrientation.edge,
            let viewModel
         {
             content
                 .focusSection()
+            #if os(tvOS)
                 .ignoresSafeArea(.all, edges: edge == .leading ? .trailing : .leading)
+            #endif
                 .safeAreaInset(edge: edge, alignment: .center, spacing: 0) {
                     LetterPickerBar(viewModel: viewModel)
                         .if(!UIDevice.isTV) { view in
@@ -40,7 +44,9 @@ struct LetterPickerBarModifier: ViewModifier {
                 }
         } else {
             content
-                .ignoresSafeArea(.all, edges: .horizontal)
+            #if os(tvOS)
+            .ignoresSafeArea(.all, edges: .horizontal)
+            #endif
         }
     }
 }

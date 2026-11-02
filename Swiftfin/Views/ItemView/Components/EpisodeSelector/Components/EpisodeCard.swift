@@ -52,6 +52,9 @@ extension SeriesEpisodeSelector {
 
         @Router
         private var router
+
+        @PlayMedia
+        private var playMedia
         @Default(.accentColor)
         private var accentColor
 
@@ -106,12 +109,7 @@ extension SeriesEpisodeSelector {
                 return
             }
 
-            router.route(
-                to: .videoPlayer(
-                    item: episode,
-                    queue: EpisodeMediaPlayerQueue(episode: episode)
-                )
-            )
+            playMedia(item: episode)
         }
 
         private var primaryButtonContent: some View {

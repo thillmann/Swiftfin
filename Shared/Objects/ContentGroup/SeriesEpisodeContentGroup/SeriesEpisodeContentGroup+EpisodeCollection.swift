@@ -121,6 +121,9 @@ extension SeriesEpisodeContentGroup {
 
     private struct EpisodeCollectionLayout<Header: View, Content: View>: View {
 
+        @AdaptiveLayout
+        private var viewLayout
+
         private enum FocusedSection: Hashable {
 
             case seasons
@@ -149,53 +152,38 @@ extension SeriesEpisodeContentGroup {
             self.content = content
         }
 
-        private static var layout: CollectionHStackLayout {
-            #if os(tvOS)
-            .grid(
-                columns: 3.5,
+        private var layout: CollectionHStackLayout {
+            .minimumWidth(
+                columnWidth: viewLayout.posterMinimumWidth(for: .landscape, size: .medium),
                 rows: 1,
-                columnTrailingInset: 0
+                columnFraction: 0.5
             )
-            #else
-            if UIDevice.isPad {
-                .minimumWidth(
-                    columnWidth: 300,
-                    rows: 1
-                )
-            } else {
-                .grid(
-                    columns: 1.5,
-                    rows: 1,
-                    columnTrailingInset: 0
-                )
-            }
-            #endif
         }
 
         var body: some View {
             ContentGroupSection {
                 CollectionHStack(
                     uniqueElements: elements,
-                    layout: Self.layout
+                    layout: layout
                 ) { element in
                     content(element)
                         .focused($focusedElement, equals: element.id)
-                    #if os(tvOS)
-                        .ignoresSafeArea()
-                    #endif
                 }
                 .initialElement(id: preferredElementID)
                 .clipsToBounds(false)
-                .insets(horizontal: EdgeInsets.edgePadding)
-                .itemSpacing(EdgeInsets.itemSpacing)
+                .insets(horizontal: viewLayout.edgePadding)
+                .itemSpacing(viewLayout.itemSpacing)
                 .scrollBehavior(.continuousLeadingEdge)
-                .focusSection()
-                .focused($focusedSection, equals: .episodes)
-                .defaultFocus(
-                    $focusedElement,
-                    preferredElementID,
-                    priority: .userInitiated
-                )
+                #if os(iOS)
+                    .contentInsetAdjustmentBehavior(.never)
+                #endif
+                    .focusSection()
+                    .focused($focusedSection, equals: .episodes)
+                    .defaultFocus(
+                        $focusedElement,
+                        preferredElementID,
+                        priority: .userInitiated
+                    )
             } header: {
                 header
                     .focusSection()
@@ -217,7 +205,6 @@ extension SeriesEpisodeContentGroup {
         let element: EpisodeElement
         let refresh: () -> Void
 
-        @ViewBuilder
         var body: some View {
             switch element {
             case .empty:

@@ -28,26 +28,31 @@ protocol PlatformPoster: Displayable, Hashable, LibraryIdentifiable, SystemImage
     /// Show the title
     var showTitle: Bool { get }
 
+    @MainActor
     func portraitImageSources(
         maxWidth: CGFloat?,
         quality: Int?
     ) -> [ImageSource]
 
+    @MainActor
     func landscapeImageSources(
         maxWidth: CGFloat?,
         quality: Int?
     ) -> [ImageSource]
 
+    @MainActor
     func cinematicImageSources(
         maxWidth: CGFloat?,
         quality: Int?
     ) -> [ImageSource]
 
+    @MainActor
     func squareImageSources(
         maxWidth: CGFloat?,
         quality: Int?
     ) -> [ImageSource]
 
+    @MainActor
     func thumbImageSources() -> [ImageSource]
 
     @MainActor
@@ -73,6 +78,7 @@ extension PlatformPoster {
         true
     }
 
+    @MainActor
     func portraitImageSources(
         maxWidth: CGFloat? = nil,
         quality: Int? = nil
@@ -80,6 +86,7 @@ extension PlatformPoster {
         []
     }
 
+    @MainActor
     func landscapeImageSources(
         maxWidth: CGFloat? = nil,
         quality: Int? = nil
@@ -87,6 +94,7 @@ extension PlatformPoster {
         []
     }
 
+    @MainActor
     func cinematicImageSources(
         maxWidth: CGFloat?,
         quality: Int? = nil
@@ -94,6 +102,7 @@ extension PlatformPoster {
         []
     }
 
+    @MainActor
     func squareImageSources(
         maxWidth: CGFloat?,
         quality: Int? = nil
@@ -102,6 +111,7 @@ extension PlatformPoster {
     }
 
     // TODO: change to observe preferred poster display type
+    @MainActor
     func thumbImageSources() -> [ImageSource] {
         []
     }

@@ -25,6 +25,9 @@ extension PlatformItemView {
         @Router
         private var router
 
+        @PlayMedia
+        private var playMedia
+
         // MARK: - Error State
 
         @State
@@ -112,7 +115,7 @@ extension PlatformItemView {
 
         private func playLocalTrailer(_ trailer: BaseItemDto) {
             if let mediaSource = trailer.mediaSources?.first {
-                router.route(to: .videoPlayer(item: trailer, mediaSource: mediaSource))
+                playMedia(item: trailer, mediaSource: mediaSource)
             } else {
                 logger.log(level: .error, "No media sources found")
                 error = ErrorMessage(L10n.unknownError)

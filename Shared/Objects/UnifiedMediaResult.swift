@@ -55,6 +55,7 @@ enum UnifiedMediaResult: Identifiable {
         }
     }
 
+    @MainActor
     var imageSources: [ImageSource] {
         switch self {
         case let .jellyfin(item):
@@ -121,18 +122,22 @@ extension UnifiedMediaResult: PlatformPoster {
         }
     }
 
+    @MainActor
     func portraitImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
         imageSources
     }
 
+    @MainActor
     func landscapeImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
         imageSources
     }
 
+    @MainActor
     func cinematicImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
         imageSources
     }
 
+    @MainActor
     func squareImageSources(maxWidth _: CGFloat?, quality _: Int?) -> [ImageSource] {
         imageSources
     }

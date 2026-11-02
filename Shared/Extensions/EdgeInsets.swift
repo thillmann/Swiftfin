@@ -19,7 +19,7 @@ extension EdgeInsets {
         )
     }
 
-    // TODO: finalize tvOS
+    // Platform views keep fixed insets; shared views use `AdaptiveLayout`.
     /// The padding for Views against contextual edges,
     /// typically the edges of the View's scene
     static let edgePadding: CGFloat = {

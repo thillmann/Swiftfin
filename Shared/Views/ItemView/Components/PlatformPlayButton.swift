@@ -17,8 +17,8 @@ extension PlatformItemView {
     /// The playback action shared by the iOS and tvOS item heroes.
     struct PlayButton: View {
 
-        @Router
-        private var router
+        @PlayMedia
+        private var playMedia
 
         #if os(iOS)
         @ObservedObject
@@ -246,45 +246,15 @@ extension PlatformItemView {
             let localRecord = preferredLocalRecord ?? viewModel.offlineRecord
             #endif
 
-            let queue: (any MediaPlayerQueue)? = {
-                // The online episode queue may fetch adjacent episodes. Keep
-                // exact-version offline playback local and isolated for now.
-                if localRecord != nil { return nil }
-                if playButtonItem.type == .episode {
-                    return EpisodeMediaPlayerQueue(episode: playButtonItem)
-                }
-                return nil
-            }()
+            // Offline playback stays local; the online episode queue would fetch adjacent episodes.
+            var intent = localRecord.map(PlaybackIntent.init(downloadRecord:))
+                ?? PlaybackIntent(item: playButtonItem, mediaSource: selectedMediaSource)
 
-            let provider = MediaPlayerItemProvider(item: playButtonItem, offlineRecord: localRecord) { item in
-                if let localRecord {
-                    var record = localRecord
-                    if fromBeginning {
-                        record.offlineProgress = .init(
-                            positionTicks: 0,
-                            isPlayed: false,
-                            updatedAt: .now
-                        )
-                    }
-                    return try await MediaPlayerItem.buildOffline(record: record)
-                }
-
-                return try await MediaPlayerItem.build(
-                    for: item,
-                    mediaSource: selectedMediaSource
-                ) {
-                    if fromBeginning {
-                        $0.userData?.playbackPositionTicks = 0
-                    }
-                }
+            if fromBeginning {
+                intent.configuration.startSeconds = .zero
             }
 
-            router.route(
-                to: .videoPlayer(
-                    provider: provider,
-                    queue: queue
-                )
-            )
+            playMedia(intent: intent)
         }
     }
 }

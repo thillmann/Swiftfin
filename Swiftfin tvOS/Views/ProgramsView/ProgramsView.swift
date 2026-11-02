@@ -17,6 +17,9 @@ struct ProgramsView: View {
     @Router
     private var router
 
+    @PlayMedia
+    private var playMedia
+
     @Injected(\.currentUserSession)
     private var userSession
 
@@ -25,9 +28,9 @@ struct ProgramsView: View {
 
     private func play(_ item: BaseItemDto) {
         guard let userSession else { return }
-        guard let provider = item.getPlaybackItemProvider(userSession: userSession) else { return }
+        guard let intent = item.getPlaybackIntent(userSession: userSession) else { return }
 
-        router.route(to: .videoPlayer(provider: provider))
+        playMedia(intent: intent)
     }
 
     @ViewBuilder

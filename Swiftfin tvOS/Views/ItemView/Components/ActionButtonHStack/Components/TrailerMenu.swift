@@ -26,6 +26,9 @@ extension PlatformItemView {
         @Router
         private var router
 
+        @PlayMedia
+        private var playMedia
+
         @State
         private var error: Error?
 
@@ -120,7 +123,7 @@ extension PlatformItemView {
                 return
             }
 
-            router.route(to: .videoPlayer(item: trailer, mediaSource: selectedMediaSource))
+            playMedia(item: trailer, mediaSource: selectedMediaSource)
         }
 
         // MARK: Play External Trailer

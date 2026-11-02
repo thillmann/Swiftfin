@@ -11,7 +11,6 @@ import SwiftUIIntrospect
 
 extension View {
 
-    @ViewBuilder
     func filterBar(
         viewModel: FilterViewModel,
         types: [ItemFilterType]
@@ -25,13 +24,11 @@ extension View {
     }
 
     /// - Important: This does nothing on tvOS.
-    @ViewBuilder
     func navigationBarTitleDisplayMode(_ mode: NavigationBarItem.TitleDisplayMode) -> some View {
         self
     }
 
     /// - Important: This does nothing on tvOS.
-    @ViewBuilder
     func navigationBarCloseButton(
         disabled: Bool = false,
         _ action: @escaping () -> Void
@@ -40,19 +37,16 @@ extension View {
     }
 
     /// - Important: This does nothing on tvOS.
-    @ViewBuilder
     func statusBarHidden() -> some View {
         self
     }
 
     /// - Important: This does nothing on tvOS.
-    @ViewBuilder
     func prefersStatusBarHidden(_ hidden: Bool = true) -> some View {
         self
     }
 
     /// - Important: This does nothing on tvOS.
-    @ViewBuilder
     func searchFocused(_ isFocused: FocusState<Bool>.Binding) -> some View {
         self
     }
@@ -65,5 +59,6 @@ extension EnvironmentValues {
 }
 
 struct PresentationCoordinator {
+
     var isPresented: Bool = false
 }
