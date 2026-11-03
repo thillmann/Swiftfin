@@ -6,6 +6,9 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+#if os(tvOS)
+import AVKit
+#endif
 import Combine
 import JellyfinAPI
 import Logging
@@ -26,6 +29,13 @@ final class MPVMediaPlayer: VideoMediaPlayer, MediaPlayerOffsetProviding, MediaP
     #if os(iOS)
     @ObservationIgnored
     private var automaticPiPObservation: AnyCancellable?
+    #endif
+
+    #if os(tvOS)
+    @ObservationIgnored
+    private var displayModeSwitchObservation: AnyCancellable?
+    @ObservationIgnored
+    private var displayModeSwitchRecovery: AnyCancellable?
     #endif
 
     @ObservationIgnored
@@ -77,6 +87,18 @@ final class MPVMediaPlayer: VideoMediaPlayer, MediaPlayerOffsetProviding, MediaP
 
         #if os(iOS)
         automaticPiPObservation = observeAutomaticPictureInPicture()
+        #endif
+
+        #if os(tvOS)
+        displayModeSwitchObservation = NotificationCenter.default
+            .publisher(for: .AVDisplayManagerModeSwitchEnd)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                let manager = notification.object as? AVDisplayManager
+                MainActor.assumeIsolated {
+                    self?.recoverFromDisplayModeSwitch(manager)
+                }
+            }
         #endif
     }
 
@@ -134,6 +156,9 @@ final class MPVMediaPlayer: VideoMediaPlayer, MediaPlayerOffsetProviding, MediaP
         cancelSeek()
         lastError = nil
         pendingPlaybackStatus = nil
+        #if os(tvOS)
+        displayModeSwitchRecovery = nil
+        #endif
 
         textSubtitles.clear()
         player.stop()
@@ -524,3 +549,43 @@ extension MPVMediaPlayer: MediaPlayerSubtitleCueProviding {
         })
     }
 }
+
+#if os(tvOS)
+extension MPVMediaPlayer {
+
+    /// MPVUI pauses mpv while the TV changes refresh rate, but can read the switch
+    /// as still in progress when it ends and then never resume. If playback has not
+    /// advanced once the switch settles, cycle the transport so MPVUI re-evaluates it.
+    private func recoverFromDisplayModeSwitch(_ manager: AVDisplayManager?) {
+        guard loadedItem != nil else { return }
+
+        displayModeSwitchRecovery = Task { [weak self] in
+            do {
+                // The end notification can arrive before the manager clears its flag.
+                for _ in 0 ..< 30 where manager?.isDisplayModeSwitchInProgress == true {
+                    try await Task.sleep(for: .milliseconds(100))
+                }
+
+                guard let start = self?.player.position else { return }
+
+                try await Task.sleep(for: .seconds(1))
+
+                guard let self, loadedItem != nil, player.position == start,
+                      mediaSession?.playbackRequestStatus == .playing
+                else { return }
+
+                // The intermediate pause is mechanical and must not reach the session.
+                pendingPlaybackStatus = .playing
+                player.pause()
+
+                // Let MPVUI observe the paused state and clear its stale switch flag.
+                try await Task.sleep(for: .milliseconds(300))
+                guard loadedItem != nil, mediaSession?.playbackRequestStatus == .playing else { return }
+
+                player.play()
+            } catch {}
+        }
+        .asAnyCancellable()
+    }
+}
+#endif
