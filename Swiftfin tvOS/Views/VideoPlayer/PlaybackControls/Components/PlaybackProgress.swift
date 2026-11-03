@@ -140,7 +140,8 @@ extension VideoPlayer.PlaybackControls {
             .frame(height: sliderHeight)
             .trackingSize($sliderSize)
             .foregroundStyle(mediaSession.canSeek ? Color.primary : Color.gray)
-            .disabled(!mediaSession.canSeek)
+            // Stay focusable while loading so the player receives remote input from the start.
+            // Scrubbing is gated on `canSeek` separately.
         }
 
         private var liveProgramDates: (start: Date, end: Date)? {
