@@ -293,8 +293,11 @@ private extension AetherMediaPlayer {
 private extension AetherMediaPlayer {
 
     func bindEngine() {
+        // `@Published` emits before storing the new value. Deliver after it lands so
+        // `publishPlaybackState()` never reads the previous state or buffering flag.
         engine.$state
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 guard let self, let item = loadedItem else { return }
 
@@ -320,11 +323,13 @@ private extension AetherMediaPlayer {
 
         engine.$isBuffering
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.publishPlaybackState() }
             .store(in: &engineCancellables)
 
         engine.$duration
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.publishPlaybackState() }
             .store(in: &engineCancellables)
 
