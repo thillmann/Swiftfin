@@ -161,7 +161,7 @@ struct MediaView: View {
                     ProgressView()
                 case .error:
                     viewModel.error.map {
-                        ErrorView(error: $0)
+                        ErrorView(error: $0, allowsServerSelection: true)
                     }
                 }
             }

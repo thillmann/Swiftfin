@@ -211,7 +211,7 @@ struct HomeView: View {
             case .content:
                 contentView
             case let .error(error):
-                ErrorView(error: error)
+                ErrorView(error: error, allowsServerSelection: true)
             case .initial, .refreshing:
                 ProgressView()
             }

@@ -194,7 +194,7 @@ struct HomeView: View {
                 case .content, .refreshing:
                     contentView(heroHeight: detailBackdropSize.height)
                 case let .error(error):
-                    ErrorView(error: error)
+                    ErrorView(error: error, allowsServerSelection: true)
                 case .initial:
                     ProgressView()
                 }

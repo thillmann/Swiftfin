@@ -7,6 +7,7 @@
 //
 
 import Defaults
+import FactoryKit
 import SwiftUI
 
 struct ErrorView<ErrorType: Error>: View {
@@ -20,7 +21,23 @@ struct ErrorView<ErrorType: Error>: View {
     @Environment(\.refresh)
     private var refresh
 
+    @InjectedObject(\.userSessionManager)
+    private var userSessionManager
+
+    @State
+    private var isSelectingServer = false
+
     let error: ErrorType
+    let allowsServerSelection: Bool
+
+    init(error: ErrorType) {
+        self.init(error: error, allowsServerSelection: false)
+    }
+
+    init(error: ErrorType, allowsServerSelection: Bool) {
+        self.error = error
+        self.allowsServerSelection = allowsServerSelection
+    }
 
     private var networkFailure: NetworkFailure? {
         if let errorMessage = error as? ErrorMessage {
@@ -97,7 +114,30 @@ struct ErrorView<ErrorType: Error>: View {
                     .frame(minHeight: viewLayout.controlHeight)
                     .frame(maxWidth: viewLayout.value(standard: 300, large: 600))
             }
+
+            if allowsServerSelection, userSessionManager.currentSession != nil {
+                Button {
+                    isSelectingServer = true
+
+                    Task { @MainActor in
+                        await userSessionManager.signOut(reason: .explicit)
+                        isSelectingServer = false
+                    }
+                } label: {
+                    Text(L10n.selectServer)
+                        .frame(maxWidth: .infinity)
+                }
+                .fontWeight(.semibold)
+                .backport
+                .buttonStyle(.glass)
+                #if os(iOS)
+                    .controlSize(.large)
+                #endif
+                    .frame(minHeight: viewLayout.controlHeight)
+                    .frame(maxWidth: viewLayout.value(standard: 300, large: 600))
+            }
         }
+        .disabled(isSelectingServer)
         .frame(maxWidth: 600, maxHeight: .infinity)
         .frame(maxWidth: .infinity)
         .focusSection()
