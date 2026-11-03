@@ -117,11 +117,16 @@ extension ServerState {
         }
     }
 
+    /// The oldest server release Swiftfin supports. This is lower than the
+    /// SDK's generated API version (`client.version`), which tracks the
+    /// newest Jellyfin release rather than a compatibility floor.
+    static let minimumSupportedVersion: JellyfinClient.Version = "10.11.0"
+
     var isVersionCompatible: Bool {
         let publicInfo = StoredValues[.Server.publicInfo(id: self.id)]
 
         if let version = publicInfo.version {
-            return JellyfinClient.Version(stringLiteral: version).majorMinor >= client.version.majorMinor
+            return JellyfinClient.Version(stringLiteral: version).majorMinor >= Self.minimumSupportedVersion.majorMinor
         } else {
             return false
         }
