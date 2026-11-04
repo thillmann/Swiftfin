@@ -42,6 +42,8 @@
 		AEA000022FCF100000000002 /* AetherEngine in Frameworks */ = {isa = PBXBuildFile; productRef = AEA000052FCF100000000005 /* AetherEngine */; };
 		AEA010010000000000000002 /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = AEA010010000000000000001 /* StatefulMacros */; };
 		AEA010020000000000000002 /* PulseLogHandler in Frameworks */ = {isa = PBXBuildFile; productRef = AEA010020000000000000001 /* PulseLogHandler */; };
+		AEA020000000000000000001 /* CoreStore in Embed Package Frameworks */ = {isa = PBXBuildFile; productRef = E13DD3C52716499E009D4DAF /* CoreStore */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AEA020000000000000000003 /* CoreStore in Embed Package Frameworks */ = {isa = PBXBuildFile; productRef = E13DD3CC27164CA7009D4DAF /* CoreStore */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		BD88CB422D77E6A0006BB5E3 /* TVOSPicker in Frameworks */ = {isa = PBXBuildFile; productRef = BD88CB412D77E6A0006BB5E3 /* TVOSPicker */; };
 		E1002B682793CFBA00E47059 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = E1002B672793CFBA00E47059 /* Algorithms */; };
 		E1002B6B2793E36600E47059 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = E1002B6A2793E36600E47059 /* Algorithms */; };
@@ -98,8 +100,6 @@
 		E20000002FCF000000000003 /* TVServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53ABFDDB267972BF00886593 /* TVServices.framework */; };
 		E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = E20000002FCF000000000100 /* Swiftfin tvOS Top Shelf.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F200000000000001 /* Shared/Views/ItemView/Components/MediaSourceMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = F200000000000002 /* Shared/Views/ItemView/Components/MediaSourceMenu.swift */; };
-		AEA020000000000000000001 /* CoreStore in Embed Package Frameworks */ = {isa = PBXBuildFile; productRef = E13DD3C52716499E009D4DAF /* CoreStore */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AEA020000000000000000003 /* CoreStore in Embed Package Frameworks */ = {isa = PBXBuildFile; productRef = E13DD3CC27164CA7009D4DAF /* CoreStore */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -113,17 +113,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		E20000002FCF000000000007 /* Embed App Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */,
-			);
-			name = "Embed App Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AEA020000000000000000002 /* Embed Package Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -144,6 +133,17 @@
 				AEA020000000000000000003 /* CoreStore in Embed Package Frameworks */,
 			);
 			name = "Embed Package Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E20000002FCF000000000007 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E20000002FCF000000000004 /* Swiftfin tvOS Top Shelf.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -1432,6 +1432,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = S77VC3X88P;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_BITCODE = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1448,7 +1449,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_CFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = org.jellyfin.swiftfin;
+				PRODUCT_BUNDLE_IDENTIFIER = timo.jellyfin.swiftfin;
 				PRODUCT_NAME = Swiftfin;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTS_MACCATALYST = NO;
